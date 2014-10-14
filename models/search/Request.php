@@ -9,6 +9,7 @@ use nitm\models\Request as RequestModel;
 /**
  * Request represents the model behind the search form about `nitm\models\Request`.
  */
-class Request extends BaseSearch
+class Request extends \nitm\search\BaseSearch
 {
+	use \nitm\traits\relations\Request;
 }

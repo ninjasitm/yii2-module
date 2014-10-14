@@ -432,7 +432,7 @@ trait Relations {
 	{
 		$parts = explode('\\', $relationClass);
 		$baseName = array_pop($parts);
-		if(\nitm\traits\Search::useSearchClass($callingClass) !== false)
+		if(\nitm\search\traits\Search::useSearchClass($callingClass) !== false)
 			$parts[] = 'search';
 		$parts[] = $baseName;
 		return implode('\\', $parts);

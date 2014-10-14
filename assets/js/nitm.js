@@ -290,7 +290,7 @@ function Nitm ()
 	//get the object information
 	this.getObj = function (selector, by, alert_obj, esc)
 	{
-		console.log(selector);
+		//console.log(selector);
 		esc = (esc == undefined) ? true : esc;
 		if(selector instanceof jQuery)
 		{

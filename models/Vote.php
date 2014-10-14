@@ -15,7 +15,6 @@ class Vote extends BaseWidget
 {
 	public $_up;
 	public $_down;
-	protected static $is = 'vote';
 	protected static $maxVotes;
 	
 	public function init()

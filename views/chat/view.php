@@ -26,6 +26,12 @@ $uniqid = !isset($uniqid) ? uniqid() : $uniqid.$model->getId();
 	<div id="message-avatar<?= $model->getId() ?>" class="message-avatar">
 		<img id='messageAvatar<?= $model->getId(); ?>' class="avatar-small" alt="<? $model->author()->username; ?>" src="<?= $model->author()->avatar(); ?>" />
 	</div>
+	<div id="messageHeader<?= $model->getId() ?>" class="message-header">
+		<?php if($model->replyTo != null): ?>
+		<a class="reply-to-author" href="#message<?= $model->replyTo->id ?>">@<?= $model->replyTo->author()->username ?></a>&nbsp;
+		<?php endif; ?>
+		<span class="message-title"><?= $model->title ?><span>
+	</div>
 	<div id="message-body<?= $model->getId() ?>" class="message-body">
 		<div role='message'> <?= \nitm\helpers\Helper::parseLinks($model->message); ?> </div>
 	</div>

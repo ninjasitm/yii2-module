@@ -27,9 +27,11 @@ namespace nitm\models;
  */
 class Request extends Entity
 {	
+	use \nitm\traits\relations\Request;
+	
 	public $requestModel;
 	
-	protected static $is = 'requests';
+	protected $is = 'request';
 	
 	protected static $urgency = [
 		'normal',
@@ -121,24 +123,6 @@ class Request extends Entity
 				'status' => null,
 			]
 		);
-	}
-	
-	public function getUrgency()
-	{
-		return @ucfirst(static::$urgency[$this->status]);
-	}
-
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getRequestFor()
-    {
-        return $this->hasOne(Category::className(), ['id' => 'request_for_id']);
-    }
-	
-	public function requestFor()
-	{
-		return $this->requestFor instanceof Category ? $this->requestFor : new Category();
 	}
 	
 	public function afterSaveEvent($event)

@@ -8,7 +8,7 @@ use yii\data\ActiveDataProvider;
 /**
  * Token represents the model behind the search form about Token.
  */
-class Token extends BaseSearch
+class Token extends \nitm\search\BaseSearch
 {
-	protected $namespace = '\nitm\models\api';
+	public $namespace = '\nitm\models\api';
 }

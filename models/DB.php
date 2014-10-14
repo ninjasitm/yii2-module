@@ -1230,7 +1230,7 @@ class DB extends Query
 				{
 					case true:
 					$values = [];
-					$bind_fields = (array) $bind_fields;
+					$bind_fields = [$bind_fields];
 					foreach($bind_fields as $fields)
 					{
 						$values[] = "VALUES(".implode(',', ($fields)).")";

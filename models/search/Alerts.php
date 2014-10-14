@@ -10,6 +10,6 @@ use nitm\models\Alerts as AlertsModel;
 /**
  * Alerts represents the model behind the search form about `nitm\models\Alerts`.
  */
-class Alerts extends BaseSearch
+class Alerts extends \nitm\search\BaseSearch
 {
 }

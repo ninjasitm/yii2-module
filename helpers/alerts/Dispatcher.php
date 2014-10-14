@@ -542,8 +542,11 @@ class Dispatcher extends \yii\base\Component
 				$v = explode(':', $v);
 				$k = $v[0];
 				$f = sizeof($v) == 1 ? null : $v[1];
-				$realValue = $variables['%'.$k.'%'];
-				$variables['%'.implode(':', $v).'%'] = is_null($f) == 1 ? $realValue : $f($realValue);
+				if(isset($variables['%'.$k.'%']))
+				{
+					$realValue = $variables['%'.$k.'%'];
+					$variables['%'.implode(':', $v).'%'] = is_null($f) == 1 ? $realValue : $f($realValue);
+				}
 			});
 		});
 		$ret_val = str_replace(array_keys($variables), array_values($variables), $string);

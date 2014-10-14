@@ -10,7 +10,7 @@ use nitm\models\Replies as RepliesModel;
 /**
  * Replies represents the model behind the search form about `app\models\Replies`.
  */
-class Replies extends BaseSearch
+class Replies extends \nitm\search\BaseSearch
 {
 	use \nitm\traits\relations\Replies, \nitm\traits\BaseWidget;
 }

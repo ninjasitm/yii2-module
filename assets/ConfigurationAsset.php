@@ -25,8 +25,6 @@ class ConfigurationAsset extends AssetBundle
 		'yii\web\YiiAsset',
 		'yii\bootstrap\BootstrapAsset',
 		'yii\bootstrap\BootstrapPluginAsset',
-		'yii\jui\AutoCompleteAsset',
-		'yii\jui\ThemeAsset',
 		'nitm\assets\AppAsset',
 	];
 }

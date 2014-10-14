@@ -9,6 +9,6 @@ use nitm\models\Revisions as RevisionsModel;
 /**
  * Revisions represents the model behind the search form about `nitm\models\Revisions`.
  */
-class Revisions extends BaseSearch
+class Revisions extends \nitm\search\BaseSearch
 {
 }

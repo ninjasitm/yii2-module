@@ -30,7 +30,6 @@ class Replies extends BaseWidget
 	];
 	
 	protected $author_idIdKey = 'author_id';
-	protected static $is = 'replies';
 	
 	const LAST_ACTIVITY = '___lastActivity';
 	const FORM_PARAM = '__withForm';

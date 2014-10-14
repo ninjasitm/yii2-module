@@ -55,5 +55,18 @@ trait User {
 	{
 		return $this->hasMany(\nitm\models\api\Token::className(), ['userid' => 'id'])->all();
 	}
+	
+	public function url($fullName=false, $url=null, $options=[]) 
+	{
+		$url = is_null($url) ? 'user/profile/'.$this->getId() : $url;
+		$urlOptions = array_merge([$url], $options);
+		$text = ($fullName === false) ? $this->username : $this->fullname();
+		$htmlOptions = [
+			'href' => \Yii::$app->urlManager->createUrl($urlOptions), 
+			'role' => 'userLink', 
+			'id' => 'user'.uniqid()
+		];
+		return \yii\helpers\Html::tag('a', $text, $htmlOptions);
+	}
 }
 ?>

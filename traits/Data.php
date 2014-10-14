@@ -10,21 +10,33 @@ trait Data {
 	public $withThese = [];
 	
 	protected $_count;
-	protected static $is;
+	protected $is;
+	protected static $_is;
 	protected static $tableName;
 	
 	/*
 	 * What does this claim to be?
 	 */
-	public static function isWhat()
+	public function isWhat()
 	{
-		switch(empty(static::$is))
+		$purify = function ($value) {
+			 return strtolower(implode('-', preg_split('/(?=[A-Z])/', array_pop(explode('\\', $value)), -1, PREG_SPLIT_NO_EMPTY)));
+		};
+		switch(debug_backtrace(false, 1)[0]['type'])
 		{
-			case true:
-			static::$is = strtolower(array_pop(explode('\\', static::className())));
+			case '->':
+			//If it's a model then get the instantiated $is value
+			return isset($this->is) ? $this->is : $purify(static::className());
+			break;
+			
+			default:
+			//Otherwise get the instantiated class value
+			$class = static::className();
+			if(!isset($class::$_is))
+				$class::$_is = $purify($class);
+			return $class::$_is;
 			break;
 		}
-		return static::$is;
 	}
 	
 	public function beforeSaveEvent($event)
@@ -54,6 +66,16 @@ trait Data {
 	{
 		$ret_val = empty($value) ?  '' : preg_replace('/[\-\_]/', " ", $value);
 		return implode(' ', array_map('ucfirst', explode(' ', $ret_val)));
+	}
+	
+	/*
+	 * Return a string imploded with ucfirst characters
+	 * @param string $name
+	 * @return string
+	 */
+	public static function properClassName($value)
+	{
+		return implode('', explode(' ', static::properName($value)));
 	}
 	
 	public function addWith($with)

@@ -23,6 +23,11 @@ trait Nitm
 		$text = is_array($text) && is_object($text[0]) ? $text[0]->$property : $text[0];
 		$url = is_null($url) ? \Yii::$app->request->url : $url;
 		$urlOptions = array_merge([$url], [$this->formName()."[".$attribute."]" => $this->$attribute]);
+		if(is_array($urlOptions[0]))
+		{
+			print_r($this);
+			exit;
+		}
 		$htmlOptions = [
 			'href' => \Yii::$app->urlManager->createUrl($urlOptions), 
 			'role' => $this->formName().'Link', 
@@ -121,6 +126,73 @@ trait Nitm
 			
 			default:
 			$ret_val = 'default';
+			break;
+		}
+		return $ret_val;
+	}
+	
+	public function getStatusName()
+	{
+		$ret_val = 'status';
+		switch(1)
+		{
+			case $this->hasAttribute('duplicate') && $this->duplicate:
+			$ret_val = 'duplicate'; //need to add duplicate css class
+			break;
+			
+			case $this->hasAttribute('closed') && $this->hasAttribute('resolved'):
+			switch(1)
+			{
+				case $this->closed && $this->resolved:
+				$ret_val = 'closed resolved';
+				break;
+			
+				case $this->closed && !$this->resolved:
+				$ret_val = 'closed un-resolved';
+				break;
+				
+				case !$this->closed && $this->resolved:
+				$ret_val = 'open resolved';
+				break;
+				
+				default:
+				$ret_val = 'open un-resolved';
+				break;
+			}
+			break;
+			
+			case $this->hasAttribute('closed') && $this->hasAttribute('completed'):
+			switch(1)
+			{
+				case $this->closed && $this->completed:
+				$ret_val = 'closed completed';
+				break;
+			
+				case $this->closed && !$this->completed:
+				$ret_val = 'closed incomplete';
+				break;
+				
+				case !$this->closed && $this->completed:
+				$ret_val = 'open completed';
+				break;
+				
+				default:
+				$ret_val = 'open incomplete';
+				break;
+			}
+			break;
+			
+			case $this->hasAttribute('disabled'):
+			switch(1)
+			{
+				case $this->disabled:
+				$ret_val = 'disabled';
+				break;
+				
+				default:
+				$ret_val = 'enabled';
+				break;
+			}
 			break;
 		}
 		return $ret_val;

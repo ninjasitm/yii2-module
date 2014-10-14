@@ -116,12 +116,12 @@ class DefaultController extends BaseController
 			case true:
 			switch(1)
 			{
-				case $searchModel instanceof \nitm\helpers\BaseElasticSearch:
+				case $searchModel instanceof \nitm\search\BaseElasticSearch:
 				$dataProvider->query->orderBy([
-					$searchModel->primaryModel->primaryKey()[0] => new \yii\db\Expression(json_encode([
-						'order' => SORT_DESC,
+					$searchModel->primaryModel->primaryKey()[0] => [
+						'order' => 'desc',
 						'ignore_unmapped' => true
-					]))
+					]
 				]);
 				break;
 				

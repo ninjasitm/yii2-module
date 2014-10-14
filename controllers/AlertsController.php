@@ -222,12 +222,12 @@ class AlertsController extends DefaultController
 		return parent::actionForm($type, $id, $options);
 	}
 	
-	public function actionList($id)
+	public function actionList($type)
 	{
 		$this->setResponseFormat('json');
 		$types = [];
 		$dependsOn = \Yii::$app->request->post('depdrop_parents')[0];
-		switch($id)
+		switch($type)
 		{	
 			case 'for':
 			switch($dependsOn)

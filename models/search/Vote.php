@@ -9,6 +9,6 @@ use nitm\models\Vote as VoteModel;
 /**
  * Vote represents the model behind the search form about `nitm\models\Vote`.
  */
-class Vote extends BaseSearch
+class Vote extends \nitm\search\BaseSearch
 {
 }

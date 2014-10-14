@@ -57,60 +57,28 @@ function Tools ()
 			switch(id != undefined)
 			{
 				case true:
-				var dynamicFunction = function (object) {
-					var element = $nitm.getObj(id);
-					var url = $(object).data('url');
-					var on = $(object).data('on');
-					url = !url ? $(object).attr('href') : url;
-					var getUrl = true;
-					switch(on != undefined)
-					{
-						case true:
-						if($(on).get(0) == undefined) getUrl = false;
-						break;
-					}
-					switch((url != undefined) && (url != '#') && (url.length >= 2) && getUrl)
-					{
-						case true:
-						var ret_val = $.ajax({
-							url: url, 
-							dataType: 'html',
-							complete: function (result) {
-								self.evalScripts(result.responseText, function (responseText) {
-									element.html(responseText);
-								});
-							}
-						});
-						break;
-					}
-					var success = ($(object).data('success') != undefined) ? $(object).data('success') : null;
-					eval(success);
-					if($(object).data('toggle')) $nitm.handleVis($(object).data('toggle'));
-					if(!$(on).get(0))
-						$nitm.handleVis(id);
-					return ret_val;
-				}
 				$(this).off('click');
+				var _target = this;
 				switch($(this).data('run-once'))
 				{
 					case true:
 					case 1:
-					$(this).one('click', function (e) {
+					$(_target).one('click', function (e) {
 						var element = this;
 						e.preventDefault();
 						$($nitm).trigger('nitm-animate-submit-start', [element]);
-						$.when(dynamicFunction(this)).done(function () {
+						$.when($nitm.module('tools').visibilityCallback(this)).done(function () {
 							$($nitm).trigger('nitm-animate-submit-stop', [element]);
 						});
 					});
 					break;
 					
 					default:
-					$(this).on('click', function (e) {
+					$(_target).on('click', function (e) {
 						var element = this;
 						e.preventDefault();
 						$($nitm).trigger('nitm-animate-submit-start', [element]);
-						$.when(dynamicFunction(this)).done(function () {
+						$.when($nitm.module('tools').visibilityCallback(this)).done(function () {
 							$($nitm).trigger('nitm-animate-submit-stop', [element]);
 						});
 					});
@@ -119,6 +87,58 @@ function Tools ()
 				break;
 			}
 		});
+	}
+	
+	this.visibilityCallback = function (object) {
+		var __dfSelf = this;
+		this.target = $nitm.getObj($(object).data('id'));
+		this.on = $(object).data('on');
+		this.success = ($(object).data('success') != undefined) ? $(object).data('success') : null;
+		this.url = $(object).data('url') ? $(object).data('url') : $(object).attr('href');
+		this.getUrl = true;
+		
+		switch(this.on != undefined)
+		{
+			case true:
+			if($(this.on).get(0) == undefined) this.getUrl = false;
+			break;
+		}
+		
+		this.proceed = function () {
+			return (__dfSelf.url != undefined) && (__dfSelf.url != '#') && (__dfSelf.url.length >= 2) && __dfSelf.getUrl
+		}
+		
+		switch(this.proceed())
+		{
+			case true:
+			var ret_val = $.ajax({
+				url: this.url, 
+				dataType: $(object).data('type') ? $(object).data('type') : 'html',
+				complete: function (result) {
+					$nitm.module('tools').replaceContents(result.responseText, object, __dfSelf);
+				}
+			});
+			break;
+		}
+		return ret_val;
+	}
+	
+	this.replaceContents = function (result, object, visibility) {
+		eval(visibility.success);
+		if($(object).data('toggle')) {
+			$.when($nitm.handleVis($(object).data('toggle'))).done(function () {
+				self.evalScripts(result, function (responseText) {
+					visibility.target.html(responseText);
+				});
+			});
+		}
+		else {
+			self.evalScripts(result, function (responseText) {
+				visibiltiy.target.html(responseText);
+			});
+		}
+		if(!$(visibility.on).get(0))
+			$nitm.handleVis($(object).data('id'));
 	}
 	
 	/**
@@ -316,7 +336,6 @@ function Tools ()
 						deferred.resolve();
 					}).promise();
 				})().then(function () {
-					console.log(self);
 					self.coreInit(wrapperId);
 					var scriptText = '';
 					/*

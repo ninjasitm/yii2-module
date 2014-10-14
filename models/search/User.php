@@ -8,7 +8,7 @@ use yii\data\ActiveDataProvider;
 /**
  * User represents the model behind the search form about User.
  */
-class User extends BaseSearch
+class User extends \nitm\search\BaseSearch
 {
 	public $id;
 	public $username;

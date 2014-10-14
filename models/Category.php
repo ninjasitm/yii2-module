@@ -18,7 +18,6 @@ use Yii;
 class Category extends Data
 {
 	use \nitm\traits\Nitm;
-	protected static $is = 'category';
 	
     /**
      * @inheritdoc

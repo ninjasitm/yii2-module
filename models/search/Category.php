@@ -9,6 +9,6 @@ use yii\data\ActiveDataProvider;
 /**
  * Drink represents the model behind the search form about `nitm\models\Category`.
  */
-class Category extends BaseSearch
+class Category extends \nitm\search\BaseSearch
 {
 }

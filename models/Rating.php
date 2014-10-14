@@ -14,7 +14,6 @@ namespace nitm\models;
  */
 class Rating extends BaseWidget
 {
-	protected static $is = 'rating';
 	
 	public function scenarios()
 	{

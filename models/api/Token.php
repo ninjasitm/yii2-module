@@ -25,7 +25,7 @@ class Token extends \nitm\models\BaseWidget
 	private $_toggle;	                                         //Tokens which need to be toggled
 	private $_tokenKey;
 
-	protected static $is = 'token';
+	protected $is = 'token';
 	
 	const LEVEL_READ = 0;
 	const LEVEL_WRITE = 1;

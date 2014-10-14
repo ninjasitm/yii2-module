@@ -39,11 +39,6 @@ class User extends \dektrium\user\models\User
 	{
 		if($this->updateActivity) $this->updateActivity();
 	}
-	
-	public function isWhat() 
-	{
-		return 'user';
-	}
 
 	/**
 	 * Get the records for this provisioning template
@@ -126,19 +121,6 @@ class User extends \dektrium\user\models\User
 	public function avatarImg($options=[])
 	{
 		return \yii\helpers\Html::img($this->avatar(), $options);
-	}
-	
-	public function url($fullName=false, $url=null, $options=[]) 
-	{
-		$url = is_null($url) ? 'user/profile/'.$this->getId() : $url;
-		$urlOptions = array_merge([$url], $options);
-		$text = ($fullName === false) ? $this->username : $this->fullname();
-		$htmlOptions = [
-			'href' => \Yii::$app->urlManager->createUrl($urlOptions), 
-			'role' => 'userLink', 
-			'id' => 'user'.uniqid()
-		];
-		return \yii\helpers\Html::tag('a', $text, $htmlOptions);
 	}
 	
 	/**
