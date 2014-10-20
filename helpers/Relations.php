@@ -18,6 +18,11 @@ class Relations
 		{
 			case isset($model->getRelatedRecords()[$name]) && !empty($model->getRelatedRecords()[$name]):
 			$ret_val = $model->getRelatedRecords()[$name];
+			/**
+			 * A little hack for elasticSearch since the relations are stored as nested objects
+			 * Pulling relations directly doesn't always work. need to investigate
+			 */
+			if(is_object($ret_val) && $model->hasAttribute($name)) $ret_val->load($model->$name, false);
 			break;
 			
 			/**

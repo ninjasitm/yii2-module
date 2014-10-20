@@ -38,7 +38,7 @@ class DefaultController extends BaseController
 					[
 						'actions' => [
 							'index', 'add', 'list', 'view', 'create', 
-							'update', 'delete', 'form', 'search', 'disable',
+							'update', 'delete', 'form', 'filter', 'disable',
 							'close', 'resolve', 'complete', 'error'
 						],
 						'allow' => true,
@@ -56,7 +56,7 @@ class DefaultController extends BaseController
 					'delete' => ['post'],
 					'create' => ['post', 'get'],
 					'update' => ['post', 'get'],
-					'search' => ['get', 'post']
+					'filter' => ['get', 'post']
 				],
 			],
 		];
@@ -110,7 +110,7 @@ class DefaultController extends BaseController
         $searchModel = new $className($options['construct']);
 		$searchModel->addWith($options['with']);
         $dataProvider = $searchModel->search($options['params']);
-		$dataProvider->pagination->route = '/'.$this->id.'/search';
+		$dataProvider->pagination->route = '/'.$this->id.'/filter';
 		switch((sizeof($options['params']) == 0) || !isset($options['params']['sort']))
 		{	
 			case true:
@@ -142,7 +142,7 @@ class DefaultController extends BaseController
         ], $options['viewOptions']));
     }
 	
-	public function actionSearch($options=[], $searchOptions=[])
+	public function actionFilter($options=[], $searchOptions=[])
 	{
 		$ret_val = [
 			"success" => false, 
@@ -184,6 +184,7 @@ class DefaultController extends BaseController
 		 */
 		unset($_REQUEST['__format'], $_GET['__format']);
         $dataProvider = $searchModel->search($_REQUEST);
+		$dataProvider->pagination->route = '/'.$this->id.'/filter';
 		
 		$view = $this->getViewPath().DIRECTORY_SEPARATOR.ltrim('data', '/').'.php';
 		$ret_val['data'] = $this->renderAjax((file_exists($view) ? 'data' : 'index'), [

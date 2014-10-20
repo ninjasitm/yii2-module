@@ -8,6 +8,7 @@ use nitm\helpers\Cache;
  */
 
 trait Relations {
+	
 	/**
 	 * User based relations
 	 */
@@ -142,18 +143,33 @@ trait Relations {
 	 * Category based relations
 	 */
 	
-	protected function getCategoryRelation($link, $options=[], $className=null)
+	protected function getCategoryRelation($link, $options=[], $className=null, $many=false)
 	{
 		$className = is_null($className) ? \nitm\models\Category::className() : $className;
 		$options['select'] = isset($options['select']) ? $options['select'] : ['id', 'parent_ids', 'name', 'slug'];
-		$options['with'] = isset($options['with']) ? $options['select'] : ['parent'];
-		return $this->getRelationQuery($className, $link, $options);
+		$options['with'] = isset($options['with']) ? $options['select'] : [];
+		return $this->getRelationQuery($className, $link, $options, $many);
 	}	
 	
-	protected function getCachedCategoryModel($idKey, $className=null)
+	protected function getCachedCategoryModel($idKey, $className=null, $relation=null, $many=false)
 	{
 		$className = is_null($className) ? \nitm\models\Category::className() : $className;
-		return $this->getCachedRelation('category-'.$this->$idKey, $className, [], false, \nitm\helpers\Helper::getCallerName());
+		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
+		return $this->getCachedRelation('category-'.$this->$idKey, $className, [], $many, $relation);
+	}
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getParent()
+    {
+		$options['where'] = !isset($options['where']) ? [] : $options['where'];
+		return $this->getCategoryRelation(['id' => 'parent_ids'], $options, null, true);
+    }
+	
+	public function parent()
+	{
+		return $this->getCachedCategoryModel('parent_ids');
 	}
 
     /**
@@ -163,6 +179,7 @@ trait Relations {
      */
     public function getType($options=[])
     {
+		$options['where'] = !isset($options['where']) ? [] : $options['where'];
 		return $this->getCategoryRelation(['id' => 'type_id'], $options);
     }
 	/**
@@ -170,7 +187,7 @@ trait Relations {
 	 */
 	public function typeOf()
 	{
-		 return $this->getCachedCategoryModel('type_id');
+		return $this->getCachedCategoryModel('type_id', null, 'type');
 	}
 
     /**
@@ -180,6 +197,7 @@ trait Relations {
      */
     public function getCategory($options=[])
     {
+		$options['where'] = !isset($options['where']) ? [] : $options['where'];
 		return $this->getCategoryRelation(['id' => 'category_id'], $options);
     }
 	
@@ -432,7 +450,7 @@ trait Relations {
 	{
 		$parts = explode('\\', $relationClass);
 		$baseName = array_pop($parts);
-		if(\nitm\search\traits\Search::useSearchClass($callingClass) !== false)
+		if(\nitm\search\traits\SearchTrait::useSearchClass($callingClass) !== false)
 			$parts[] = 'search';
 		$parts[] = $baseName;
 		return implode('\\', $parts);
