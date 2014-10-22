@@ -27,7 +27,7 @@ use yii\widgets\ActiveField;
 <?php $form = ActiveForm::begin(['id' => 'filter',
 	'method' => 'get',
 	'type' => ActiveForm::TYPE_HORIZONTAL,
-	'action' => '/'.$model->primaryModel->isWhat().'/search?__format=json',
+	'action' => '/'.$model->primaryModel->isWhat().'/filter?__format=json',
 	'method' => 'get',
 	'options' => [
 		'class' => 'form-horizontal',
@@ -69,7 +69,7 @@ use yii\widgets\ActiveField;
 	?>
 	
 	<?=
-		$form->field($model, 'text')->textInput()->label("Search");
+		$form->field($model, 'q')->textInput()->label("Search");
 	?>
 
 	<?=

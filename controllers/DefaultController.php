@@ -102,10 +102,8 @@ class DefaultController extends BaseController
 			'viewOptions' => [], 
 			'construct' => [
 				'queryOptions' => [
-					'orderBy' => ['id' => SORT_DESC]
 				]
 			],
-			'orderBy' => 'id'
 		], $options);
         $searchModel = new $className($options['construct']);
 		$searchModel->addWith($options['with']);
@@ -134,7 +132,8 @@ class DefaultController extends BaseController
 			$dataProvider->pagination->params['sort'] = '-'.$searchModel->primaryModel->primaryKey()[0];
 			break;
 		}
-
+		
+		//print_r($dataProvider->query->all());
         return $this->render('index', array_merge([
             'dataProvider' => $dataProvider,
             'searchModel' => $searchModel,
@@ -169,15 +168,13 @@ class DefaultController extends BaseController
 		}
 		
 		if(!\Yii::$app->request->isAjax)
+		{
 			return $this->actionIndex($className, [
 				'construct' => $searchModelOptions
 			]);
+		}
 
 		$searchModel = new $className($searchModelOptions);
-		if(!Response::formatSpecified())
-		{
-			$this->setResponseFormat('html');
-		}
 		
 		/**
 		 * Remove the __format paramater as it causes problems with 

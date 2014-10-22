@@ -9,6 +9,7 @@ class Statuses
 	 */
 	protected static $indicators = [
 		'error' => 'bg-danger',
+		'danger' => 'bg-danger',
 		'resolved' => 'bg-resolved',
 		'duplicate' => 'bg-duplicate',
 		'default' => '',

@@ -19,10 +19,11 @@ trait Nitm
 	
 	public function url($attribute='id', $text=null, $url=null) 
 	{
-		$property = is_array($text) ? $text[1] : $text;
 		switch(is_array($text))
 		{
 			case true:
+			$property = is_array($text) ? $text[1] : $text;
+			$property = !$property ? $attribute : $property;
 			$text = is_object($text[0]) ? $text[0]->$property : $text[0];
 			break;
 		}
