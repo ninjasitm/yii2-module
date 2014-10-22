@@ -24,23 +24,23 @@ class Relations
 			/**
 			 * This provides support for ElasticSearch which doesn't properly populate records. May be bad codding but for now this works
 			 */
-			case $model->hasAttribute($name):
+			default:
+			if($model->hasAttribute($name))
+				$attributes = $model->$name;
+			else
+				$attributes = $options;
 			switch($array === true)
 			{
 				case true:
 				$ret_val = array_map(function ($attributes) use ($className) {
 					return new $className($attributes);
-				}, (array)$model->$name);
+				}, (array)$attributes);
 				break;
 				
 				default:
-				$ret_val = is_string($className) ? new $className($model->$name) : $className;
+				$ret_val = is_string($className) ? new $className($attributes) : $className;
 				break;
 			}
-			break;
-			
-			default:
-			$ret_val = is_string($className) ? new $className($options) : $className;
 			break;
 		}
 		return $ret_val;
