@@ -132,7 +132,6 @@ class DefaultController extends BaseController
 			$dataProvider->pagination->params['sort'] = '-'.$searchModel->primaryModel->primaryKey()[0];
 			break;
 		}
-		
 		//print_r($dataProvider->query->all());
         return $this->render('index', array_merge([
             'dataProvider' => $dataProvider,
@@ -140,77 +139,6 @@ class DefaultController extends BaseController
 			'model' => $this->model
         ], $options['viewOptions']));
     }
-	
-	public function actionFilter($options=[], $searchOptions=[])
-	{
-		$ret_val = [
-			"success" => false, 
-			'action' => 'filter',
-			"format" => $this->getResponseFormat(),
-			'message' => "No data found for this filter"
-		];
-		$searchModelOptions = array_merge([
-			'inclusiveSearch' => true,
-			'booleanSearch' => true
-		], $searchOptions);
-		$class = (isset($options['namespace']) ? $options['namespace'] : '\nitm\models\search\\').$this->model->formName();
-		switch(class_exists($class))
-		{
-			case true:
-			$className = $class::className();
-			$searchModel = new $className($searchModelOptions);
-			break;
-			
-			default:
-			$class = (isset($options['namespace']) ? rtrim($options['namespace'], '\\')."\BaseSearch" : '\nitm\models\search\BaseSearch');
-			$className = $class::className();
-			break;
-		}
-		
-		if(!\Yii::$app->request->isAjax)
-		{
-			return $this->actionIndex($className, [
-				'construct' => $searchModelOptions
-			]);
-		}
-
-		$searchModel = new $className($searchModelOptions);
-		
-		/**
-		 * Remove the __format paramater as it causes problems with 
-		 */
-		unset($_REQUEST['__format'], $_GET['__format']);
-        $dataProvider = $searchModel->search($_REQUEST);
-		$dataProvider->pagination->route = '/'.$this->id.'/filter';
-		
-		$view = $this->getViewPath().DIRECTORY_SEPARATOR.ltrim('data', '/').'.php';
-		$ret_val['data'] = $this->renderAjax((file_exists($view) ? 'data' : 'index'), [
-			"dataProvider" => $dataProvider,
-			'searchModel' => $searchModel,
-			'primaryModel' => $this->model
-		]);
-		if(!\Yii::$app->request->isAjax)
-		{
-			$ret_val['data'] = Html::tag('div',
-				\yii\widgets\Breadcrumbs::widget(['links' => [
-					[
-						'label' => $searchModel->primaryModel->properName($searchModel->primaryModel->isWhat()), 
-						'url' => $searchModel->primaryModel->isWhat()
-					],
-					[
-						'label' => 'Search',
-					]
-				]]).
-				$ret_val['data'], ['class' => 'col-md-12 col-lg-12']
-			);
-			$this->setResponseFormat('html');
-		}
-		$ret_val['message'] = !$dataProvider->getCount() ? $ret_val['message'] : "Found ".$dataProvider->getTotalCount()." results matching your search";
-		Response::$viewOptions['args'] = [
-			"content" => $ret_val['data'],
-		];
-		return $this->renderResponse($ret_val, Response::$viewOptions, \Yii::$app->request->isAjax);
-	}
 	
 	/*
 	 * Get the forms associated with this controller

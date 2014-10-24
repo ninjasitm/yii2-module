@@ -7,7 +7,7 @@ use Yii;
  */
 class Entity extends Data
 {	
-	use \nitm\traits\Nitm;
+	use \nitm\traits\Nitm, \nitm\traits\Relations;
 	
 	public $hasNewActivity;	
 	
