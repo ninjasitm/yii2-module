@@ -97,7 +97,7 @@ class DefaultController extends BaseController
     public function actionIndex($className, $options=[])
     {
 		$options = array_merge([
-			'params' => \Yii::$app->request->getQueryParams(),
+			'params' => \Yii::$app->request->get(),
 			'with' => [], 
 			'viewOptions' => [], 
 			'construct' => [
@@ -108,7 +108,7 @@ class DefaultController extends BaseController
         $searchModel = new $className($options['construct']);
 		$searchModel->addWith($options['with']);
         $dataProvider = $searchModel->search($options['params']);
-		$dataProvider->pagination->route = '/'.$this->id.'/filter';
+		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id.'/filter';
 		switch((sizeof($options['params']) == 0) || !isset($options['params']['sort']))
 		{	
 			case true:

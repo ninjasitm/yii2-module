@@ -18,7 +18,7 @@ class Relations
 			 * A little hack for elasticSearch since the relations are stored as nested objects
 			 * Pulling relations directly doesn't always work. need to investigate
 			 */
-			if(is_object($ret_val) && $model->hasAttribute($name)) $ret_val->load($model->$name, false);
+			if(is_object($ret_val) && $model->hasAttribute($name) && is_array($model->$name)) $ret_val->load($model->$name, false);
 			break;
 			
 			/**
