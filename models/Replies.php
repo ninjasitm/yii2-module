@@ -21,8 +21,6 @@ class Replies extends BaseWidget
 	use \nitm\traits\relations\Replies;
 	
 	public $maxLength;
-	public $constrain;
-	public $constraints = [];
 	public static $statuses = [
 		'normal' => 'default',
 		'important' => 'info',
@@ -37,7 +35,7 @@ class Replies extends BaseWidget
 	
 	public function init()
 	{
-		$this->_supportedConstraints['key'] = [3, 'key'];
+		//$this->_supportedConstraints['key'] = [3, 'key'];
 		parent::init();
 		//constrain for admin user
 		switch(isset(\Yii::$app->user) && \Yii::$app->user->identity->isAdmin())

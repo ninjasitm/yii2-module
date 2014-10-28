@@ -59,31 +59,19 @@ function Tools ()
 				case true:
 				$(this).off('click');
 				var _target = this;
-				switch($(this).data('run-once'))
-				{
-					case true:
-					case 1:
-					$(_target).one('click', function (e) {
-						var element = this;
-						e.preventDefault();
-						$($nitm).trigger('nitm-animate-submit-start', [element]);
-						$.when($nitm.module('tools').visibilityCallback(this)).done(function () {
-							$($nitm).trigger('nitm-animate-submit-stop', [element]);
-						});
+				var _callback = function (e) {
+					var element = this;
+					e.preventDefault();
+					$($nitm).trigger('nitm-animate-submit-start', [element]);
+					$.when($nitm.module('tools').visibilityCallback(this)).done(function () {
+						$($nitm).trigger('nitm-animate-submit-stop', [element]);
+						$nitm.handleVis($(_target).data('id'));
 					});
-					break;
-					
-					default:
-					$(_target).on('click', function (e) {
-						var element = this;
-						e.preventDefault();
-						$($nitm).trigger('nitm-animate-submit-start', [element]);
-						$.when($nitm.module('tools').visibilityCallback(this)).done(function () {
-							$($nitm).trigger('nitm-animate-submit-stop', [element]);
-						});
-					});
-					break;
 				}
+				if($(this).data('run-once'))
+					$(_target).one('click', _callback);
+				else
+					$(_target).on('click', _callback);
 				break;
 			}
 		});
@@ -100,7 +88,7 @@ function Tools ()
 		switch(this.on != undefined)
 		{
 			case true:
-			if($(this.on).get(0) == undefined) this.getUrl = false;
+			if($(this.on).length == 0) this.getUrl = false;
 			break;
 		}
 		
@@ -137,8 +125,6 @@ function Tools ()
 				visibiltiy.target.html(responseText);
 			});
 		}
-		if(!$(visibility.on).get(0))
-			$nitm.handleVis($(object).data('id'));
 	}
 	
 	/**

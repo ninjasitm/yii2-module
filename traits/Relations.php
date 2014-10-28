@@ -212,8 +212,9 @@ trait Relations {
 	protected function getWidgetRelationQuery($className, $link=null, $options=[], $many=false)
 	{
 		$link = !is_array($link) ? ['parent_id' => 'id'] : $link;
+		$options = is_array($options) ? $options : (array)$options;
 		$options['select'] = isset($options['select']) ? $options['select'] : ['id', 'parent_id', 'parent_type'];
-		$options['with'] = isset($options['with']) ? $options['select'] : ['profile'];
+		$options['with'] = isset($options['with']) ? $options['select'] : [];
 		$options['andWhere'] = isset($options['andWhere']) ? $options['andWhere'] : ['parent_type' => $this->isWhat()];
 		return $this->getRelationQuery($className, $link, $options, $many);
 	}
@@ -287,7 +288,7 @@ trait Relations {
 			'with' => 'replyTo',
 			'andWhere' => $params
 		], $options);
-        return $this->getWidgetRelationModelQuery(\nitm\models\Replies::className(), null, $options, true);
+       	return $this->getWidgetRelationQuery(\nitm\models\Replies::className(), null, true, $options);
     }
 	
 	public function replies()
@@ -435,7 +436,7 @@ trait Relations {
      */
     public function getFollowModel()
     {
-        return $this->getWidgetRelationModelQuery(\nitm\models\Alerts::className(), ['remote_id' => 'id'], [
+        $this->getWidgetRelationModelQuery(\nitm\models\Alerts::className(), ['remote_id' => 'id'], [
 			//Disabled due to Yii framework inability to return statistical relations
 			//'with' => ['currentUserVoted', 'fetchedValue']
 			'select' => ['id', 'remote_id', 'remote_type'],
@@ -472,7 +473,8 @@ trait Relations {
 		{
 			foreach($options as $option=>$params)
 			{
-				$ret_val->$option($params);
+				if(is_string($option))
+					$ret_val->$option($params);
 			}
 		}
 		return $ret_val;

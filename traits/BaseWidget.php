@@ -89,12 +89,12 @@ trait BaseWidget {
 	 */
 	public function getConstraints()
 	{
-		switch(empty($this->constraints))
+		switch(sizeof($this->constraints) == 0)
 		{
 			case true:
 			foreach($this->_supportedConstraints as $attribute=>$supported)
 			{
-				if($this->hasProperty($attribute))
+				if($this->hasProperty($attribute) || $this->hasAttribute($attribute))
 				{
 					$this->constraints[$attribute] = $this->$attribute;
 				}
