@@ -25,7 +25,7 @@ class Relations
 			 * This provides support for ElasticSearch which doesn't properly populate records. May be bad codding but for now this works
 			 */
 			default:
-			if($model->hasAttribute($name) || $model->hasProperty($name))
+			if($model->hasAttribute($name) || $model->hasProperty($name) && (sizeof($options) == 0))
 				$attributes = $model->$name;
 			else
 				$attributes = $options;

@@ -43,9 +43,9 @@ trait Cache {
 					break;
 					
 					default:
-					switch(isset($options['find']))
+					switch(1)
 					{
-						case true:
+						case isset($options['find']):
 						$find = $modelClass::find();
 						foreach($options['find'] as $option=>$params)
 						{
@@ -54,6 +54,10 @@ trait Cache {
 						unset($options['find']);
 						$ret_val = $find->one();
 						$ret_val = !$ret_val ? new $modelClass(@$options['construct']) : $ret_val;
+						break;
+						
+						case isset($options['construct']):
+						$ret_val = new $modelClass($options['construct']);
 						break;
 						
 						default:
