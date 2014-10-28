@@ -580,7 +580,10 @@ function Nitm ()
 	this.onModuleLoad = function(module, callback, namespace) {
 		var ns = namespace == undefined ? '' : '.'+namespace;
 		var event = 'nitm:'+module+ns;
-		$('body').one(event, callback);
+		$('body').queue(event, function () {
+			callback();
+			$(this).dequeue(event)
+		});
 		switch(self.hasModule(module, false))
 		{
 			case true:
@@ -592,7 +595,7 @@ function Nitm ()
 	this.moduleLoaded = function(module, namespace) {
 		var ns = namespace == undefined ? '' : '.'+namespace;
 		var event = 'nitm:'+module+ns;
-		$('body').trigger(event);
+		$('body').dequeue(event);
 	}
 	
 	this.module = function (name, defaultValue) {
