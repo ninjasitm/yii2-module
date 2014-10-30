@@ -30,7 +30,7 @@ $uniqid = uniqid();
 				</h4>
 				<h4 class="col-md-5 col-lg-5 text-right"><small>by <b><?= $model->author()->fullName(true) ?></b> on <?= $model->created_at ?></small></h4>
 			</div>
-			<p><?= $model->notes; ?></p>
+			<p class="text-left"><?= $model->notes; ?></p>
 		</div>
 		<div class="col-md-8 col-lg-8 text-left">
 			<div class="pull-left">
