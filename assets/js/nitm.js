@@ -290,7 +290,8 @@ function Nitm ()
 	//get the object information
 	this.getObj = function (selector, by, alert_obj, esc)
 	{
-		//console.log(selector);
+		if(typeof selector == 'object')
+			return $(selector);
 		esc = (esc == undefined) ? true : esc;
 		if(selector instanceof jQuery)
 		{
@@ -339,8 +340,8 @@ function Nitm ()
 			case 'window':
 			case document:
 			case window:
-				var obj = selector;
-				break;
+			var obj = selector;
+			break;
 				
 			default:
 				selector = (esc === true) ? this.jqEscape(selector) : selector;

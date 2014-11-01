@@ -46,6 +46,20 @@ body {
 	position: absolute !important;
 }
 
+@media (max-width: 1024px) {
+	.absolute.collapsable {
+		position: relative !important;
+		width: 95% !important;
+		height: 85%;
+		margin-left: 2.5% !important;
+	}
+	
+	.filter {
+		background-color: #fff;
+		box-shadow: 2px 0px 24px #666;
+	}
+}
+
 .fixed {
 	position: fixed;
 }
@@ -333,6 +347,12 @@ a.list-group-item-transparent.active:focus {
 .nav-tabs-xs li > a{
     margin: 1px !important;
     padding: 4px !important;
+}
+
+.navbar-collapse.aligned,
+.navbar-toggle.aligned {
+    padding: 0px;
+	margin: 0px;
 }
 
 /*

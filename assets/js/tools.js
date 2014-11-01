@@ -93,13 +93,12 @@ function Tools ()
 		
 		this.getRemote = function () {
 			var basedOnGetUrl = (_visSelf.url != undefined) && (_visSelf.url != '#') && (_visSelf.url.length >= 2) && _visSelf.getUrl;
-			var basedOnRemoteOnce = $(object).data('remote-once') && !$(object).data('got-remote');
+			var basedOnRemoteOnce = ($(object).data('remote-once') != undefined) ? ($(object).data('remote-once') && !$(object).data('got-remote')) : true;
 			return basedOnGetUrl && basedOnRemoteOnce;
 		}
 		
-		switch(this.getRemote())
+		if(this.getRemote())
 		{
-			case true:
 			var ret_val = $.ajax({
 				url: this.url, 
 				dataType: $(object).data('type') ? $(object).data('type') : 'html',
@@ -108,7 +107,6 @@ function Tools ()
 				}
 			});
 			$(object).data('got-remote', true);
-			break;
 		}
 		$nitm.handleVis($(object).data('id'));
 		return ret_val;
