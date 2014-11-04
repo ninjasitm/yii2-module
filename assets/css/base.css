@@ -30,8 +30,8 @@ body {
 }
 
 .full-height {
-	height: 100%;
-	overflow: auto;
+	height: 100% !important;
+	overflow: auto !important;
 }
 
 .full-hidden {
@@ -39,24 +39,46 @@ body {
 }
 
 .full-width {
-	width: 100%;
+	width: 100% !important;
 }
 
 .absolute {
 	position: absolute !important;
 }
 
+.collapsable {
+	display: block;
+}
+
 @media (max-width: 1024px) {
+	.collapsable, .absolute.collapsable.filter {
+		display: none;
+	}
+	
 	.absolute.collapsable {
 		position: relative !important;
+		width: 100% !important;
+		height: auto;
+		display: block;
+	}
+	.absolute.collapsable.filter {
+		position: absolute !important;
 		width: 95% !important;
-		height: 85%;
+		height: 90% !important;
 		margin-left: 2.5% !important;
 	}
 	
 	.filter {
 		background-color: #fff;
 		box-shadow: 2px 0px 24px #666;
+		margin-left: auto;
+		margin-right: auto;
+		top: 0;
+		z-index: 10000;
+	}
+	
+	.collapsable.in {
+		display: block !important;
 	}
 }
 

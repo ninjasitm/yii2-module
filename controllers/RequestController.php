@@ -78,6 +78,7 @@ class RequestController extends DefaultController
             'dataProvider' => $dataProvider,
             'searchModel' => $searchModel,
 			'model' => $model,
+			'isWhat' => $model->isWhat()
         ]);
     }
 	

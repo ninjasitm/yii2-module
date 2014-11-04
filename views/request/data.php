@@ -42,7 +42,7 @@ $this->params['breadcrumbs'][] = $this->title;
 				return [
 					'rowspan' => 2,
 					'role' => 'voteIndicator'.$model->getId(),
-					'style' => "background-color:rgba(255,51,0,".$model->voteModel()->rating()['ratio'].")"
+					'style' => "vertical-align: middle; background-color:rgba(255,51,0,".$model->voteModel()->rating()['ratio'].")"
 				];
 			}
 		],
@@ -96,7 +96,13 @@ $this->params['breadcrumbs'][] = $this->title;
 			'label' => 'Urgency',
 			'value' => function ($model, $index, $widget) {
 				return $model->url('status', $model->getUrgency());
-			}
+			},
+			'contentOptions' => [
+				'class' => 'visible-lg visible-md'
+			],
+			'headerOptions' => [
+				'class' => 'visible-lg visible-md'
+			]
 		],
 		//'closed:boolean',
 		//'completed:boolean',
@@ -123,7 +129,7 @@ $this->params['breadcrumbs'][] = $this->title;
 			'format' => 'raw',
 			'value' => function ($model, $index, $widget) {
 				return $model->author()->url(\Yii::$app->getModule('nitm')->useFullnames, \Yii::$app->request->url, [$model->formname().'[author]' => $model->author_id]);
-			}
+			},
 		],
 		[
 			'sortLinkOptions' => [
@@ -131,6 +137,12 @@ $this->params['breadcrumbs'][] = $this->title;
 			],
 			'attribute' => 'created_at',
 			'format' => 'datetime',
+			'contentOptions' => [
+				'class' => 'visible-lg visible-md'
+			],
+			'headerOptions' => [
+				'class' => 'visible-lg visible-md'
+			]
 		],
 		[
 			'sortLinkOptions' => [
@@ -138,6 +150,13 @@ $this->params['breadcrumbs'][] = $this->title;
 			],
 			'attribute' => 'updated_at',
 			'format' => 'datetime',
+			'contentOptions' => [
+				'style' => 'vertical-align:middle',
+				'class' => 'visible-lg visible-md'
+			],
+			'headerOptions' => [
+				'class' => 'visible-lg visible-md'
+			]
 		],
 
 		[
@@ -183,10 +202,10 @@ $this->params['breadcrumbs'][] = $this->title;
 			],
 			'template' => "{form/update} {complete} {close}",
 			'urlCreator' => function($action, $model, $key, $index) {
-				return '/'.$this->context->id.'/'.$action.'/'.$model->getId();
+				return '/'.$model->isWhat().'/'.$action.'/'.$model->getId();
 			},
 			'options' => [
-				'rowspan' => 3
+				'rowspan' => 3,
 			]
 		],
 	],
