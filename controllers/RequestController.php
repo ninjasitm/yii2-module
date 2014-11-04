@@ -49,37 +49,32 @@ class RequestController extends DefaultController
      */
     public function actionIndex()
     {
-		$model = new Request();
-        $searchModel = new RequestSearch;
-		$searchModel->addWith([
-			'author', 'type', 'requestFor', 
-			'completedBy', 'closedBy', 'replyModel', 
-			'issueModel', 'revisionModel', 'voteModel'
-		]);
-		$params = \Yii::$app->request->getQueryParams();
-		$params = empty($params) ? [$this->model->formName() => ['closed' => 0]] : $params;
-        $dataProvider = $searchModel->search($params);
-		$dataProvider->pagination->route = '/'.$this->id.'/search';
-		switch((sizeof(\Yii::$app->request->getQueryParams()) == 0))
+		$queryOptions = [];
+		switch((sizeof(\Yii::$app->request->get()) == 0))
 		{	
 			case true:
-			$dataProvider->query->select([
-				'*',
-				$this->getHasNewQuery()
-			]);
-			$dataProvider->query->orderBy($this->getOrderByQuery())
-			->andWhere([
-				'closed' => 0
-			]);
+			$queryOptions = [
+				'select' => [
+					'*',
+					$this->getHasNewQuery()
+				],
+				'orderBy' => $this->getOrderByQuery(),
+				'andWhere' => ['closed' => 0]
+			];
 			break;
 		}
-
-        return $this->render('index', [
-            'dataProvider' => $dataProvider,
-            'searchModel' => $searchModel,
-			'model' => $model,
-			'isWhat' => $model->isWhat()
-        ]);
+		
+		return parent::actionIndex(RequestSearch::className(), [
+			'with' => [
+				'author', 'type', 'requestFor', 
+				'completedBy', 'closedBy', 'replyModel', 
+				'issueModel', 'revisionModel', 'voteModel'
+			],
+			'construct' => [
+				'queryOptions' => $queryOptions
+			],
+			'defaultParams' => [$this->model->formName() => ['closed' => 0]]
+		]);
     }
 	
 	/**

@@ -132,6 +132,23 @@ class DefaultController extends BaseController
 			$dataProvider->pagination->params['sort'] = '-'.$searchModel->primaryModel->primaryKey()[0];
 			break;
 		}
+		
+		$createOptions = isset($options['createOptions']) ? $options['createOptions'] : [];
+		$filterOptions = isset($options['filterOptions']) ? $options['filterOptions'] : [];
+		unset($options['createOptions'], $options['filterOptions']);
+		
+		$options['viewOptions'] = array_merge([
+			'createButton' => $this->getCreateButton($createOptions),
+			'createMobileButton' => $this->getCreateButton(array_replace_recursive([
+				'containerOptions' => [
+					'class' => 'btn btn-default btn-lg navbar-toggle aligned'
+				]
+			], $createOptions), 'Create'),
+			'filterButton' => $this->getFilterButton($filterOptions),
+			'filterCloseButton' => $this->getFilterButton($filterOptions, 'Close'),
+			'isWhat' => $this->model->isWhat()
+		], (array)@$options['viewOptions']);
+		
 		//print_r($dataProvider->query->all());
         return $this->render('index', array_merge([
             'dataProvider' => $dataProvider,
@@ -568,5 +585,44 @@ class DefaultController extends BaseController
 		$ret_val['action'] = $this->action->id;
 		$ret_val['id'] = $this->model->getId();
 		return $this->renderResponse($ret_val, Response::$viewOptions, \Yii::$app->request->isAjax);
+	}
+	
+	protected function getCreateButton($options=[], $text=null)
+	{
+		$text = is_null($text) ? strtoupper(\Yii::t('yii', " new ".$this->model->properName($this->model->isWhat()))) : $text;
+		$options = array_replace_recursive([
+			'toggleButton' => [
+				'tag' => 'a',
+				'label' => Icon::forAction('plus')." ".$text, 
+				'href' => \Yii::$app->urlManager->createUrl(['/'.$this->model->isWhat().'/form/create', '__format' => 'modal']),
+				'title' => \Yii::t('yii', "Add a new ".$this->model->properName($this->model->isWhat())),
+				'role' => 'dynamicAction createAction disabledOnClose',
+				'class' => 'btn btn-success btn-lg'
+			],
+			'dialogOptions' => [
+				"class" => "modal-full"
+			],
+			'containerOptions' => [
+				'class' => 'navbar-collapse navbar-collapse-content'
+			]
+		], (array)$options);
+		
+		$containerOptions = $options['containerOptions'];
+		unset($options['containerOptions']);
+		
+		return Html::tag('div', \nitm\widgets\modal\Modal::widget($options), $containerOptions);
+	}
+	
+	protected function getFilterButton($options=[], $text='filter')
+	{
+		$containerOptions = isset($options['containerOptions']) ? $options['containerOptions'] : [
+			'class' => 'navbar-toggle aligned'
+		];
+		unset($options['containerOptions']);
+		return Html::tag('div', Html::button(Icon::forAction('filter')." ".ucfirst($text), array_replace([
+			'class' => 'btn btn-default btn-lg',
+			'data-toggle' => 'collapse',
+			'data-target' => '#'.$this->model->isWhat().'-filter'
+		], (array)$options)), $containerOptions);
 	}
 }

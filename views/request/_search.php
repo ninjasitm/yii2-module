@@ -4,24 +4,10 @@ use kartik\widgets\ActiveForm;
 use kartik\widgets\Select2;
 use yii\widgets\ActiveField;
 ?>
-<?php
-	echo $this->context->alertWidget();
-	echo $this->context->legendWidget();
-?>
-<?= 
-	\nitm\widgets\modal\Modal::widget([
-		'toggleButton' => [
-			'tag' => 'a',
-			'label' => Html::tag('h3', strtoupper("Add New ".$model->primaryModel->isWhat())), 
-			'href' => \Yii::$app->urlManager->createUrl([$model->primaryModel->isWhat().'/form/create', '__format' => 'modal']),
-			'title' => Yii::t('yii', "Add a new ".$model->primaryModel->isWhat()),
-			'role' => 'dynamicAction createAction disabledOnClose',
-		],
-		'dialogOptions' => [
-			"class" => "modal-full"
-		]
-	]);
-?>
+<br>
+<?= $filterButton.$this->context->alertWidget().$this->context->legendWidget();?>
+<br>
+<?= $createButton; ?>
 <h3 class="header text-left">FILTER USING THE FOLLOWING</h3>
 <div id="filters">
 <?php $form = ActiveForm::begin(['id' => 'filter',
@@ -36,9 +22,9 @@ use yii\widgets\ActiveField;
 	],
 	'fieldConfig' => [
 		'inputOptions' => ['class' => 'form-control'],
-		'template' => "{label}\n<div class=\"col-lg-10 col-md-10\">{input}</div>\n<div class=\"col-lg-12\">{error}</div>",
-		'labelOptions' => ['class' => 'col-lg-2 col-md-2 control-label'],
-	]
+		'template' => '{label}<div class="col-lg-9 col-md-9">{input}</div><div class="col-lg-12">{error}</div>',
+		'labelOptions' => ['class' => 'col-lg-3 col-md-3 control-label'],
+	],
 ]);
 ?>
 	<?=
@@ -56,8 +42,7 @@ use yii\widgets\ActiveField;
 			'options' => [
 				'data-toggle' => 'tooltip',
 				'title' => "When set to Yes everything set below will be used to find results. Otherwise the search will find anything that matches at least one of the criteria you set."
-			],
-			'template' => '{label}\n<div class=\"col-lg-4 col-md-4\">{input}</div>\n<div class=\"col-lg-12\">{error}</div>',
+			]
 		])->widget(\kartik\widgets\SwitchInput::className(),
 		[
 			'pluginOptions' => [

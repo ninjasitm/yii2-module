@@ -31,8 +31,13 @@ $this->params['breadcrumbs'][] = $this->title;
 	?>
 	<?php \yii\widgets\Pjax::end(); ?>
 </div>
-<div class="col-md-4 col-lg-4 col-md-offset-8 col-lg-offset-8 absolute collapse collapsable navbar-collapse full-height filter shadow" id="<?= $isWhat; ?>-filter" style='width: 33%;'>
+<div class="col-md-4 col-lg-4 col-md-offset-8 col-lg-offset-8 absolute collapsable full-height filter shadow" id="<?= $isWhat; ?>-filter" style='width: 33%;'>
 	<?php
-		echo @$this->render('_search', array("data" => array(), 'model' => $searchModel)); 
+		echo $this->render('_search', [
+			"data" => [], 
+			'model' => $searchModel,
+			'createButton' => $createButton,
+			'filterButton' => $filterCloseButton
+		]); 
 	?>
 </div>
