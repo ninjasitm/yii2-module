@@ -144,7 +144,7 @@ a.desc:after { content: /*"\e114"*/"\e152"; }
 }
 
 .modal-dialog.modal-full {	
-	bottom: 48px; top: 15px; left: 0; right: 0;
+	bottom: 15px; top: 15px; left: 0; right: 0;
 	position: fixed;
 }
 
@@ -158,7 +158,7 @@ a.desc:after { content: /*"\e114"*/"\e152"; }
 }
 
 .modal-dialog.modal-full .modal-content .modal-body {
-	height: 90%;
+	height: 85%;
 	padding-bottom: 0px;
 	overflow: auto;
 }
