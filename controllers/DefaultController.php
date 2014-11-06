@@ -184,7 +184,8 @@ class DefaultController extends BaseController
 			$options['force'] = true;
 			break;
 		}
-		$modalOptions = [
+		$options['modalOptions'] = isset($options['modalOptions']) ? (array)$options['modalOptions'] : [];
+		$modalOptions = array_merge([
 			'body' => [
 				'class' => 'modal-full'
 			],
@@ -195,7 +196,9 @@ class DefaultController extends BaseController
 				'class' => 'modal-full'
 			],
 			'contentOnly' => true
-		];
+		], $options['modalOptions']);
+		
+		unset($options['modalOptions']);
 		
 		$format = Response::formatSpecified() ? $this->getResponseFormat() : 'html';
 		$this->setResponseFormat($format);

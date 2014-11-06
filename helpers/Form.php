@@ -120,7 +120,7 @@ class Form extends Behavior
 					]);
 					Response::$viewOptions = [
 						"view" => $options['view'],
-						'modalOptions' => $modalOptions,
+						'modalOptions' => static::getModalOptions($modalOptions, $model),
 						'title' => $title,
 						'footer' => $footer
 					];
@@ -147,6 +147,24 @@ class Form extends Behavior
 			break;
 		}
 		return $ret_val;
+	}
+	
+	protected static function getModalOptions($options, $model)
+	{
+		foreach($options as $option=>$settings)
+		{
+			switch(is_callable($settings))
+			{
+				case true:
+				$options[$option] = $settings($model);
+				break;
+				
+				default:
+				$options[$option] = (array) $settings;
+				break;
+			}
+		}
+		return $options;
 	}
 	
 	public static function getHtmlOptions($items=[], $idKey='id', $valueKey = 'name')

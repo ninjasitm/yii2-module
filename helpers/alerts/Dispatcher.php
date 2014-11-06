@@ -199,6 +199,7 @@ class Dispatcher extends \yii\base\Component
 		$criteria['remote_type'] = [$criteria['remote_type'], 'any'];
 		$criteria['action'] = [$criteria['action'], 'any'];
 		$criteria['priority'] = [$criteria['priority'], 'any'];
+		unset($criteria['remote_id']);
 		return Alerts::find()->select('*')
 			->orWhere($criteria)
 			->indexBy('user_id')
@@ -627,7 +628,8 @@ class Dispatcher extends \yii\base\Component
 				if(!empty($uri))
 				{
 					$name = $user->fullName();
-					$ret_val[$method][$user->getId()] = [$uri => (!$name ? $uri : $name), 'user' => $user];
+					$id = !$user->getId() ? 'global' : $user->getId();
+					$ret_val[$method][$id] = [$uri => (!$name ? $uri : $name), 'user' => $user];
 				}
 			}
 		}
@@ -644,21 +646,21 @@ class Dispatcher extends \yii\base\Component
 			break;
 			
 			default:
-			$footer = "\n\nYou are receiving this bcause your alert settings matched: ";
+			$footer = "\n\nYou are receiving this because your alert settings matched: ";
 			break;
 		}
-		if(isset($alert['priority']))
+		if(isset($alert['priority']) && !is_null($alert['priority']))
 		$footer .= "Priority: <b>".ucfirst($alert['priority'])."</b>, ";
-		if(isset($alert['remote_type']))
+		if(isset($alert['remote_type']) && !is_null($alert['remote_type']))
 		$footer .= "Type: <b>".ucfirst($alert['remote_type'])."</b>, ";
-		if(isset($alert['remote_id']))
+		if(isset($alert['remote_id']) && !is_null($alert['remote_id']))
 		$footer .= "Id: <b>".$alert['remote_id']."</b>, ";
-		if(isset($alert['remote_for']))
+		if(isset($alert['remote_for']) && !is_null($alert['remote_for']))
 		$footer .= "For: <b>".ucfirst($alert['remote_for'])."</b>, ";
 		if(isset($alert['action']) || !empty($this->reportedAction))
 		$footer .= "and Action <b>".Alerts::properName($this->reportedAction)."</b>";
-		$footer .= ". Go ".Html::a("here", \Yii::$app->urlManager->createAbsoluteUrl("/alerts/index"))." to change your alerts";
-		$footer .= "\n\nSite: ".Html::a(\Yii::$app->urlManager->createAbsoluteUrl('/'), \Yii::$app->urlManager->createAbsoluteUrl('/index'));
+		$footer .= ". Go ".Html::a("here", \Yii::$app->urlManager->createAbsoluteUrl("/user/settings/alerts"))." to change your alerts";
+		$footer .= "\n\nSite: ".Html::a(\Yii::$app->urlManager->createAbsoluteUrl('/'), \Yii::$app->homeUrl);
 			
 		return Html::tag('small', $footer);
 	}
