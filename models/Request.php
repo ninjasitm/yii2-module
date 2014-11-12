@@ -29,15 +29,7 @@ class Request extends Entity
 {	
 	use \nitm\traits\relations\Request;
 	
-	public $requestModel;
-	
 	protected $is = 'request';
-	
-	protected static $urgency = [
-		'normal',
-		'important',
-		'critical'
-	];
 	
     /**
      * @inheritdoc

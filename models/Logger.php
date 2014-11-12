@@ -63,7 +63,7 @@ class Logger extends DB
 		}
 		//$currentUser = Session::getVal(AUTH_DOMAIN.'.username');
 		$this->logDir = is_dir($this->logDir) ? $this->logDir : $_SERVER['DOCUMENT_ROOT'].$this->logDir;
-		$this->currentUser = (!\Yii::$app->hasProperty('user')) ? new User(['username' => 'console']) : \Yii::$app->user->identity;
+		$this->currentUser = (\Yii::$app->hasProperty('user') && \Yii::$app->user->getId()) ? \Yii::$app->user->getIdentity() : new User(['username' => 'console']);
 	}
 	
 	public function __destruct()

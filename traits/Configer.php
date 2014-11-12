@@ -16,7 +16,7 @@ trait Configer {
 	 * Get a setting value 
 	 * @param string $setting the locator for the setting
 	 */
-	public static function setting($setting)
+	public static function setting($setting=null)
 	{
 		$hierarchy = explode('.', $setting);
 		switch($hierarchy[0])
@@ -26,6 +26,8 @@ trait Configer {
 			break;
 			
 			case static::isWhat():
+			case null:
+			$hierarchy = static::isWhat();
 			break;
 			
 			default:

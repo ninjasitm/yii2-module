@@ -19,7 +19,7 @@ $this->params['breadcrumbs'][] = $this->title;
 	'responsive' => true, 
 	'floatHeader'=>true,
 	'options' => [
-		'id' => 'requests'
+		'id' => $isWhat
 	],
 	//'filterModel' => $searchModel,
 	//'filterUrl' => '/'.$searchModel->primaryModel->isWhat().'/index',
@@ -306,8 +306,8 @@ $this->params['breadcrumbs'][] = $this->title;
 	},
 	'pager' => [
 		'class' => \nitm\widgets\ias\ScrollPager::className(),
-		'overflowContainer' => '#requests-ias-container',
-		'container' => '#requests',
+		'overflowContainer' => '#'.$isWhat.'-ias-container',
+		'container' => '#'.$isWhat,
 		'item' => ".item",
 		'negativeMargin' => 150,
 		'delay' => 500,

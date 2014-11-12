@@ -14,11 +14,10 @@ use yii\widgets\ActiveField;
 	'method' => 'get',
 	'type' => ActiveForm::TYPE_HORIZONTAL,
 	'action' => \Yii::$app->urlManager->createUrl(['/search/filter', '__format' => 'json', '_type' => $model->isWhat()]),
-	'method' => 'get',
 	'options' => [
 		'class' => 'form-horizontal',
 		"role" => "filter",
-		'data-id' => $model->primaryModel->isWhat()
+		'data-id' => $isWhat
 	],
 	'fieldConfig' => [
 		'inputOptions' => ['class' => 'form-control'],

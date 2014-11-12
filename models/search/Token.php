@@ -10,5 +10,5 @@ use yii\data\ActiveDataProvider;
  */
 class Token extends \nitm\search\BaseSearch
 {
-	public $namespace = '\nitm\models\api';
+	public static $namespace = '\nitm\models\api';
 }

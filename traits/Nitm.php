@@ -16,19 +16,18 @@ use nitm\helpers\Cache as CacheHelper;
 
 trait Nitm
 {
-	
 	public function url($attribute='id', $text=null, $url=null) 
 	{
 		switch(is_array($text))
 		{
 			case true:
-			$property = is_array($text) ? $text[1] : $text;
+			$property = is_array($text) ? array_pop($text) : $text;
 			$property = !$property ? $attribute : $property;
-			$text = is_object($text[0]) ? $text[0]->$property : $text[0];
+			$text = is_object($text[0]) ? $text[0]->getAttribute($property) : (is_array($text) ? @implode(' ', $text) : $text);
 			break;
 		}
 		$url = is_null($url) ? \Yii::$app->request->url : $url;
-		$urlOptions = array_merge([$url], [$this->formName()."[".$attribute."]" => $this->$attribute]);
+		$urlOptions = array_merge([$url], [$this->formName()."[".$attribute."]" => $this->getAttribute($attribute)]);
 		if(is_array($urlOptions[0]))
 		{
 			print_r($this);

@@ -25,7 +25,8 @@ $this->params['breadcrumbs'][] = $this->title;
 		echo $this->render("data", [
 				'dataProvider' => $dataProvider,
 				'searchModel' => $searchModel,
-				'primaryModel' => $model
+				'primaryModel' => $model,
+				'isWhat' => $isWhat.'s'
 			]
 		); 
 	?>
@@ -34,7 +35,8 @@ $this->params['breadcrumbs'][] = $this->title;
 <div class="col-md-4 col-lg-4 col-md-offset-8 col-lg-offset-8 absolute collapsable full-height filter shadow" id="<?= $isWhat; ?>-filter" style='width: 33%;'>
 	<?php
 		echo $this->render('_search', [
-			"data" => [], 
+			"data" => [],
+			'isWhat' => $isWhat.'s', 
 			'model' => $searchModel,
 			'createButton' => $createButton,
 			'filterButton' => $filterCloseButton

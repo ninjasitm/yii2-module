@@ -8,6 +8,13 @@ use nitm\models\Category;
  */
 
 trait Request {
+	public $requestModel;
+	
+	protected static $urgency = [
+		'normal',
+		'important',
+		'critical'
+	];
 	
 	public function getUrgency()
 	{
