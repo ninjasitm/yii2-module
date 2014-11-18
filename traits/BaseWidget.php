@@ -284,10 +284,9 @@ trait BaseWidget {
 		return $ret_val;
 	}
 	
-	public static function cacheKey($id=null)
+	public function cacheKey($id=null)
 	{
-		$key = isset($this) && method_exists($this, 'getId') ? static::isWhat() : static::className();
-		return 'base-widget-model.'.$key.'.'.$id;
+		return \nitm\traits\Relations::cacheKey($this, ['parent_type', 'parent_id'], 'base-widget-model');
 	}
 	 
 	protected function populateMetadata()

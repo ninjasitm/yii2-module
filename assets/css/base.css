@@ -155,15 +155,16 @@ a.desc:after { content: /*"\e114"*/"\e152"; }
 	position: absolute;
 }
 
-.modal-content .modal-header {
-	height: 12.5%;
+.modal-dialog.modal-full .modal-content .modal-header {
+	height: auto;
+	min-height: 72px;
 	width: 100%;
 	position: absolute;
 	top: 0;
 }
 
 .modal-dialog.modal-full .modal-content .modal-body {
-	top: 12.5%;
+	top: 72px;
 	bottom: 0;
 	width: 100%;
 	overflow: auto;

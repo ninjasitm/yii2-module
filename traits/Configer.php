@@ -27,7 +27,7 @@ trait Configer {
 			
 			case static::isWhat():
 			case null:
-			$hierarchy = static::isWhat();
+			$hierarchy = sizeof($hierarchy) == 1 ? static::isWhat() : $hierarchy;
 			break;
 			
 			default:

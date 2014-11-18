@@ -139,8 +139,10 @@ use nitm\helpers\Response;
 			if(($ret_val = $model->one()) != null)
             	return $model->one();
 			else
-				
-            	throw new \yii\web\NotFoundHttpException($className."->find($id) doesn't exist");
+			{
+				if(YII_DEBUG)	
+            		throw new \yii\web\NotFoundHttpException($className."->find($id) doesn't exist");
+			}
         } else {
             throw new \yii\web\NotFoundHttpException('The requested page does not exist.');
         }

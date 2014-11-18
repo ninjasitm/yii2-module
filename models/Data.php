@@ -178,14 +178,14 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	public function isSupported($what)
 	{
 		$thisSupports = [$what => false];
-		switch(is_array($this->supported))
+		switch(is_array(static::$supported))
 		{
 			case true:
-			$thisSupports = $this->supported;
+			$thisSupports = static::$supported;
 			break;
 			
 			default:
-			$thisSupports = @$this->settings[static::isWhat()]['supported'];
+			$thisSupports = @$this->setting('supported');
 			break;
 		}
 		return (isset($thisSupports[$what]) &&  ($thisSupports[$what] == true));

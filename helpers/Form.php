@@ -20,10 +20,10 @@ class Form extends Behavior
 		{
 			case true:
 			$attributes = [];
-			$model->unique = @$options['id'];
+			//$model->id = @$options['id'];
 			$options['modelOptions'] = (isset($options['modelOptions']) && is_array($options['modelOptions'])) ? $options['modelOptions'] : null;
 			$model->requestModel = new $options['modelClass']($options['modelOptions']);
-			$model->requestModel->unique = @$options['id'];
+			$model->requestModel->id = @$options['id'];
 			switch($model->validate())
 			{
 				case true:
@@ -32,104 +32,78 @@ class Form extends Behavior
 				switch($options['modelClass'])
 				{
 					case $model->className():
-					switch($model->unique)
+					switch(isset($options['id']) && !$options['id'])
 					{
-						case null:
-						$model = $model;
+						/**
+						 * If there's no ID for the given model then use it as is
+						 */
+						case true:
 						break;
 						
 						default:
-						$pk = $model->primaryKey();
-						$find = $model->find()->select('*')->where([$pk[0] => $model->unique]);
-						switch(1)
-						{
-							case isset($options['modelOptions']['withThese']):
-							$find->with($options['modelOptions']['withThese']);
-							break;
-						}
-						switch(!empty($options['queryOptions']) && is_array($options['queryOptions']))
-						{
-							case true:
-							foreach($options['queryOptions'] as $type=>$value)
-							{
-								$find->$type($value);
-							}
-							break;
-						}
-						$found = $find->one();
+						/**
+						 * Otherwise we need to make sure this model exists
+						 */
+						$queryOptions = isset($options['queryOptions']) ? $options['queryOptions'] : [];
+						$found = static::findQuery($options['id'], $options['modelClass'], $queryOptions)->one();
 						$model = ($found instanceof $options['modelClass']) ? $found : $model;
 						break;
 					}
-					switch(isset($options['provider']) && !is_null($options['provider']) && $model->hasMethod($options['provider']))
+					/*switch(isset($options['provider']) && !is_null($options['provider']) && $model->hasMethod($options['provider']))
 					{
 						case true:
-						$model = call_user_func_array([$model, $options['provider']], $args);
+						$model = call_user_func_array([$model, $options['provider']], $options['args']);
 						$model->requestModel = $model;
 						break;
-					}
+					}*/
 					break;
 					
 					default:
-					//Get the data accoriding to get$options['param'] functions
+					//Get the data according to get$options['param'] functions
 					$model->requestModel->queryFilters['limit'] = 1;
-					$model->requestModel->queryFilters['unique'] = $model->requestModel->unique;
-					$model = $model->requestModel->getArrays()[0];
-					switch($model->hasMethod($options['provider']))
-					{
-						case true:
-						call_user_func_array([$model, $options['provider']], $args);
-						$model->queryFilters['unique'] = $model->provid;
-						$model->queryFilters['limit'] = 1;
-						$found = $model->getArrays();
-						$model = empty($found) ? $model : $found[0];
-						break;
-					}
+					$model->requestModel->queryFilters[$model->requestModel->primaryKey()[0]] = $model->requestModel->getId();
+					$model = array_shift($model->requestModel->getArrays());
+					if(!$model)
+						$model = new $options['modelClass'](@$options['construct']);
+					else
+						switch($model->hasMethod($options['provider']))
+						{
+							case true:
+							call_user_func_array([$model, $options['provider']], $args);
+							$model->queryFilters['limit'] = 1;
+							$found = $model->getArrays();
+							$model = empty($found) ? $model : $found[0];
+							break;
+						}
 					break;
 				}
 				switch(!is_null($model) || $force)
 				{
 					case true:
 					$options['viewArgs'] = (isset($options['viewArgs']) && is_array($options['viewArgs'])) ? $options['viewArgs'] : (isset($options['viewArgs']) ? [$options['viewArgs']] : []);
-					$data = (isset($options['dataProvider']) && !is_null($options['dataProvider']) && $model->hasProperty($options['dataProvider'])) ? $data->$dataProvider : $model;
-					switch(1)
-					{
-						case is_callable($options['title']):
-						$title = $options['title']($model);
-						break;
-						
-						case ($model->hasProperty(@$options['title'][0]) || $model->hasAttribute(@$options['title'][0])):
-						$title = $model->getAttribute($options['title'][0]);
-						break;
-						
-						case is_string($options['title']):
-						$title = $options['title'];
-						break;
-						
-						case is_array($options['title']):
-						$title = @$options['title'][1];
-						break;
-						
-						default:
-						$title = ($model->getIsNewRecord() ? "Create" : "Update")." ".ucfirst($model->properName($model->isWhat()));
-						break;
-					}
-					$options['formId'] = isset($options['formId']) ? $options['formId'] : $model->isWhat()."_form";
-					$footer = isset($options['footer']) ? $options['footer'] : Html::submitButton($model->isNewRecord ? \Yii::t('app', 'Create') :\ Yii::t('app', 'Update'), [
+					$options['formId'] = isset($options['formId']) ? $options['formId'] : $model->isWhat()."-form";
+					$footer = isset($options['footer']) ? $options['footer'] : Html::submitButton($model->isNewRecord ? \Yii::t('app', 'Create') : \Yii::t('app', 'Update'), [
 						'class' => $model->isNewRecord ? 'btn btn-success' : 'btn btn-primary',
 						'form' => $options['formId'].$model->getId()
 					]);
 					Response::$viewOptions = [
 						"view" => $options['view'],
 						'modalOptions' => static::getModalOptions($modalOptions, $model),
-						'title' => $title,
+						'title' => static::getTitle($model, $options['title']),
 						'footer' => $footer
 					];
+					$dataProviderOptions = array_intersect_key($options, [
+						'provider' => null,
+						'args' => null,
+						'force' => null
+					]);
+					$ret_val['data'] = static::getDataProvider($model, $dataProviderOptions);
 					Response::$viewOptions["args"] = array_merge([
 							"action" => $options['param'],
 							"model" => $model,
-							'data' => $data,
+							'dataProvider' => $ret_val['data'],
 						], $options['viewArgs']);
-					switch(\yii::$app->request->isAjax)
+					switch(\Yii::$app->request->isAjax)
 					{
 						case false:
 						Response::$viewOptions['options'] = [
@@ -137,9 +111,8 @@ class Form extends Behavior
 						];
 						break;
 					}
-					$ret_val['data'] = $data;
 					$ret_val['success'] = true;
-					$ret_val['action'] = 'view_'.$options['param'];
+					$ret_val['action'] = $options['param'];
 					break;
 				}
 				break;
@@ -147,6 +120,75 @@ class Form extends Behavior
 			break;
 		}
 		return $ret_val;
+	}
+	
+	protected static function findQuery($id, $modelClass, $options=[])
+	{
+		$find = $modelClass::find()->select('*')->where([$modelClass::primaryKey()[0] => $id]);
+		if((sizeof($options) >= 1) && is_array($options))
+		{
+			foreach($options as $type=>$value)
+			{
+				$find->$type($value);
+			}
+		}
+		return $find;
+	}
+	
+	public static function getDataProvider($model, $options)
+	{
+		$ret_val = new \yii\data\ArrayDataProvider;
+		if(!isset($options['provider']))
+			return $ret_val;
+		switch(is_array($options['provider']))
+		{
+			case true:
+			$object = $model;
+			foreach($options['provider'] as $property)
+			{
+				if($object->hasMethod($property))
+					$object = call_user_func_array([$object, $property], isset($options['args']) ? $options['args'] : []);
+				else if(is_object($object) && $object->hasAttribute($property))
+					$object = $object->$property;
+			}
+			$ret_val->setModels((array)$object);
+			break;
+			
+			default:
+			if($model->hasMethod($options['provider']) || (isset($options['force']) && $options['force'] == true))
+				$ret_val->setModels(call_user_func_array([$model, $options['provider']], (array)@$options['args']));
+			else if($model->hasAttribute($options['provider']) || $model->hasProperty($options['provider']))
+					$options['dataProvider']->setModels((array)$model->getAttribute($options['provider']));
+			break;
+		}
+		return $ret_val;
+	}
+	
+	public static function getTitle($model, $options)
+	{
+		switch(1)
+		{
+			case is_callable($options):
+			$title = $options($model);
+			break;
+			
+			case ($model->hasProperty(@$options[0]) || $model->hasAttribute(@$options[0])):
+			$title = $model->getAttribute($options[0]);
+			break;
+			
+			case is_string($options):
+			$title = $options;
+			break;
+			
+			case is_array($options):
+			$title = @$options[1];
+			break;
+			
+			default:
+			$title = ($model->getIsNewRecord() ? "Create" : "Update")." ".ucfirst($model->properName($model->isWhat()));
+			break;
+		}
+		return $title;
 	}
 	
 	protected static function getModalOptions($options, $model)

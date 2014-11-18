@@ -68,7 +68,8 @@ class RequestController extends DefaultController
 			'with' => [
 				'author', 'type', 'requestFor', 
 				'completedBy', 'closedBy', 'replyModel', 
-				'issueModel', 'revisionModel', 'voteModel'
+				'issueModel', 'revisionModel', 'voteModel',
+				'followModel'
 			],
 			'construct' => [
 				'queryOptions' => $queryOptions

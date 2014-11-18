@@ -12,7 +12,6 @@ class Response extends Behavior
 	public static $viewOptions = [
 		'content' => '',
 		'view' => '@nitm/views/response/index', //The view file
-		'args' => [], //the arguments to the view file,
 		'options' => [
 			'class' => ''
 		],

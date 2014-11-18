@@ -208,11 +208,9 @@ function Tools ()
 	
 	this.dynamicValue = function (object) {
 		var ret_val = null;
-		var id = !$(object).data('id') ? $(object).attr('id') : $(object).data('id');
-		var element = $nitm.getObj(id);
+		var element = !$(object).data('id') ? $nitm.getObj(object) : $nitm.getObj($(object).data('id'));
 		if(element.data('run-once') && (element.data('run-times') >= 1))
 			return;
-		console.log(element.data());
 		var url = $(object).data('url');
 		url = !url ? $(object).attr('href') : url;
 		var on = $(object).data('on');

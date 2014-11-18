@@ -7,6 +7,7 @@ use nitm\models\Alerts;
 use nitm\models\search\Alerts as AlertsSearch;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
+use yii\helpers\ArrayHelper;
 use nitm\helpers\Response;
 
 /**
@@ -108,33 +109,76 @@ class AlertsController extends DefaultController
 				'action' => 'any'
 			],
 		]);
-		$ret_val = parent::actionCreate();
-		$ret_val['data'] = '';
-		switch($this->model->methods)
-		{
-			case 'email':
-			$methods = 'envelope';
-			break;
-			
-			case 'mobile':
-			$methods = 'mobile';
-			break;
-			
-			default:
-			$methods = 'send';
-			break;
+		$ret_val = [
+			'message' => "There was an error following this ".$type.". Please try again and report this if it keeps happening",
+			'success' => false
+		];
+		try {
+			$ret_val = parent::actionCreate();
+			if(ArrayHelper::getValue((array)$ret_val, 'success', false) === true)
+			{
+				$ret_val['data'] = '';
+				switch($this->model->methods)
+				{
+					case 'email':
+					$methods = 'envelope';
+					break;
+					
+					case 'mobile':
+					$methods = 'mobile';
+					break;
+					
+					default:
+					$methods = 'send';
+					break;
+				}
+				$ret_val['actionHtml'] = 'Unfollow '.\nitm\helpers\Icon::show($methods);
+				$ret_val['class'] = 'btn-success';
+			}
+		} catch(\Exception $e) {
+			if(YII_DEBUG)
+				throw $e;
 		}
-		$ret_val['actionHtml'] = 'Unfollow '.\nitm\helpers\Icon::show($methods);
-		$ret_val['class'] = 'btn-primary';
+		if($ret_val['success'])
+			\nitm\traits\Relations::setCachedRelationModel($this->model, ['remote_id', 'remote_type'], 'followModel');
 		return $ret_val;
 	}
 	
 	public function actionUnFollow($id)
 	{
-		$ret_val = parent::actionDelete($id);
+		$ret_val = [
+			'message' => "Couldn't unfollow this for some reason",
+			'success' => false
+		];
+		try {
+			$ret_val = parent::actionDelete($id);
+		} catch(\Exception $e) {
+			if(YII_DEBUG)
+				throw $e;
+		}
+		if($ret_val['success'])
+			\nitm\traits\Relations::deleteCachedRelationModel($this->model, ['remote_id', 'remote_type'], 'followModel');
 		$ret_val['actionHtml'] = 'Follow';
 		$ret_val['class'] = 'btn-default';
 		return $ret_val;
+	}
+	
+    public static function booleanActions()
+	{
+		return array_merge(parent::booleanActions(), [
+			'un-follow' => [
+				'scenario' => 'follow',
+				'attributes' => [
+					'attribute' => 'id',
+					'blamable' => 'user_id',
+					'date' => 'created_at'
+				],
+				'title' => [
+					'Unfollow',
+					'Follow'
+				]
+			]
+		]);
 	}
 	
 	/**

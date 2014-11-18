@@ -38,8 +38,13 @@ class Relations
 				break;
 				
 				default:
-				$construct = !is_array($attributes) ? [] : $attributes;
-				$ret_val = is_string($className) ? new $className($construct) : $attributes;
+				if(is_object($attributes) && $attributes->className() == $className)
+					$ret_val = $attributes;
+				else
+				{
+					$construct = !is_array($attributes) ? [] : $attributes;
+					$ret_val = is_string($className) ? new $className($construct) : $attributes;
+				}
 				break;
 			}
 			break;

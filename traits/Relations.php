@@ -31,7 +31,7 @@ trait Relations {
 	protected function getCachedUserModel($idKey, $className=null)
 	{
 		$className = is_null($className) ? \Yii::$app->user->identityClass : \nitm\models\User::className();
-		return $this->getCachedRelation('user-'.$this->$idKey, $className, [], false, \nitm\helpers\Helper::getCallerName());
+		return $this->getCachedRelation(static::cacheKey($this, $idKey, 'user'), $className, [], false, \nitm\helpers\Helper::getCallerName());
 	}
 	 
     /**
@@ -155,7 +155,7 @@ trait Relations {
 	{
 		$className = is_null($className) ? \nitm\models\Category::className() : $className;
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
-		return $this->getCachedRelation('category-'.$this->$idKey, $className, [], $many, $relation);
+		return $this->getCachedRelation(static::cacheKey($this, $idKey, 'category', $many), $className, [], $many, $relation);
 	}
 
     /**
@@ -164,10 +164,23 @@ trait Relations {
     public function getParent()
     {
 		$options['where'] = !isset($options['where']) ? [] : $options['where'];
-		return $this->getCategoryRelation(['id' => 'parent_ids'], $options, null, true);
+		return $this->getCategoryRelation(['id' => 'parent_ids'], $options);
     }
 	
 	public function parent()
+	{
+		return $this->getCachedCategoryModel('parent_ids');
+	}
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getParents()
+    {
+		return $this->getCategoryRelation(['id' => 'parent_ids'], $options, null, true);
+    }
+	
+	public function parents()
 	{
 		return $this->getCachedCategoryModel('parent_ids');
 	}
@@ -238,20 +251,7 @@ trait Relations {
 			'parent_type' => $this->isWhat()
 		];
 		$idKey = is_null($idKey) ? ['getId', 'isWhat'] : $idKey;
-		return $this->getCachedRelation($relation.'-'.$this->concatAttributes($idKey), $className, $options, $many, $relation);
-	}
-	
-	protected function concatAttributes($attributes, $glue='-')
-	{
-		$self = $this;
-		$ret_val = array_map(function ($attribute) use($self) {
-			try {
-				return call_user_func([$self, $attribute]);
-			} catch(\Exception $e) {
-				return $self->$attribute;
-			}
-		}, (array)$attributes);
-		return implode($glue, array_filter($ret_val));
+		return $this->getCachedRelation(static::cacheKey($this, $idKey, $relation, $many), $className, $options, $many, $relation);
 	}
 	
 	public function replyModel()
@@ -293,7 +293,7 @@ trait Relations {
 	
 	public function replies()
 	{
-		return $this->getCachedRelation('replies.'.$this->isWhat().'.'.$this->getId(), 'replies', null, true);
+		return $this->getCachedRelation(static::cacheKey($this, 'id', 'replies', true), \nitm\models\Replies::className(), [], true);
 	}
 	
 	public function issueModel()
@@ -324,7 +324,7 @@ trait Relations {
 	
 	public function issues()
 	{
-		return $this->getCachedRelation('issues.'.$this->isWhat().'.'.$this->getId(), 'issues', null, true);
+		return $this->getCachedRelation(static::cacheKey($this, 'id', 'issues', true), \nitm\models\Issues::className(), [], true);
 	}
 
     /**
@@ -342,7 +342,7 @@ trait Relations {
 	
 	public function revisions()
 	{
-		return $this->getCachedRelation('revisions.'.$this->isWhat().'.'.$this->getId(), 'revisions', null, true);
+		return $this->getCachedRelation(static::cacheKey($this, 'id', 'revisions', true), \nitm\models\Revisions::className(), [], true);
 	}
 	
 	public function revisionModel()
@@ -370,7 +370,7 @@ trait Relations {
 	
 	public function votes()
 	{
-		return $this->getCachedRelation('votes.'.$this->isWhat().'.'.$this->getId(), 'votes', null, true);
+		return $this->getCachedRelation(static::cacheKey($this, 'id', 'votes', true), \nitm\models\Vote::className(), [], true);
 	}
 	
 	public function voteModel()
@@ -436,10 +436,10 @@ trait Relations {
      */
     public function getFollowModel()
     {
-        $this->getWidgetRelationModelQuery(\nitm\models\Alerts::className(), ['remote_id' => 'id'], [
+        return $this->getWidgetRelationModelQuery(\nitm\models\Alerts::className(), ['remote_id' => 'id'], [
 			//Disabled due to Yii framework inability to return statistical relations
 			//'with' => ['currentUserVoted', 'fetchedValue']
-			'select' => ['id', 'remote_id', 'remote_type'],
+			'select' => ['id', 'user_id', 'remote_id', 'remote_type'],
 			'where' => [
 				'remote_type' => $this->isWhat(),
 				'user_id' => \Yii::$app->user->getId()
@@ -487,7 +487,35 @@ trait Relations {
 		//if(static::className() != $className)
 			//$ret_val->with(['count', 'newCount']);
 		$cacheFunction = $many === true ? 'getCachedModelArray' : 'getCachedModel';
-		return $this->$cacheFunction($key, $modelClass, $relation, $options);
+		return Cache::$cacheFunction($this, $key, $modelClass, $relation, $options);
+	}
+	
+	public static function setCachedRelationModel($model, $idKey='id', $relation=null, $many=false)
+	{
+		return Cache::setCachedModel(static::cacheKey($model, $idKey, $relation, $many), $model);
+	}
+	
+	public static function deleteCachedRelationModel($model, $idKey='id', $relation=null, $many=false)
+	{
+		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
+		return Cache::deleteCachedModel(static::cacheKey($model, $idKey, $relation, $many));
+	}
+	
+	public static function concatAttributes($model, $attributes, $glue='-')
+	{
+		$ret_val = array_map(function ($attribute) use($model) {
+			try {
+				return call_user_func([$model, $attribute]);
+			} catch(\Exception $e) {
+				return $model->$attribute;
+			}
+		}, (array)$attributes);
+		return implode($glue, array_filter($ret_val));
+	}
+	
+	public function cacheKey($model, $idKey, $relation=null, $many=false)
+	{
+		return ($many == true ? 'many' : 'one').'-'.$relation.'-'.static::concatAttributes($model, $idKey);
 	}
  }
 ?>

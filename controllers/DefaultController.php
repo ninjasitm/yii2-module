@@ -1,7 +1,8 @@
 <?php
 
 namespace nitm\controllers;
-use \yii\helpers\Html;
+use yii\helpers\Html;
+use yii\helpers\ArrayHelper;
 use nitm\models\Category;
 use nitm\helpers\Icon;
 use nitm\helpers\Response;
@@ -115,18 +116,20 @@ class DefaultController extends BaseController
 			switch(1)
 			{
 				case $searchModel instanceof \nitm\search\BaseElasticSearch:
-				$dataProvider->query->orderBy([
-					$searchModel->primaryModel->primaryKey()[0] => [
-						'order' => 'desc',
-						'ignore_unmapped' => true
-					]
-				]);
+				if(!$dataProvider->query->orderBy)
+					$dataProvider->query->orderBy([
+						$searchModel->primaryModel->primaryKey()[0] => [
+							'order' => 'desc',
+							'ignore_unmapped' => true
+						]
+					]);
 				break;
 				
 				default:
-				$dataProvider->query->orderBy([
-					$searchModel->primaryModel->primaryKey()[0] => SORT_DESC
-				]);
+				if(!$dataProvider->query->orderBy)
+					$dataProvider->query->orderBy([
+						$searchModel->primaryModel->primaryKey()[0] => SORT_DESC
+					]);
 				break;
 			}
 			$dataProvider->pagination->params['sort'] = '-'.$searchModel->primaryModel->primaryKey()[0];
@@ -166,43 +169,10 @@ class DefaultController extends BaseController
 	 */
 	public function actionForm($type=null, $id=null, $options=[])
 	{
-		$force = false;
-		$options['id'] = $id;
-		$options['param'] = $type;
-		switch($type)
-		{	
-			//This is for generating the form for updating and creating a form for $this->model->className()
-			default:
-			$action = !$id ? 'create' : 'update';
-			$options['title'] = !isset($options['title']) ? ['title', 'Create '.static::properName($this->model->isWhat())] : $options['title'];
-			$options['scenario'] = $action;
-			$options['provider'] = null;
-			$options['dataProvider'] = null;
-			$options['view'] = $type;
-			$options['args'] = [false, true, true];
-			$options['modelClass'] = $this->model->className();
-			$options['force'] = true;
-			break;
-		}
-		$options['modalOptions'] = isset($options['modalOptions']) ? (array)$options['modalOptions'] : [];
-		$modalOptions = array_merge([
-			'body' => [
-				'class' => 'modal-full'
-			],
-			'dialog' => [
-				'class' => 'modal-full'
-			],
-			'content' => [
-				'class' => 'modal-full'
-			],
-			'contentOnly' => true
-		], $options['modalOptions']);
-		
-		unset($options['modalOptions']);
-		
+		$options = $this->getVariables($type, $id, $options);
 		$format = Response::formatSpecified() ? $this->getResponseFormat() : 'html';
 		$this->setResponseFormat($format);
-		return $this->renderResponse($this->getFormVariables($this->model, $options, $modalOptions), Response::$viewOptions, \Yii::$app->request->isAjax);
+		return $this->renderResponse($options, Response::$viewOptions, \Yii::$app->request->isAjax);
 	}
 
     /**
@@ -210,17 +180,27 @@ class DefaultController extends BaseController
      * @param integer $id
      * @return mixed
      */
-    public function actionView($id, $modelClass=null, $with=[])
+    public function actionView($id, $modelClass=null, $options=[])
     {
 		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
-        $this->model =  $this->findModel($modelClass, $id, $with);
-		Response::$viewOptions = [
-			"view" => '@nitm/views/view/index',
-			'args' => [
-				'content' => $this->renderAjax('/'.$this->model->isWhat().'/view', ["model" => $this->model]),
-			],
-			'scripts' => new \yii\web\JsExpression("\$nitm.onModuleLoad('nitm', function (){\$nitm.module('nitm').initForms(null, 'nitm:".$this->model->isWhat()."');\$nitm.module('nitm').initMetaActions(null, 'nitm:".$this->model->isWhat()."');})")
-		];
+        $this->model =  isset($options['model']) ? $options['model'] : $this->findModel($modelClass, $id, @$options['with']);
+		$view = isset($options['view']) ? $options['view'] : '/'.$this->model->isWhat().'/view';
+		$args = isset($options['args']) ? $options['args'] : [];
+		
+		Response::$viewOptions = array_merge(Response::$viewOptions, $options);
+		/**
+		 * Some default values we would like
+		 */
+		if(!isset(Response::$viewOptions['view']))
+			Response::$viewOptions["view"] = '@nitm/views/view/index';
+		if(!isset(Response::$viewOptions['args']))
+			Response::$viewOptions['args'] = [
+				'content' => $this->renderAjax($view, array_merge(["model" => $this->model], $args)),
+			];
+		if(!isset(Response::$viewOptions['scripts']))	
+			Response::$viewOptions['scripts'] = new \yii\web\JsExpression("\$nitm.onModuleLoad('nitm', function (){\$nitm.module('nitm').initForms(null, 'nitm:".$this->model->isWhat()."');\$nitm.module('nitm').initMetaActions(null, 'nitm:".$this->model->isWhat()."');})");
+		
+		Response::$viewOptions['title'] = isset(Response::$viewOptions['title']) ? \nitm\helpers\Form::getTitle($this->model, @Response::$viewOptions['title']) : '';
 		Response::$forceAjax = false;
 		return $this->renderResponse(null, Response::$viewOptions, (\Yii::$app->request->get('__contentOnly') ? true : \Yii::$app->request->isAjax));
     }
@@ -362,11 +342,11 @@ class DefaultController extends BaseController
 				case \Yii::$app->user->identity->isAdmin():
 				case $this->model->hasAttribute('author_id') && ($this->model->author_id == \Yii::$app->user->getId()):
 				case $this->model->hasAttribute('user_id') && ($this->model->user_id == \Yii::$app->user->getId()):
+				$attributes = $this->model->getAttributes();
 				if($this->model->delete())
 				{
 					$deleted = true;
-					$this->model = new $modelClass;
-					$this->model->id = $id;
+					$this->model = new $modelClass($attributes);
 				}
 				$deleted = true;
 				break;
@@ -522,9 +502,9 @@ class DefaultController extends BaseController
 					case true:
 					extract(static::booleanActions()[$this->action->id]);
 					$ret_val['success'] = true;
-					$booleanValue = $this->model->getAttribute($attributes['attribute']);
-					$ret_val['title'] = $title[$booleanValue];
-					$iconName = isset($icon) ? $icon[$booleanValue] : $this->action->id;
+					$booleanValue = (bool)$this->model->getAttribute($attributes['attribute']);
+					$ret_val['title'] = @ArrayHelper::getValue((array)$title, $booleanValue, '');
+					$iconName = @ArrayHelper::getValue((array)$icon, $booleanValue, $this->action->id);
 					$ret_val['actionHtml'] = Icon::forAction($iconName, $booleanValue);
 					$ret_val['data'] = $this->boolResult;
 					$ret_val['class'] = 'wrapper';
@@ -627,5 +607,55 @@ class DefaultController extends BaseController
 			'data-toggle' => 'collapse',
 			'data-target' => '#'.$this->model->isWhat().'-filter'
 		], (array)$options)), $containerOptions);
+	}
+	
+	/*
+	 * Get the variables for a model
+	 * @param string $param What are we getting this form for?
+	 * @param int $unique The id to load data for
+	 * @param array $options
+	 * @return string | json
+	 */
+	protected function getVariables($type=null, $id=null, $options=[])
+	{
+		$force = false;
+		$options['id'] = $id;
+		$options['param'] = $type;
+		if(isset($options['modelClass']))
+		{
+			$this->model = ($this->model->className() == $options['modelClass']) ? $this->model : new $options['modelClass'](@$options['construct']);
+		}
+		switch($type)
+		{	
+			//This is for generating the form for updating and creating a form for $this->model->className()
+			default:
+			$options = array_merge([
+				'title' => ['title', 'Create '.static::properName($this->model->isWhat())],
+				'scenario' => !$id ? 'create' : 'update',
+				'provider' => null,
+				'dataProvider' => null,
+				'view' => isset($options['view']) ? $options['view'] : $type,
+				'args' => [],
+				'modelClass' => $this->model->className(),
+				'force' => false	
+			], $options);
+			break;
+		}
+		$options['modalOptions'] = isset($options['modalOptions']) ? (array)$options['modalOptions'] : [];
+		$modalOptions = array_merge([
+			'body' => [
+				'class' => 'modal-full'
+			],
+			'dialog' => [
+				'class' => 'modal-full'
+			],
+			'content' => [
+				'class' => 'modal-full'
+			],
+			'contentOnly' => true
+		], $options['modalOptions']);
+		
+		unset($options['modalOptions']);
+		return $this->getFormVariables($this->model, $options, $modalOptions);
 	}
 }

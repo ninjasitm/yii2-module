@@ -104,7 +104,11 @@ class Network extends Behavior
 		switch($response)
 		{
 			case false:
+			print_r($ch);
+			exit;
 			trigger_error(curl_error($ch));
+			print_r(curl_error($ch));
+			print_r(curl_errno($ch));
 			break;
 			
 			default:
