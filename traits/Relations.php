@@ -507,7 +507,7 @@ trait Relations {
 			try {
 				return call_user_func([$model, $attribute]);
 			} catch(\Exception $e) {
-				return $model->$attribute;
+				return $model->getAttribute($attribute);
 			}
 		}, (array)$attributes);
 		return implode($glue, array_filter($ret_val));

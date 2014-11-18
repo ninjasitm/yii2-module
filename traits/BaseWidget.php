@@ -138,7 +138,7 @@ trait BaseWidget {
 	 */
 	 public static function findModel($constrain)
 	 {
-		$model = self::initCache($constrain, self::cacheKey($constrain[0]));
+		$model = self::initCache($constrain);
 		$model->setConstraints($constrain);
 		$model->addWith([
 			'last' => function ($query) {
@@ -283,11 +283,6 @@ trait BaseWidget {
 			->with('author');
 		return $ret_val;
 	}
-	
-	public function cacheKey($id=null)
-	{
-		return \nitm\traits\Relations::cacheKey($this, ['parent_type', 'parent_id'], 'base-widget-model');
-	}
 	 
 	protected function populateMetadata()
 	{
@@ -305,13 +300,14 @@ trait BaseWidget {
 		}
 	}
 	
-	protected static function initCache($constrain, $key)
+	protected static function initCache($constrain, $key=null)
 	{
 		if(!\nitm\helpers\Cache::exists($key))
 		{
 			$class = static::className();
 			$model = new $class(['initSearchClass' => false]);
 			$model->setConstraints($constrain);
+			$key = is_null($key) ? \nitm\traits\Relations::cacheKey($model, ['parent_id', 'parent_key']) : array_keys($constrain);
 			\nitm\helpers\Cache::setModel($key, [$model->className(), \yii\helpers\ArrayHelper::toArray($model)]);
 		}
 		else {
