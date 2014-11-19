@@ -17,7 +17,7 @@ $this->params['breadcrumbs'][] = $this->title;
 	'pjax' => false,
 	'striped' => false,
 	'responsive' => true, 
-	'floatHeader'=>true,
+	'floatHeader'=> false,
 	'options' => [
 		'id' => $isWhat
 	],

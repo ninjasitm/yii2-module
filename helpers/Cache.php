@@ -202,7 +202,7 @@ class Cache extends Model
 					$ret_val = $sender->getRelatedRecords()[$property];
 					break;
 					
-					case $this->hasProperty($property) && is_array($sender->$property):
+					case $sender->hasProperty($property) && is_array($sender->$property):
 					$ret_val =  $sender->$property;
 					break;
 					

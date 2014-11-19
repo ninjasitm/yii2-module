@@ -30,22 +30,18 @@ $action = $model->getIsNewRecord() ? 'create' : 'update';
 	<?php else: ?>
 	<div class="col-md-12 col-lg-12">
 	<?php endif ?>
-		<?= Html::tag('div', '', ['id' => 'alert']); ?>
-		<?php $form = ActiveForm::begin([
-			"action" => "/".$model->isWhat()."/$action".($action == 'update' ? "/".$model->id : ''),
-			"type" => ActiveForm::TYPE_HORIZONTAL,
-			'options' => [
-				"role" => $action.$model->formName(),
-				'id' => $model->isWhat().'_form'.$model->getId(),
-				"onsubmit" => "(function (event, form) {\$nitm.module('entity').operation(form, null, 'entity:requests', event)})(event, this)",
-			],
-			'fieldConfig' => [
-				'inputOptions' => ['class' => 'form-control'],
-				'template' => "{label}\n<div class=\"col-lg-10\">{input}</div>\n<div class=\"col-lg-12\">{error}</div>",
-				'labelOptions' => ['class' => 'col-lg-2 control-label'],
-			],
-			'enableAjaxValidation' => true
-		]); ?>
+		<?php
+			echo Html::tag('div', '', ['id' => 'alert']);
+			$form = ActiveForm::begin(array_merge([
+				"type" => ActiveForm::TYPE_HORIZONTAL,
+				'fieldConfig' => [
+					'inputOptions' => ['class' => 'form-control'],
+					'template' => "{label}\n<div class=\"col-lg-10\">{input}</div>\n<div class=\"col-lg-12\">{error}</div>",
+					'labelOptions' => ['class' => 'col-lg-2 control-label'],
+				],
+				'enableAjaxValidation' => true,
+			], $formOptions)); 
+		?>
 	
 		<?= $form->field($model, 'title') ?>
 	

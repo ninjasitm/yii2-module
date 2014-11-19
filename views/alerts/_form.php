@@ -15,22 +15,18 @@ $uniqid = uniqid();
 ?>
 
 <div id="alerts-form-container<?=$model->getId();?>">
-	<?= Html::tag('div', '', ['id' => 'alert']); ?>
-	<?php $form = ActiveForm::begin([
-		'action' => "/alerts/$action".($action=='update' ? '/'.$model->getId() : ''),
-		"type" => ActiveForm::TYPE_INLINE,
-		'options' => [
-			"role" => $action."Alert",
-			'id' => $model->isWhat().'_form'.$model->getId()
-		],
-		'fieldConfig' => [
-			'inputOptions' => ['class' => 'form-control'],
-			'template' => "{label}\n<div class=\"col-lg-10\">{input}</div>\n<div class=\"col-lg-12\">{error}</div>",
-			'labelOptions' => ['class' => 'col-lg-2 control-label'],
-		],
-		'validateOnSubmit' => true,
-		'enableAjaxValidation' => true
-	]); ?>
+	<?php
+		echo Html::tag('div', '', ['id' => 'alert']);
+		$form = ActiveForm::begin(array_merge([
+			"type" => ActiveForm::TYPE_HORIZONTAL,
+			'fieldConfig' => [
+				'inputOptions' => ['class' => 'form-control'],
+				'template' => "{label}\n<div class=\"col-lg-10\">{input}</div>\n<div class=\"col-lg-12\">{error}</div>",
+				'labelOptions' => ['class' => 'col-lg-2 control-label'],
+			],
+			'enableAjaxValidation' => true,
+		], $formOptions)); 
+	?>
 	<?=
 		$form->field($model, 'action')->widget(Select2::className(), [
 			'data' => $model::setting($model->isWhat().'.actions'),

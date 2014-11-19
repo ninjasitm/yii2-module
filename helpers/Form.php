@@ -80,11 +80,28 @@ class Form extends Behavior
 				switch(!is_null($model) || $force)
 				{
 					case true:
+					
+					/**
+					 * Get scenario and form options
+					 */
+					$scenario = isset($options['scenario']) ? $options['scenario'] : ($model->getIsNewRecord() ? 'create' : 'update');
+					$model->setScenario($scenario);
+					$action = isset($options['action']) ? $options['action'] : ($model->getIsNewRecord() ? 'create' : 'update');
+					$formOptions = array_merge([
+						'action' => "/".$model->isWhat()."/$action".($action == 'create' ? '' : "/".$model->getId()),
+						'options' => [
+							'id' => $model->isWhat()."-form".$model->getId(),
+							'role' => $scenario.$model->formName()
+						]
+					], \yii\helpers\ArrayHelper::getValue($options, 'formOptions', []));
+					
+					/**
+					 * Setup view options
+					 */
 					$options['viewArgs'] = (isset($options['viewArgs']) && is_array($options['viewArgs'])) ? $options['viewArgs'] : (isset($options['viewArgs']) ? [$options['viewArgs']] : []);
-					$options['formId'] = isset($options['formId']) ? $options['formId'] : $model->isWhat()."-form";
 					$footer = isset($options['footer']) ? $options['footer'] : Html::submitButton($model->isNewRecord ? \Yii::t('app', 'Create') : \Yii::t('app', 'Update'), [
 						'class' => $model->isNewRecord ? 'btn btn-success' : 'btn btn-primary',
-						'form' => $options['formId'].$model->getId()
+						'form' => $formOptions['options']['id'],
 					]);
 					Response::$viewOptions = [
 						"view" => $options['view'],
@@ -92,17 +109,25 @@ class Form extends Behavior
 						'title' => static::getTitle($model, $options['title']),
 						'footer' => $footer
 					];
+					
+					/**
+					 * Get data provider information
+					 */
 					$dataProviderOptions = array_intersect_key($options, [
 						'provider' => null,
 						'args' => null,
 						'force' => null
 					]);
 					$ret_val['data'] = static::getDataProvider($model, $dataProviderOptions);
+					
 					Response::$viewOptions["args"] = array_merge([
-							"action" => $options['param'],
-							"model" => $model,
-							'dataProvider' => $ret_val['data'],
-						], $options['viewArgs']);
+						'scenario' => $scenario,
+						"formOptions" => $formOptions,
+						"model" => $model,
+						'dataProvider' => $ret_val['data'],
+						'action' => $action,
+						'type' => $model->isWhat(),
+					], $options['viewArgs']);
 					switch(\Yii::$app->request->isAjax)
 					{
 						case false:

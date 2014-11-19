@@ -71,7 +71,8 @@ class Dispatcher extends \yii\base\Component
 	
 	public function usersWhere($where=[])
 	{
-		Users::$usersWhere = $where;
+		//$userClass = \Yii::$app->user->identity->className();
+		//$userClass::$usersWhere = $where;
 	}
 	
 	public function isPrepared()
