@@ -72,15 +72,17 @@ function NitmEntity () {
 	
 	this.initMetaActions = function (containerId, currentIndex) {
 		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		console.log(self.actions.roles);
 		$.map(self.actions.roles, function (v) {
 			container.find("[role~='"+v+"']").map(function() {
 				//$(this).off('click');
 				$(this).on('click', function (e) {
+					var elem = this;
+					var $elem = $(this);
 					e.preventDefault();
-					var elem = $(this);
 					switch(true)
 					{
-						case elem.attr('role').indexOf(self.actions.deleteAction) != -1:
+						case $elem.attr('role').indexOf(self.actions.deleteAction) != -1:
 						if(confirm("Are you sure you want to delete this?"))
 							var proceed = true;
 						break;
@@ -91,9 +93,9 @@ function NitmEntity () {
 					}
 					if(proceed === true)
 					{
-						$nitm.startSpinner(elem);
-						$.post($(this).attr('href'), function (result) { 
-							$nitm.stopSpinner(elem);
+						$nitm.startSpinner($elem);
+						$.post($elem.attr('href'), function (result) { 
+							$nitm.stopSpinner($elem);
 							switch(result.action)
 							{
 								case 'close':
@@ -281,7 +283,10 @@ function NitmEntity () {
 				$nitm.module('tools').removeParent(elem);
 			} catch (error) {
 				var container = $nitm.getObj(self.modules[self.current].views.itemId+result.id);
-				container.remove();
+				if(conatiner.length >= 1)
+					container.remove();
+				else
+					$nitm.module('tools').removeParent(elem);
 			}
 		}
 	}
@@ -318,6 +323,7 @@ function NitmEntity () {
 	}
 	
 	this.setCurrent = function (currentIndex) {
+		currentIndex = new String(currentIndex);
 		self.current = (currentIndex == undefined) ? self.current : currentIndex.split(':').pop();
 	}
 }

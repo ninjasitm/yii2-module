@@ -652,6 +652,7 @@ function Nitm ()
 	this.initModule = function (name, object) {
 		switch(typeof object == 'object') {
 			case true:
+			self.initDefaults(name, object);
 			switch(self.hasModule(name, false))
 			{
 				case false:
@@ -679,19 +680,19 @@ function Nitm ()
 			}
 			break;
 		}
-		switch((typeof self.defaultInit == 'object') && (self.selfInit == false))
-		{
-			case true:
-			self.defaultInit.map(function (method, key) {
-				if(typeof self[method] == 'function'){
-					var container = (typeof object == 'object') ? object.views.container : '';
-					self[method](name, container);
+	}
+		
+	this.initDefaults = function (key, object) {
+		try {
+			object.defaultInit.map(function (method, key) {
+				if(typeof object[method] == 'function'){
+					var container = (typeof object == 'object') ? object.views.container : null;
+					object[method](container, key);
 				}
 			});
-			self.selfInit = true;
-			break;
-		}
+		} catch (erorr) {}
 	}
+
 }
 
 String.prototype.ucfirst = function() {
