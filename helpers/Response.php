@@ -3,6 +3,7 @@
 namespace nitm\helpers;
 
 use yii\base\Behavior;
+use yii\helpers\ArrayHelper;
 
 //class that sets up and retrieves, deletes and handles modifying of contact data
 class Response extends Behavior
@@ -67,6 +68,7 @@ class Response extends Behavior
 		$params = is_null($params) ? static::$viewOptions : $params;
 		if(isset($params['js'])) $params['js'] = is_array($params['js']) ? implode(PHP_EOL, $params['js']) : $params['js'];
 		$format = (!\Yii::$app->request->isAjax && (static::getFormat() == 'modal')) ? 'html' : static::getFormat();
+		$params['view'] =  ArrayHelper::getValue((array)$params, 'view', static::$viewPath);
 		switch($format)
 		{
 			case 'xml':
@@ -76,18 +78,15 @@ class Response extends Behavior
 			break;
 			
 			case 'html':
-			$params['view'] =  empty($params['view']) ? static::$viewPath :  $params['view'];
-			$params['options'] = isset(static::$viewOptions['options']) ? static::$viewOptions['options'] : [];
+			$params['options'] = ArrayHelper::getValue(static::$viewOptions, 'options', []);
 			if(isset($params['js'])) static::$view->registerJs($params['js']);
-			$ret_val = static::$controller->$render($params['view'], $params['args'], static::$controller);
+			$ret_val = static::$controller->$render($params['view'], ArrayHelper::getValue($params, 'args', []), static::$controller);
 			break;
 			
 			case 'modal':
-			$params['view'] =  empty($params['view']) ? static::$viewPath :  $params['view'];
-			$params['args']['options'] = isset(static::$viewOptions['options']) ? static::$viewOptions['options'] : [];
+			$params['args']['options'] = ArrayHelper::getValue(static::$viewOptions, 'options', []);
 			if(isset($params['js'])) static::$view->registerJs($params['js']);
-			$ret_val = static::$controller->$render(static::$viewModal, 
-				[
+			$ret_val = static::$controller->$render(static::$viewModal, [
 					'content' => static::$controller->$render($params['view'], $params['args'], static::$controller),
 					'footer' => @$params['footer'],
 					'title' => \Yii::$app->request->isAjax ? @$params['title'] : '',

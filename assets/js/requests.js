@@ -15,6 +15,7 @@ function Requests () {
 		containerId: 'requests',
 	}
 	this.defaultInit = [
+		'initmetaActions'
 	];
 
 	this.init = function (container) {

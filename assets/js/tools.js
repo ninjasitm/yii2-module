@@ -7,6 +7,7 @@
 function Tools ()
 {
 	var self = this;
+	this.id = 'tools';
 	this.defaultInit = [
 		'initVisibility',
 		'initRemoveParent',
@@ -93,7 +94,7 @@ function Tools ()
 		
 		this.getRemote = function () {
 			var basedOnGetUrl = (_visSelf.url != undefined) && (_visSelf.url != '#') && (_visSelf.url.length >= 2) && _visSelf.getUrl;
-			var basedOnRemoteOnce = ($(object).data('remote-once') != undefined) ? ($(object).data('remote-once') && !$(object).data('got-remote')) : true;
+			var basedOnRemoteOnce = ($(object).data('remote-once') != undefined) ? (Boolean($(object).data('remote-once')) && !$(object).data('got-remote')) : true;
 			return basedOnGetUrl && basedOnRemoteOnce;
 		}
 		
@@ -230,7 +231,8 @@ function Tools ()
 			{
 				case 'html':
 				var ret_val = $.ajax({
-					url: url+selected, 
+					url: url+selected,
+					type: ($(object).data('method') != undefined) ? $(object).data('method') : 'get', 
 					dataType: 'html',
 					complete: function (result) {
 						self.evalScripts(result.responseText, function (responseText) {
@@ -243,7 +245,8 @@ function Tools ()
 				case 'callback':
 				eval("var callback = "+$(object).data('callback'));
 				var ret_val = $.ajax({
-					url: url+selected, 
+					url: url+selected,
+					type: ($(object).data('method') != undefined) ? $(object).data('method') : 'get',  
 					dataType: 'json',
 					complete: function (result) {
 						callback(result, element.get(0));
@@ -253,7 +256,8 @@ function Tools ()
 				
 				default:
 				var ret_val = $.ajax({
-					url: url+selected, 
+					url: url+selected,
+					type: ($(object).data('method') != undefined) ? $(object).data('method') : 'get',  
 					dataType: 'text',
 					complete: function (result) {
 						element.val(result.responseText);
@@ -381,6 +385,8 @@ function Tools ()
 			$(this).on('click', function (e) {
 				e.preventDefault();
 				self.cloneParent(this);
+				if($(this).data('propagate') == undefined)
+					$(this).click();
 				return true;
 			});
 		});
@@ -423,7 +429,8 @@ function Tools ()
 		var $element = $(elem);
 		var clone = $($element.data('clone')).clone();
 		clone.find('input').not(':hidden').each(function (){$(this).val('')});
-		clone.attr('id', clone.attr('id')+Date.now());
+		var currentId = !clone.attr('id') ? clone.prop('tagName') : clone.attr('id');
+		clone.attr('id', currentId+Date.now());
 		var to = $nitm.getObj($element.data('to'));
 		if($element.data('after') != undefined) {
 			clone.insertAfter(to.find($element.data('after')));
@@ -437,6 +444,7 @@ function Tools ()
 		if(typeof afterClone == 'function'){
 			afterClone(clone, to, elem);
 		}
+		return clone;
 	}
 	
 	/**
@@ -507,7 +515,8 @@ function Tools ()
 		
 		var _defaultDisablerOptions = {
 			size: !$element.attr('class') ? 'btn-sm' : $element.attr('class'),
-			indicator: ((disabled == 1) ? 'refresh' : 'ban')
+			indicator: ((disabled == 1) ? 'refresh' : 'ban'),
+			class: $element.attr('class')
 		};
 		//change the button to determine the curent status
 		var _disablerOptions = {};
@@ -524,7 +533,7 @@ function Tools ()
 		
 		//now perform disabling on parent
 		var _defaultParentOptions = {
-			class: 'alert '+((disabled == 1) ? 'bg-disabled' : 'bg-success')
+			class: ((disabled == 1) ? 'bg-disabled' : 'bg-success')
 		};
 		var elemEvents = ['click'];
 		parent.find(':input,:button,a').map(function () {
@@ -671,4 +680,4 @@ function Tools ()
 	}
 }
 
-$nitm.initModule('tools', new Tools());
+$nitm.initModule(new Tools());

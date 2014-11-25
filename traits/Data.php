@@ -1,6 +1,7 @@
 <?php
 namespace nitm\traits;
 
+use yii\helpers\ArrayHelper;
 /**
  * Traits defined for expanding query scopes until yii2 resolves traits issue
  */
@@ -13,6 +14,7 @@ trait Data {
 	protected $is;
 	protected static $_is;
 	protected static $tableName;
+	protected static $_flags = [];
 	
 	/*
 	 * What does this claim to be?
@@ -76,6 +78,37 @@ trait Data {
 	public static function properClassName($value)
 	{
 		return implode('', explode(' ', static::properName($value)));
+	}
+	
+	public static function getNamespace()
+	{
+		return (new \ReflectionClass(static::className()))->getNamespaceName();
+	}
+	
+	public function flagId($flag)
+	{
+		if(isset($this) && $this instanceof \nitm\models\Data)
+			return self::getNamespace().'\\'.$this->getId();
+		else
+			return self::getNamespace().'\\';
+	}
+	
+	/**
+	 * Some support for setting custom flags at runtime
+	 */	
+	public function setFlag($flag, $value)
+	{
+		self::$_flags[self::flagId($flag)] = $value;
+	}
+	
+	public function getFlag($flag)
+	{
+		return ArrayHelper::getValue(self::$_flags, self::flagId($flag), null);
+	}
+	
+	public static function unsetFlag($flag)
+	{
+		return ArrayHelper::remove(self::$_flags, self::flagId($flag), null);
 	}
 	
 	public function addWith($with)

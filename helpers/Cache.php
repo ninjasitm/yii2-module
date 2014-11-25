@@ -182,11 +182,19 @@ class Cache extends Model
 		{
 			case true:
 			$array = static::getModelArray($key);
-			if(class_exists($array[0]))
+			
+			if((class_exists($array[0])) && (is_array($array[1]) && count($array[1]) >= 1))
 			{
-				foreach($array[1] as $values)
-				{
-					$ret_val[] = new $array[0]($values);
+				try {
+					foreach($array[1] as $attributes)
+					{
+						$ret_val[] = new $array[0]($attributes);
+					}
+				} catch (\Exception $e) {
+					/**
+					 * Most likely $array[1] is a single array with attributes
+					 */
+					 $ret_val[] = new $array[0]($array[1]);
 				}
 			}
 			else

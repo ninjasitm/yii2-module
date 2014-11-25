@@ -1,3 +1,4 @@
+
 /*!
  * Nitm v1 (http://www.ninjasitm.com)
  * Copyright 2012-2014 NITM, Inc.
@@ -96,11 +97,11 @@ function Nitm ()
 		switch(after)
 		{
 			case true:
-			self.stopSpinner($button);
+			this.stopSpinner($button);
 			break
 				
 			default:
-			self.startSpinner($button);
+			this.startSpinner($button);
 			break;
 		}
 	}
@@ -480,7 +481,7 @@ function Nitm ()
 		switch(typeof(newElem))
 		{
 			case 'object':
-			var addTo = self.getObj(addToElem);
+			var addTo = this.getObj(addToElem);
 			var scrollToPos = 0;
 			switch(format)
 			{
@@ -520,13 +521,13 @@ function Nitm ()
 							addTo.hide().slideDown('fast').effect('pulsate', {times:1}, 150);
 							break;
 					}
-					self.animateScroll(scrollToPos, addTo);
+					this.animateScroll(scrollToPos, addTo);
 				}catch(error){}
 			} else if(newElem.replace === true) {
 				try 
 				{
 					addTo.replaceWith(data).effect('pulsate', {times:1}, 150);
-					//self.animateScroll(scrollToPos, addTo);
+					//this.animateScroll(scrollToPos, addTo);
 				}catch(error){}
 			} else {
 				try 
@@ -560,7 +561,7 @@ function Nitm ()
 						}
 						break;
 					}
-					self.animateScroll(scrollToPos, addTo);
+					this.animateScroll(scrollToPos, addTo);
 				} catch(error){}
 			}
 			break;
@@ -585,10 +586,10 @@ function Nitm ()
 			callback();
 			$(this).dequeue(event)
 		});
-		switch(self.hasModule(module, false))
+		switch(this.hasModule(module, false))
 		{
 			case true:
-			self.moduleLoaded(module, namespace);
+			this.moduleLoaded(module, namespace);
 			break;
 		}
 	}
@@ -621,14 +622,15 @@ function Nitm ()
 	}
 	
 	this.hasModule = function (name) {
-		var ret_val = self.module(name, false) === false ? false : true;
+		var ret_val = this.module(name, false) === false ? false : true;
 		return ret_val;
 	}
 	
-	this.setModule = function (name, module) {
+	this.setModule = function (module, name) {
+		var name = this.getModuleName(module, name);
 		var hierarchy = name.split(':');
 		var moduleName = hierarchy.pop();
-		var parent = (hierarchy.length == 0) ? self : self.module(hierarchy.join(':'));
+		var parent = (hierarchy.length == 0) ? self : this.module(hierarchy.join(':'));
 		if(!parent.hasOwnProperty('modules')) {
 			parent['modules'] = {};
 			Object.defineProperty(parent, 'modules', {
@@ -640,24 +642,34 @@ function Nitm ()
 			'value': module,
 			'enumerable': true
 		});
-		self.moduleLoaded(name);
+		this.moduleLoaded(name);
 	}
 	
 	this.setCurrent = function (index) {
 		if(index != undefined) {
-			self.current = index;
+			this.current = index;
 		}
 	}
 	
-	this.initModule = function (name, object) {
+	this.getModuleName = function (module, name) {
+		if(name == undefined && (typeof module == 'object'))
+			if(module.hasOwnProperty('id'))
+				var name = module.id
+			else
+				var name = Date.now();
+		return name;
+	}
+	
+	this.initModule = function (object, name) {
+		var name = this.getModuleName(object, name);
 		switch(typeof object == 'object') {
 			case true:
-			self.initDefaults(name, object);
-			switch(self.hasModule(name, false))
+			this.initDefaults(name, object);
+			switch(this.hasModule(name, false))
 			{
 				case false:
-				self.current = name;
-				self.setModule(name, object);
+				this.current = name;
+				this.setModule(object, name);
 				if(typeof object.init == 'function') {
 					switch(document.readyState)
 					{
@@ -692,7 +704,6 @@ function Nitm ()
 			});
 		} catch (erorr) {}
 	}
-
 }
 
 String.prototype.ucfirst = function() {

@@ -30,20 +30,25 @@ class Icon extends \kartik\icons\Icon
 			switch($action)
 			{
 				case 'close':
-				$icon = ($value == 1) ? 'lock' : 'unlock-alt';
+				$icon = ((bool)$value == true) ? 'lock' : 'unlock-alt';
 				break;
 				
 				case 'resolve':
 				case 'complete':
-				$icon = ($value == 1) ? 'check-circle' : 'circle';
+				$icon = ((bool)$value == true) ? 'check-circle' : 'circle';
 				break;
 				
 				case 'duplicate':
-				$icon = ($value == 1) ?  'flag' : 'flag-o';
+				$icon = ((bool)$value == true) ?  'flag' : 'flag-o';
 				break;
 				
 				case 'disable':
-				$icon = ($value == 1) ?  'check-circle' : 'ban';
+				$icon = ((bool)$value == true) ?  'check-circle' : 'ban';
+				break;
+				
+				case 'delete':
+				case 'remove':
+				$icon = ((bool)$value == true) ?  'refresh' : 'trash-o';
 				break;
 			}
 			break;
