@@ -4,6 +4,7 @@ namespace nitm\controllers;
 
 use Yii;
 use yii\helpers\Html;
+use yii\helpers\ArrayHelper;
 use yii\web\Controller;
 use nitm\helpers\Session;
 use nitm\helpers\Response;
@@ -121,12 +122,13 @@ class BaseController extends Controller
 					$js['src'] = '/js/'.$js['src'];
 					break;
 				}
-				$js['src'] = $js['src'].'.js';
+				$js['src'] = (strripos($js['src'], '.js', -(strlen($js['src']))) !== false) ? $js['src'] : $js['src'].'.js';
 				switch(1)
 				{
 					case file_exists(\Yii::$app->basePath.'/web'.$js['src']):
 					$js['src'] = Yii::$app->UrlManager->baseUrl.$js['src'];
-					$this->view->registerJsFile($js['src'], ["position" => $js['position']]);
+					$src = ArrayHelper::remove($js, 'src', 3);
+					$this->view->registerJsFile($src, $js);
 					break;
 					
 					case file_exists(\Yii::getAlias($js['src'])):
@@ -168,7 +170,7 @@ class BaseController extends Controller
 				}
 				break;
 			}
-		}
+		}		
 	}
 
 	/*

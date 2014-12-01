@@ -418,7 +418,9 @@ function Tools ()
 			var parent = $element.parents().eq(levels);
 			break;
 		}
-		parent.hide('slow').remove();
+		parent.slideUp('fast', function () {
+			parent.remove();
+		});
 	}
 	
 	/**

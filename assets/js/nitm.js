@@ -511,15 +511,15 @@ function Nitm ()
 					switch(1)
 					{
 						case 1:
-							switch(addTo.find(':first-child').attr('id'))
-							{
-								case 'noreplies':
-									addTo.find(':first-child').remove();
-									break;
-							}
-							newElement.appendTo(addTo);
-							addTo.hide().slideDown('fast').effect('pulsate', {times:1}, 150);
-							break;
+						switch(addTo.find(':first-child').attr('id'))
+						{
+							case 'noreplies':
+								addTo.find(':first-child').remove();
+								break;
+						}
+						newElement.appendTo(addTo);
+						newElement.hide();
+						break;
 					}
 					this.animateScroll(scrollToPos, addTo);
 				}catch(error){}
@@ -535,35 +535,40 @@ function Nitm ()
 					switch(addTo.children().length)
 					{
 						case 0:
-							addTo.append(newElement).next().hide().slideDown('fast').effect('pulsate', {times:1}, 150);
-							break;
+						addTo.append(newElement).next().hide();
+						break;
 							
 						default:
 						switch(addTo.find(':first-child').attr('id'))
 						{
 							case 'noreplies':
-								addTo.find(':first-child').hide();
-								newElement.prependTo('#'+addTo).hide().slideDown('fast').effect('pulsate', {times:1}, 150);
-								break;
+							addTo.find(':first-child').hide();
+							newElement.prependTo('#'+addTo).hide();
+							break;
 								
 							default:
-								switch(newElem.index)
-								{
-									case -1:
-										newElement.prependTo(addTo).hide().slideDown('fast').effect('pulsate', {times:1}, 150);
-										break;
-										
-									default:
-										addTo.children().eq(newElem.index).after(newElement).next().hide().slideDown('fast').effect('pulsate', {times:2}, 150);
-										break;
-								}
+							switch(newElem.index)
+							{
+								case -1:
+								newElement.prependTo(addTo).hide();
 								break;
+									
+								default:
+								addTo.children().eq(newElem.index).after(newElement).next().hide();
+								break;
+							}
+							break;
 						}
 						break;
 					}
 					this.animateScroll(scrollToPos, addTo);
 				} catch(error){}
 			}
+			try {
+				newElement.slideDown('fast', function () {
+					newElement.effect('pulsate', {times:1}, 100);
+				});
+			} catch (error) {};
 			break;
 		}
 	}
@@ -583,7 +588,7 @@ function Nitm ()
 		var ns = namespace == undefined ? '' : '.'+namespace;
 		var event = 'nitm:'+module+ns;
 		$('body').queue(event, function () {
-			callback();
+			callback(self.module(module));
 			$(this).dequeue(event)
 		});
 		switch(this.hasModule(module, false))
@@ -597,6 +602,7 @@ function Nitm ()
 	this.moduleLoaded = function(module, namespace) {
 		var ns = namespace == undefined ? '' : '.'+namespace;
 		var event = 'nitm:'+module+ns;
+		console.log("Loaded "+module);
 		$('body').dequeue(event);
 	}
 	
@@ -660,43 +666,46 @@ function Nitm ()
 		return name;
 	}
 	
-	this.initModule = function (object, name) {
+	this.initModule = function (object, name, defaults) {
 		var name = this.getModuleName(object, name);
 		switch(typeof object == 'object') {
 			case true:
-			this.initDefaults(name, object);
 			switch(this.hasModule(name, false))
 			{
 				case false:
 				this.current = name;
 				this.setModule(object, name);
-				if(typeof object.init == 'function') {
-					switch(document.readyState)
-					{
-						case 'complete':
-						object.init();
-						break;
-						
-						default:
-						$(document).ready(function () {
-							object.init();
-						});							
-						break;
-					}
+				switch(document.readyState)
+				{
+					case 'complete':
+					self.initDefaults(name, object, defaults);
+					break;
+					
+					default:
+					$(document).ready(function () {
+						self.initDefaults(name, object, defaults);
+					});							
+					break;
 				}
 				break;
 				
 				default:
-				object.init();
+				try {
+					object.init();
+				} catch(error) {}
 				break;
 			}
 			break;
 		}
 	}
 		
-	this.initDefaults = function (key, object) {
+	this.initDefaults = function (key, object, defaults) {
 		try {
-			object.defaultInit.map(function (method, key) {
+			object.init();
+		} catch (error) {}
+		try {
+			var defaults = (typeof defaults == 'object') ? defaults : object.defaultInit;
+			defaults.map(function (method) {
 				if(typeof object[method] == 'function'){
 					var container = (typeof object == 'object') ? object.views.container : null;
 					object[method](container, key);

@@ -92,8 +92,8 @@ class DefaultController extends BaseController
 	}
 
     /**
-     * Lists all Updates models.
-     * @return mixed
+     * Default index controller.
+     * @return string HTML index
      */
     public function actionIndex($className, $options=[])
     {
@@ -634,7 +634,7 @@ class DefaultController extends BaseController
 				'scenario' => !$id ? 'create' : 'update',
 				'provider' => null,
 				'dataProvider' => null,
-				'view' => isset($options['view']) ? $options['view'] : $type,
+				'view' => isset($options['view']) ? $options['view'] : '/'.$type,
 				'args' => [],
 				'modelClass' => $this->model->className(),
 				'force' => false	
@@ -654,7 +654,7 @@ class DefaultController extends BaseController
 			],
 			'contentOnly' => true
 		], $options['modalOptions']);
-		
+				
 		unset($options['modalOptions']);
 		return $this->getFormVariables($this->model, $options, $modalOptions);
 	}

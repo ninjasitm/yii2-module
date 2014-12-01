@@ -2,6 +2,7 @@
 namespace nitm\helpers;
 
 use yii\base\Behavior;
+use yii\helpers\ArrayHelper;
 use nitm\helpers\Response;
 use yii\helpers\Html;
 
@@ -79,22 +80,12 @@ class Form extends Behavior
 				}
 				switch(!is_null($model) || $force)
 				{
-					case true:
-					
+					case true:					
 					/**
-					 * Get scenario and form options
+					 * Get the form options
 					 */
-					$scenario = isset($options['scenario']) ? $options['scenario'] : ($model->getIsNewRecord() ? 'create' : 'update');
-					$model->setScenario($scenario);
-					$action = isset($options['action']) ? $options['action'] : ($model->getIsNewRecord() ? 'create' : 'update');
-					$formOptions = array_merge([
-						'action' => "/".$model->isWhat()."/$action".($action == 'create' ? '' : "/".$model->getId()),
-						'options' => [
-							'id' => $model->isWhat()."-form".$model->getId(),
-							'role' => $scenario.$model->formName()
-						]
-					], \yii\helpers\ArrayHelper::getValue($options, 'formOptions', []));
-					
+					extract(static::getFormOptions($model, \yii\helpers\ArrayHelper::getValue($options, 'formOptions', [])));
+
 					/**
 					 * Setup view options
 					 */
@@ -113,12 +104,11 @@ class Form extends Behavior
 					/**
 					 * Get data provider information
 					 */
-					$dataProviderOptions = array_intersect_key($options, [
+					$ret_val['data'] = static::getDataProvider($model, array_intersect_key($options, [
 						'provider' => null,
 						'args' => null,
 						'force' => null
-					]);
-					$ret_val['data'] = static::getDataProvider($model, $dataProviderOptions);
+					]));
 					
 					Response::$viewOptions["args"] = array_merge([
 						'scenario' => $scenario,
@@ -128,6 +118,7 @@ class Form extends Behavior
 						'action' => $action,
 						'type' => $model->isWhat(),
 					], $options['viewArgs']);
+					
 					switch(\Yii::$app->request->isAjax)
 					{
 						case false:
@@ -145,6 +136,27 @@ class Form extends Behavior
 			break;
 		}
 		return $ret_val;
+	}
+	
+	public static function getFormOptions($model, $options=[]) {				
+		/**
+		 * Get scenario and form options
+		 */
+		$options = is_callable($options) ? call_user_func_array($options, [$model]) : $options;
+		$action = isset($options['action']) ? $options['action'] : ($model->getIsNewRecord() ? 'create' : 'update');
+		$scenario = ArrayHelper::getValue($options, 'scenario', ($model->getIsNewRecord() ? 'create' : 'update'));						$model->setScenario($scenario);
+		$formOptions = array_replace_recursive([
+			'action' => "/".$model->isWhat()."/$action".($action == 'create' ? '' : "/".$model->getId()),
+			'options' => [
+				'id' => $model->isWhat()."-form".$model->getId(),
+				'role' => $scenario.$model->formName()
+			]
+		], $options);
+		return  [
+			'action' => $action,
+			'formOptions' => $formOptions,
+			'scenario' => $scenario
+		];
 	}
 	
 	protected static function findQuery($id, $modelClass, $options=[])
