@@ -54,6 +54,7 @@ function NitmEntity () {
 	}
 	
 	this.initForms = function (containerId, currentIndex) {
+		console.log("Initing forms for"+currentIndex);
 		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
 		self.setCurrent(currentIndex);
 		try {
@@ -61,30 +62,28 @@ function NitmEntity () {
 		} catch(error) {
 			var roles = self.forms.roles;
 		}
-			console.log(container);
 		$.map(roles, function(role, key) {
 			$nitm.getObj(container).find("form[role~='"+role+"']").map(function() {
 				var $form = $(this);
-				console.log($form);
 				$form.off('submit');
 				$form.on('submit', function (e) {
+					e.preventDefault();
 					if(self.hasActivity($(this).attr('id')))
 						return false;
 					self.updateActivity($(this).attr('id'));
-					e.preventDefault();
 					/*try {
 						$data = $(this).data('yiiActiveForm');
-						if(!$data.validated)
-							$(this).yiiActiveForm('validate');
+						//if(!$data.validated)
+							//$form.submit();
 						if($data.validated)
-							self.operation(this, null, currentIndex);
+							return self.operation(this, null, currentIndex, e);
 						else {
 							console.log("Unable to validate form");
 							console.log(this);
 							console.log($data);
 						}
 					} catch (error) {*/
-						self.operation(this, null, currentIndex);
+						return self.operation(this, null, currentIndex, e);
 					//}
 					return false;
 				});

@@ -634,7 +634,7 @@ class DefaultController extends BaseController
 				'scenario' => !$id ? 'create' : 'update',
 				'provider' => null,
 				'dataProvider' => null,
-				'view' => isset($options['view']) ? $options['view'] : '/'.$type,
+				'view' => isset($options['view']) ? $options['view'] : $type,
 				'args' => [],
 				'modelClass' => $this->model->className(),
 				'force' => false	

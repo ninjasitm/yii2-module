@@ -711,7 +711,7 @@ function Nitm ()
 					object[method](container, key);
 				}
 			});
-		} catch (erorr) {}
+		} catch (error) {}
 	}
 }
 

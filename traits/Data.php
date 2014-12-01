@@ -64,9 +64,9 @@ trait Data {
 	 * @param string $name
 	 * @return string
 	 */
-	public static function properName($value)
+	public static function properName($value=null)
 	{
-		$ret_val = empty($value) ?  '' : preg_replace('/[\-\_]/', " ", $value);
+		$ret_val = is_null($value) ?  static::isWhat() : preg_replace('/[\-\_]/', " ", $value);
 		return implode(' ', array_map('ucfirst', explode(' ', $ret_val)));
 	}
 	
