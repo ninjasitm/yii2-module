@@ -28,7 +28,7 @@ $formId = !isset($formId) ? '#messages-form-'.$model->parent_type.$model->parent
 		<img id='message-avatar<?= $model->getId(); ?>' class="avatar avatar-small" alt="<? $model->author()->username; ?>" src="<?= $model->author()->avatar(); ?>" />
 	</div>
 	<div id="message-header<?= $uniqid ?>" class="message-header">
-		<?php if($model->replyTo != null): ?>
+		<?php if($model->replyTo() != null): ?>
 			<a class="reply-to-author" href="#message<?= $model->replyTo->id ?>">@<?= $model->replyTo->author()->username ?></a><span class="reply-to-author"><?= $model->replyTo->title ?></span>
 		<?php endif; ?>
 	</div>

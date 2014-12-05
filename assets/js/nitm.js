@@ -564,11 +564,10 @@ function Nitm ()
 					this.animateScroll(scrollToPos, addTo);
 				} catch(error){}
 			}
-			try {
+			if(newElement != undefined)
 				newElement.slideDown('fast', function () {
 					newElement.effect('pulsate', {times:1}, 100);
 				});
-			} catch (error) {};
 			break;
 		}
 	}
@@ -699,7 +698,9 @@ function Nitm ()
 		}
 	}
 		
-	this.initDefaults = function (key, object, defaults) {
+	this.initDefaults = function (key, object, defaults, container) {
+		if (object == undefined)
+			object = this.module(key);
 		try {
 			object.init();
 		} catch (error) {}
@@ -707,7 +708,7 @@ function Nitm ()
 			var defaults = (typeof defaults == 'object') ? defaults : object.defaultInit;
 			defaults.map(function (method) {
 				if(typeof object[method] == 'function'){
-					var container = (typeof object == 'object') ? object.views.container : null;
+					var container = (container == undefined) ? ((typeof object == 'object') ? object.views.container : null) : container;
 					object[method](container, key);
 				}
 			});

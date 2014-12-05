@@ -68,10 +68,6 @@ $nitm.onModuleLoad('replies', function () {
 	<?php if(\Yii::$app->request->isAjax): ?>
 	$nitm.module('nitm-ias').initIas("<?= $widget->options['id']?>");
 	<?php endif; ?>
-	$nitm.module('replies').init("<?= $widget->options['id']?>");
-	$nitm.module('replies').initChatTabs("chat-navigation");
-	<?php if($widget->updateOptions['enabled']): ?>
-	$nitm.module('replies').initActivity("chat-navigation", "<?= $widget->updateOptions['url'] ?>", <?= $widget->updateOptions['interval']; ?>);
-	<?php endif; ?>
+	$nitm.module('replies').initDefaults("<?= $widget->options['id']?>");
 });
 </script>

@@ -15,5 +15,10 @@ trait Replies {
 	{
 		return $this->hasOne(\nitm\models\Replies::className(), ['id' => 'reply_to'])->with('author');
 	}
+	
+	public function replyTo()
+	{	
+		return \nitm\helpers\Relations::getRelatedRecord('replyTo', $this, null);
+	}
 }
 ?>

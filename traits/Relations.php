@@ -227,7 +227,7 @@ trait Relations {
 		$link = !is_array($link) ? ['parent_id' => 'id'] : $link;
 		$options = is_array($options) ? $options : (array)$options;
 		$options['select'] = isset($options['select']) ? $options['select'] : ['id', 'parent_id', 'parent_type'];
-		$options['with'] = isset($options['with']) ? $options['select'] : [];
+		$options['with'] = isset($options['with']) ? $options['with'] : [];
 		$options['andWhere'] = isset($options['andWhere']) ? $options['andWhere'] : ['parent_type' => $this->isWhat()];
 		return $this->getRelationQuery($className, $link, $options, $many);
 	}
@@ -285,10 +285,10 @@ trait Relations {
 		}
 		$options = array_merge([
 			'orderBy' => ['id' => SORT_DESC],
-			'with' => 'replyTo',
+			'with' => ['replyTo'],
 			'andWhere' => $params
 		], $options);
-       	return $this->getWidgetRelationQuery(\nitm\models\Replies::className(), null, true, $options);
+       	return $this->getWidgetRelationQuery(\nitm\models\Replies::className(), null, $options);
     }
 	
 	public function replies()

@@ -43,6 +43,10 @@ function NitmEntity () {
 	this.defaultInit = [
 	];
 		
+	this.initDefaults = function (container, key) {
+		$nitm.initDefaults((key == undefined ? this.id : key), undefined, undefined, container);
+	}
+		
 	this.initModule = function (object, name) {
 		try {
 			self.setCurrent($nitm.getModuleName(object, name));
@@ -54,7 +58,6 @@ function NitmEntity () {
 	}
 	
 	this.initForms = function (containerId, currentIndex) {
-		console.log("Initing forms for"+currentIndex);
 		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
 		self.setCurrent(currentIndex);
 		try {
