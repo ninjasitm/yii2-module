@@ -5,6 +5,7 @@ namespace nitm\helpers;
 use yii\db\ActiveRecord;
 use yii\base\Model;
 use yii\helpers\ArrayHelper;
+use nitm\helpers\Helper;
 
 /*
  * Setup model based caching, as PHP doesn't support serialization of Closures
@@ -13,6 +14,11 @@ class Cache extends Model
 {
 	public static $cache;
 	private static $_cache = [];
+	
+	public function cacheKey($model, $idKey, $relation=null, $many=false)
+	{
+		return ($many == true ? 'many' : 'one').'-'.$relation.'-'.Helper::concatAttributes($model, $idKey);
+	}
 	
 	/**
 	 * Cache function that returns caching object

@@ -9,8 +9,8 @@ use nitm\helpers\Response;
 use nitm\helpers\Helper;
 
 class DefaultController extends BaseController
-{
-	use \nitm\traits\Widgets;
+{	
+	use \nitm\widgets\traits\Widgets;
 	
 	public $boolResult;
 	/**
@@ -191,17 +191,22 @@ class DefaultController extends BaseController
 		/**
 		 * Some default values we would like
 		 */
-		if(!isset(Response::$viewOptions['view']))
-			Response::$viewOptions["view"] = '@nitm/views/view/index';
-		if(!isset(Response::$viewOptions['args']))
-			Response::$viewOptions['args'] = [
-				'content' => $this->renderAjax($view, array_merge(["model" => $this->model], $args)),
-			];
+		Response::$viewOptions["view"] = '@nitm/views/view/index';
+		Response::$viewOptions['args'] = [
+			'content' => $this->renderAjax($view, array_merge(["model" => $this->model], $args)),
+		];
+			
+		if(isset(Response::$viewOptions['assets'])) {
+			$this->initAssets(Response::$viewOptions['assets'], true);
+		}
+			
 		if(!isset(Response::$viewOptions['scripts']))	
-			Response::$viewOptions['scripts'] = new \yii\web\JsExpression("\$nitm.onModuleLoad('nitm', function (){\$nitm.module('nitm').initForms(null, 'nitm:".$this->model->isWhat()."');\$nitm.module('nitm').initMetaActions(null, 'nitm:".$this->model->isWhat()."');})");
+			Response::$viewOptions['scripts'] = new \yii\web\JsExpression("\$nitm.onModuleLoad('entity', function (){\$nitm.module('entity').initForms(null, '".$this->model->isWhat()."').initMetaActions(null, '".$this->model->isWhat()."');})");
 		
-		Response::$viewOptions['title'] = isset(Response::$viewOptions['title']) ? \nitm\helpers\Form::getTitle($this->model, @Response::$viewOptions['title']) : '';
+		Response::$viewOptions['title'] = isset(Response::$viewOptions['title']) ? \nitm\helpers\Form::getTitle($this->model, ArrayHelper::getValue(Response::$viewOptions, 'title', [])) : '';
+		
 		Response::$forceAjax = false;
+		
 		return $this->renderResponse(null, Response::$viewOptions, (\Yii::$app->request->get('__contentOnly') ? true : \Yii::$app->request->isAjax));
     }
 	

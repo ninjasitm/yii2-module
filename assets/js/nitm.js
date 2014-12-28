@@ -565,9 +565,7 @@ function Nitm ()
 				} catch(error){}
 			}
 			if(newElement != undefined)
-				newElement.slideDown('fast', function () {
-					newElement.effect('pulsate', {times:1}, 100);
-				});
+				newElement.slideDown('fast');
 			break;
 		}
 	}

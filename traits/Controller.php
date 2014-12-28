@@ -19,51 +19,46 @@ use nitm\helpers\Response;
 	
 	/**
 	 * Initialze the assets supported by this controller. Taken from static::has();
+	 * @param mixed $assts Array of assets
+	 * @param boolean $force. Force registration of assets
 	 */
-	public function initAssets()
+	public function initAssets($assets=[], $force=false)
 	{
 		//don't init on ajax requests so that we don't send duplicate files
-		if(\Yii::$app->request->isAjax)
+		if(\Yii::$app->request->isAjax && !$force)
 			return;
-		$has = static::has();
-		switch(is_array($has))
+		$assets = array_merge($assets, (array)static::has());
+		foreach($assets as $asset)
 		{
-			case true:
-			foreach($has as $asset)
+			//This may be an absolute namespace to an asset
+			switch(class_exists($asset))
 			{
-				//This may be an absolute namespace to an asset
-				switch(class_exists($asset))
+				case true:
+				$asset::register($this->getView());
+				break;
+				
+				default:
+				//It isn't then it may be an asset we have in nitm/assets or nitm/widgets
+				$class = $asset.'\assets\Asset';
+				switch(class_exists($class))
 				{
 					case true:
-					$asset::register($this->getView());
+					$class::register($this->getView());
 					break;
 					
 					default:
-					//It isn't then it may be an asset we have in nitm/assets or nitm/widgets
-					$class = $asset.'\assets\Asset';
+					//This is probably not a widget asset but a module asset
+					$class = '\nitm\assets\\'.static::properName($asset).'Asset';
 					switch(class_exists($class))
 					{
 						case true:
 						$class::register($this->getView());
-						//\Yii::$app->assetManager->bundles[] = $class;
-						//\Yii::$app->assetManager->getBundle($class)->registerAssetFiles($this->getView());
-						break;
-						
-						default:
-						//This is probably not a widget asset but a module asset
-						$class = '\nitm\assets\\'.static::properName($asset).'Asset';
-						switch(class_exists($class))
-						{
-							case true:
-							$class::register($this->getView());
-							break;
-						}
 						break;
 					}
 					break;
 				}
+				break;
 			}
-			break;
 		}
 	}
 	public function getFormVariables($options, $modalOptions=[], $model)
@@ -163,7 +158,7 @@ use nitm\helpers\Response;
 						(".static::$currentUser->lastActive()."<=UNIX_TIMESTAMP(updated_at) OR ".static::$currentUser->lastActive()."<=UNIX_TIMESTAMP(updated_at)),
 						1, 0
 					)
-				) AS hasNew FROM `".\nitm\models\Issues::tableName()."`
+				) AS hasNew FROM `".\nitm\widgets\models\Issues::tableName()."`
 				UNION ALL 
 				SELECT SUM(
 					IF(
@@ -173,7 +168,7 @@ use nitm\helpers\Response;
 						(".static::$currentUser->lastActive()."<=UNIX_TIMESTAMP(updated_at) OR ".static::$currentUser->lastActive()."<=UNIX_TIMESTAMP(updated_at)),
 						1, 0
 					)
-				) AS hasNew FROM `".\nitm\models\Replies::tableName()."`
+				) AS hasNew FROM `".\nitm\widgets\models\Replies::tableName()."`
 			) newActivity) as hasNewActivity
 		";
 	}

@@ -59,14 +59,14 @@ function NitmEntity () {
 	
 	this.initForms = function (containerId, currentIndex) {
 		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
-		self.setCurrent(currentIndex);
 		try {
-			var roles = $nitm.module(currentIndex).forms.roles
+			var roles = $nitm.module(currentIndex).forms.roles;
 		} catch(error) {
 			var roles = self.forms.roles;
 		}
 		$.map(roles, function(role, key) {
 			$nitm.getObj(container).find("form[role~='"+role+"']").map(function() {
+				console.log(this);
 				var $form = $(this);
 				$form.off('submit');
 				$form.on('submit', function (e) {

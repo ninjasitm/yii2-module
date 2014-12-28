@@ -35,7 +35,6 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	public $unique;
 	public $requestModel;
 	public static $initClassConfig = true;
-	public static $settings;
 	public static $active = [
 		'driver' => 'mysql',
 		'db' => [

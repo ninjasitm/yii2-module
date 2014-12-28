@@ -326,6 +326,18 @@ class Helper extends Model
 		return $callers[2]['function'];
 	}
 	
+	public static function concatAttributes($model, $attributes, $glue='-')
+	{
+		$ret_val = array_map(function ($attribute) use($model) {
+			try {
+				return call_user_func([$model, $attribute]);
+			} catch(\Exception $e) {
+				return $model->getAttribute($attribute);
+			}
+		}, (array)$attributes);
+		return implode($glue, array_filter($ret_val));
+	}
+	
 	/*---------------------
 		Protected Functions
 	---------------------*/

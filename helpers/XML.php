@@ -62,6 +62,125 @@ class XML extends Behavior
 		$str = str_replace(array_keys($entities), array_values($entities), $str);
 		$str = str_ireplace(array_keys($entities), array_values($entities), $str);
 		return $str;
+	}
+	
+	public function createHierarchy(&$parent, $hierarchy)
+	{
+		$ret_val = false;
+		//first of all are we dealing with a dom document?
+		switch($parent instanceof DOMElement)
+		{
+			case true:
+			//if so go through all the elements in the array and create the proper hierarchy
+			static::$counter++;
+			foreach($hierarchy as $idx=>$elem)
+			{ 
+				$name = $elem['name'];
+				switch(empty($elem['name']))
+				{
+					case false:
+					try {
+						$object = static::$document->createElement(htmlentities(trim($name), ENT_XML1));
+					} catch (\DOMException $e) { 
+						continue;
+					}
+					//Append this element to the parent
+					$parent->appendChild($object);
+					static::$hierarchy[static::$container][static::$counter][$parent->nodeName][] = $elem;
+					switch(empty($elem['children']))
+					{
+						case false:
+						//Create the proper hierarchy for these new elements
+						static::createXmlHierarchy($object, $elem['children']);
+						break;
+						
+						default:
+						$properties = static::$properties;
+						//go through the parameters array and set value accordingly
+						foreach($properties as $type)
+						{
+							if(isset($elem[$type]))
+							{
+								switch($type)
+								{
+									case 'text':
+									//set the values for this text.property
+									$t = static::$document->createTextNode($elem['text']);
+									$object->appendChild($t);
+									break;
+									
+									case 'attributes':
+									//set the values for this attribute.property
+									foreach($elem['attributes'] as $attr=>$val)
+									{
+										$a = static::$document->createAttribute(@htmlentities(trim($attr), ENT_COMPAT, static::$document->encoding));
+										$a->value = $val;
+										$object->appendChild($a);
+									}
+									break;
+								}
+								//echo "Created element of type: $type\n<br>";
+							}
+						}
+						break;
+					}
+					break;
+				}
+			}
+			break;
+		}
+	} 
+	
+   
+    /**
+     * Convert document to an array
+     *
+     * @param DOMElement $node XML document's node to convert
+     * @return array
+     */
+	public function toArray($root)
+	{
+		$result = array();
+		if ($root->hasAttributes())
+		{
+			$attrs = $root->attributes;
+			foreach ($attrs as $i => $attr)
+				$result['attributes'][$attr->name] = $attr->value;
+		}
+	
+		$children = $root->childNodes;
+		if ($children->length == 1)
+		{
+			$child = $children->item(0);
+			if ($child->nodeType == XML_TEXT_NODE)
+			{
+				$result['_value'] = $child->nodeValue;
+				if (count($result) == 1)
+					return $result['_value'];
+				else
+					return $result;
+			}
+		}
+	
+		$group = array();
+		for($i = 0; $i < $children->length; $i++)
+		{
+			$child = $children->item($i);
+			if (!isset($result[$child->nodeName]))
+				$result[$child->nodeName] = $this->_toArray($child);
+			else
+			{
+				if (!isset($group[$child->nodeName]))
+				{
+					$tmp = $result[$child->nodeName];
+					$result[$child->nodeName] = array($tmp);
+					$group[$child->nodeName] = 1;
+				}
+	
+				$result[$child->nodeName][] = $this->_toArray($child);
+			}
+		}
+		return $result;
 	} 
 }
 ?>

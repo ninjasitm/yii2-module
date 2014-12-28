@@ -78,7 +78,12 @@ class DB extends Query
 		'driver' => 'mysql'
 	];
 	
-	function init($db=NULL, $table=NULL, $db_host=NULL, $db_user=NULL, $db_pass=NULL, $db_driver=NULL)
+	function init()
+	{
+		$this->initParameters();
+	}
+	
+	public function initParameters($db=NULL, $table=NULL, $db_host=NULL, $db_user=NULL, $db_pass=NULL, $db_driver=NULL)
 	{
 		$this->stats['start'] = microtime();
 		//assign variables as needed

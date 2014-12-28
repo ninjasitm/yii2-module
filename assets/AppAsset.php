@@ -13,7 +13,7 @@ use yii\web\AssetBundle;
  */
 class AppAsset extends AssetBundle
 {
-	public $sourcePath = __DIR__;
+	public $sourcePath = '@nitm/assets/';
 	public $css = [
 		'css/base.css'
 	];

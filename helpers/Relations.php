@@ -49,6 +49,7 @@ class Relations
 			}
 			break;
 		}
+		$model->populateRelation($name, $ret_val);
 		return $ret_val;
 	}
 }

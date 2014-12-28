@@ -27,7 +27,7 @@ trait Nitm
 			break;
 		}
 		$url = is_null($url) ? \Yii::$app->request->url : $url;
-		$urlOptions = array_merge((array)$url, [$this->formName()."[".$attribute."]" => $this->getAttribute($attribute)]);
+		$urlOptions = array_merge([$url], [$this->formName()."[".$attribute."]" => $this->getAttribute($attribute)]);
 		if(is_array($urlOptions[0]))
 		{
 			print_r($this);

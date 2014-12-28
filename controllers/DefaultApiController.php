@@ -11,7 +11,7 @@ use nitm\models\Configer;
 
 class DefaultApiController extends Controller
 {
-	use \nitm\traits\Controller;
+	use \nitm\traits\Configer, \nitm\traits\Controller;
 	
 	public $model;
 	
@@ -32,6 +32,14 @@ class DefaultApiController extends Controller
 	{
 		// get the default css and meta tags
 		$this->initAssets();
+		$registered = Session::isRegistered(Session::settings);
+		switch(!$registered || !(Session::size(Session::settings)))
+		{
+			case true:
+			$this->initConfig();
+			break;
+		}
+		//$this->initConfig(@Yii::$app->controller->id);
 		parent::init();
 	}
 	
@@ -40,16 +48,6 @@ class DefaultApiController extends Controller
 		return [
 		];
 	}
-		
-    /**
-     * Default APi index function.
-     * @return mixed
-     */
-    public function actionIndex($options=[])
-    {
-        return $this->renderResponse($options, Response::$viewOptions, \Yii::$app->request->isAjax);
-    }
-
 	
 	public function actionSearch()
 	{

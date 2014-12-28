@@ -22,7 +22,8 @@ trait Data {
 	public function isWhat()
 	{
 		$purify = function ($value) {
-			 return strtolower(implode('-', preg_split('/(?=[A-Z])/', array_pop(explode('\\', $value)), -1, PREG_SPLIT_NO_EMPTY)));
+			$stack = explode('\\', $value);
+			return strtolower(implode('-', preg_split('/(?=[A-Z])/', array_pop($stack), -1, PREG_SPLIT_NO_EMPTY)));
 		};
 		switch(debug_backtrace(false, 1)[0]['type'])
 		{
@@ -64,9 +65,9 @@ trait Data {
 	 * @param string $name
 	 * @return string
 	 */
-	public static function properName($value=null)
+	public static function properName($value)
 	{
-		$ret_val = is_null($value) ?  static::isWhat() : preg_replace('/[\-\_]/', " ", $value);
+		$ret_val = empty($value) ?  '' : preg_replace('/[\-\_]/', " ", $value);
 		return implode(' ', array_map('ucfirst', explode(' ', $ret_val)));
 	}
 	
