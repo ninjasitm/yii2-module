@@ -190,14 +190,14 @@ trait Relations {
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getParents()
+    public function getParents($options=[])
     {
 		return $this->getCategoryRelation(['id' => 'parent_ids'], $options, null, true);
     }
 	
 	public function parents()
 	{
-		return $this->getCachedCategoryModel('parent_ids');
+		return $this->getCachedCategoryModel('parent_ids', null, null, true);
 	}
 
     /**

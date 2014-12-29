@@ -21,13 +21,13 @@ class Form extends Behavior
 			case true:
 			$attributes = [];
 			//$model->id = @$options['id'];
-			$options['modelOptions'] = (isset($options['modelOptions']) && is_array($options['modelOptions'])) ? $options['modelOptions'] : null;
-			$model->requestModel = new $options['modelClass']($options['modelOptions']);
-			$model->requestModel->id = @$options['id'];
 			switch($model->validate())
 			{
 				case true:
 				$model->setScenario($options['scenario']);
+				$options['modelOptions'] = (isset($options['modelOptions']) && is_array($options['modelOptions'])) ? $options['modelOptions'] : null;
+				$model->requestModel = new $options['modelClass']($options['modelOptions']);
+				$model->requestModel->id = @$options['id'];
 				//this means we found our object
 				switch($options['modelClass'])
 				{

@@ -64,6 +64,8 @@ function NitmEntity () {
 		} catch(error) {
 			var roles = self.forms.roles;
 		}
+		console.log("Initing for "+currentIndex);
+		console.log(roles);
 		$.map(roles, function(role, key) {
 			$nitm.getObj(container).find("form[role~='"+role+"']").map(function() {
 				console.log(this);

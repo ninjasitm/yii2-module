@@ -54,24 +54,25 @@ function Tools ()
 		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
 		//enable hide/unhide functionality with optional data retrieval
 		container.find("[role~='visibility']").map(function(e) {
-			var id = $(this).data('id');
-			switch(id != undefined)
+			var _target = this;
+			switch(_target.id != undefined)
 			{
 				case true:
-				$(this).off('click');
-				var _target = this;
-				var _callback = function (e) {
-					var element = this;
-					e.preventDefault();
-					$($nitm).trigger('nitm-animate-submit-start', [element]);
-					$.when(self.visibility(this)).done(function () {
-						$($nitm).trigger('nitm-animate-submit-stop', [element]);
-					});
-				}
-				if($(this).data('run-once'))
-					$(_target).one('click', _callback);
-				else
-					$(_target).on('click', _callback);
+				var events = $(this).data('events') != undefined ? $(this).data('events').split(',') : ['click'];
+				$.each(events, function (index, eventName) {
+					$(_target).off(eventName);
+					var _callback = function (e) {
+						e.preventDefault();
+						$($nitm).trigger('nitm-animate-submit-start', [_target]);
+						$.when(self.visibility(_target)).done(function () {
+							$($nitm).trigger('nitm-animate-submit-stop', [_target]);
+						});
+					}
+					if($(this).data('run-once'))
+						$(_target).one(eventName, _callback);
+					else
+						$(_target).on(eventName, _callback);
+				});
 				break;
 			}
 		});
@@ -85,10 +86,10 @@ function Tools ()
 		this.url = $(object).data('url') ? $(object).data('url') : $(object).attr('href');
 		this.getUrl = true;
 		
-		switch(this.on != undefined)
+		switch($(this).data('on') != undefined)
 		{
 			case true:
-			if($(this.on).length == 0) this.getUrl = false;
+			if($(this).data('on').length == 0) this.getUrl = false;
 			break;
 		}
 		
@@ -177,31 +178,33 @@ function Tools ()
 			switch(($(this).data('id') != undefined) || ($(this).data('type') != undefined))
 			{
 				case true:
-				switch($(this).data('run-once'))
-				{
-					case true:
-					case 1:
-					$(this).one('click', function (e) {
-						var element = this;
-						e.preventDefault();
-						$($nitm).trigger('nitm-animate-submit-start', [element]);;
-						$.when(self.dynamicValue(element)).done(function () {
-							$($nitm).trigger('nitm-animate-submit-stop', [element]);;
+				var _target = this;
+				var events = $(this).data('events') != undefined ? $(this).data('events').split(',') : ['click'];
+				$.each(events, function (index, eventName) {
+					switch($(_target).data('run-once'))
+					{
+						case true:
+						case 1:
+						$(_target).one(eventName, function (e) {
+							e.preventDefault();
+							$($nitm).trigger('nitm-animate-submit-start', [_target]);;
+							$.when(self.dynamicValue(_target)).done(function () {
+								$($nitm).trigger('nitm-animate-submit-stop', [_target]);;
+							});
 						});
-					});
-					break;
-					
-					default:
-					$(this).on('click', function (e) {
-						var element = this;
-						e.preventDefault();
-						$($nitm).trigger('nitm-animate-submit-start', [element]);;
-						$.when(self.dynamicValue(element)).done(function () {
-							$($nitm).trigger('nitm-animate-submit-stop', [element]);;
+						break;
+						
+						default:
+						$(_target).on(eventName, function (e) {
+							e.preventDefault();
+							$($nitm).trigger('nitm-animate-submit-start', [_target]);;
+							$.when(self.dynamicValue(_target)).done(function () {
+								$($nitm).trigger('nitm-animate-submit-stop', [_target]);;
+							});
 						});
-					});
-					break;
-				}
+						break;
+					}
+				});
 				break;
 			}
 		});
@@ -212,8 +215,7 @@ function Tools ()
 		var element = !$(object).data('id') ? $nitm.getObj(object) : $nitm.getObj($(object).data('id'));
 		if(element.data('run-once') && (element.data('run-times') >= 1))
 			return;
-		var url = $(object).data('url');
-		url = !url ? $(object).attr('href') : url;
+		var url = !$(object).data('url') ? $(object).attr('href') : $(object).data('url');
 		var on = $(object).data('on');
 		switch((url != '#') && (url.length >= 2))
 		{

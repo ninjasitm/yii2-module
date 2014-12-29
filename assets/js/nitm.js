@@ -77,23 +77,28 @@ function Nitm ()
 	{
 		var $form = $nitm.getObj(form);
 		switch(true)
-		{				
-			case $form.find("[type='image']").get(0) != undefined:
-			var $button = $form.find("[type='image']");
-			break;
-			
-			case $form.find("[type='submit']").get(0) != undefined:
-			var $button = $form.find("[type='submit']");
-			break;
-			
-			case $('body').find("[type='submit'][form='"+$form.attr('id')+"']").get(0) != undefined:
-			var $button = $('body').find("[type='submit'][form='"+$form.attr('id')+"']");
-			break;
-				
-			default:
-			var $button = $form;
+		{
+			case $form.data('animation') != undefined && !$form.data('animation'):
+			return;
 			break;
 		}
+		var $button = [];
+		var $found = {};
+		if(($found['images'] = $form.find("[type='image']")).length >= 1)
+			var $button = $.merge($button, $found['images']);
+		
+		if(($found['submits'] = $form.find("[type='submit']")).length >= 1)
+			var $button = $.merge($button, $found['submits']);
+		
+		if(($found['globalSubmits'] = $('body').find("[type='submit'][form='"+$form.attr('id')+"']")).length >= 1)
+			var $button = $.merge($button, $found['globalSubmits']);
+		
+		if(($found['animationTargets'] = this.getObj($form.data('animation-target'))).length >= 1)
+			var $button = $.merge($button, $found['animationTargets']);
+		
+		if($button.length == 0)
+			var $button = $form;
+		
 		switch(after)
 		{
 			case true:
@@ -107,7 +112,7 @@ function Nitm ()
 	}
 	
 	this.startSpinner = function (elements) {
-		elements.each(function (elem, key) {
+		$.each(elements, function (elem, key) {
 			var element = self.getObj(this);
 			var style = $(element).css(['font-size', 'line-height', 'width']);
 			element.data('old-contents', element.html());
@@ -119,9 +124,10 @@ function Nitm ()
 	}
 	
 	this.stopSpinner = function (elements) {
-		elements.each(function (elem, key) {
+		$.each(elements, function (elem, key) {
 			var element = self.getObj(this);
-			element.html(element.data('old-contents'));
+			if(!element.data('animation-start-only'))
+				element.html(element.data('old-contents'));
 			element.removeClass('has-spinner active');
 			element.data('old-contents', '');
 			element.removeAttr('disabled');

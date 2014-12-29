@@ -5,7 +5,7 @@ namespace nitm\helpers\alerts;
 use Yii;
 use yii\helpers\Html;
 use nitm\helpers\Cache;
-use nitm\models\Alerts;
+use nitm\widgets\models\Alerts;
 
 /**
  * This is the alert dispatcher class.

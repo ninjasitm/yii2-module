@@ -3,6 +3,7 @@
 namespace nitm\controllers;
 
 use Yii;
+use yii\helpers\ArrayHelper;
 use nitm\helpers\Helper;
 use nitm\helpers\Session;
 use nitm\models\Configer;
@@ -243,7 +244,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 			break;
 		}
 		Response::$viewOptions['args'] = [
-			'content' => $ret_val['data']
+			'content' => ArrayHelper::getValue($ret_val, 'data', '')
 		];
 		$this->model->config['current']['action'] = $ret_val;
 		return $this->finalAction();

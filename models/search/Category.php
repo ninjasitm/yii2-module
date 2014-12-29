@@ -1,6 +1,6 @@
 <?php
 
-namespace nitm\widgets\models\search;
+namespace nitm\models\search;
 
 use Yii;
 use yii\base\Model;

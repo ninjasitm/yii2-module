@@ -3,6 +3,7 @@ function Configuration()
 {
 	NitmEntity.call(this);
 	
+	var self = this;
 	this.id = 'configuration';
 	this.views = {
 		containers: {
@@ -70,7 +71,7 @@ function Configuration()
 				form.off('submit');
 				form.on('submit', function (e) {
 					e.preventDefault();
-					$nitm.module('entity').operation(this);
+					$nitm.module('configuration').operation(this);
 				});
 				break;
 			}
