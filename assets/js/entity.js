@@ -64,33 +64,16 @@ function NitmEntity () {
 		} catch(error) {
 			var roles = self.forms.roles;
 		}
-		console.log("Initing for "+currentIndex);
-		console.log(roles);
 		$.map(roles, function(role, key) {
-			$nitm.getObj(container).find("form[role~='"+role+"']").map(function() {
-				console.log(this);
+			container.find("form[role~='"+role+"']").map(function() {
 				var $form = $(this);
 				$form.off('submit');
 				$form.on('submit', function (e) {
 					e.preventDefault();
-					if(self.hasActivity($(this).attr('id')))
+					if(self.hasActivity(this.id))
 						return false;
-					self.updateActivity($(this).attr('id'));
-					/*try {
-						$data = $(this).data('yiiActiveForm');
-						//if(!$data.validated)
-							//$form.submit();
-						if($data.validated)
-							return self.operation(this, null, currentIndex, e);
-						else {
-							console.log("Unable to validate form");
-							console.log(this);
-							console.log($data);
-						}
-					} catch (error) {*/
-						return self.operation(this, null, currentIndex, e);
-					//}
-					return false;
+					self.updateActivity(this.id);
+					return self.operation(this, null, currentIndex, e);
 				});
 			});
 		});
@@ -102,28 +85,22 @@ function NitmEntity () {
 			container.find("[role~='"+v+"']").map(function() {
 				//$(this).off('click');
 				$(this).on('click', function (e) {
-					var elem = this;
 					var $elem = $(this);
 					e.preventDefault();
-					switch(true)
-					{
-						case $elem.attr('role').indexOf(self.actions.deleteAction) != -1:
-						if(confirm("Are you sure you want to delete this?"))
-							var proceed = true;
-						break;
-						
-						default:
-						var proceed = true;
-						break;
-					}
+					var proceed = true;
+					if($elem.attr('role').indexOf(self.actions.deleteAction) != -1)
+						if(!confirm("Are you sure you want to delete this?"))
+							proceed = false;
+					
 					if(proceed === true)
 					{
 						$nitm.startSpinner($elem);
-						$.post($elem.attr('href'), function (result) { 
+						var method = $elem.data('method') == 'get' ? 'get' : 'post';
+						$[method]($elem.attr('href'), function (result) { 
 							$nitm.stopSpinner($elem);
 							try {
 								var func = 'after'+$nitm.safeFunctionName(result.action);
-								self[func](result, currentIndex, elem);
+								self[func](result, currentIndex, $elem.get(0));
 							} catch (error) {};
 						}, 'json');
 					}
@@ -179,7 +156,25 @@ function NitmEntity () {
 		try {
 			event.preventDefault();
 		} catch (error) {};
+		
 		var $form = $(form);
+		var proceed = false;
+		try {
+			var $data = $(form).data('yiiActiveForm');
+			if(($data.submitting || !$data.validated) && !$form.data('validated'))
+				$form.one('ajaxComplete.yiiActiveForm', function (ajaxEvent, xhr, settings) {
+					self.operation(form, callback, currentIndex, event);
+				});
+			else
+				proceed = $data.validated;
+		} catch (error) {
+			proceed = true;
+		}
+		
+		if(!proceed)
+			return;
+		
+		$form.data('validated', true);
 		data = $form.serializeArray();
 		data.push({'name':'__format', 'value':'json'});
 		data.push({'name':'getHtml', 'value':true});
@@ -229,6 +224,7 @@ function NitmEntity () {
 			});
 			break;
 		}
+		$form.data('validated', false);
 		return request;
 	}
 	
@@ -248,7 +244,7 @@ function NitmEntity () {
 		});
 	}
 	
-	this.afterCreate = function (result, form, currentIndex) {
+	this.afterCreate = function (result, currentIndex, form) {
 		self.setCurrent(currentIndex);
 		if(result.success == true)
 		{
@@ -292,40 +288,14 @@ function NitmEntity () {
 		}
 	}
 	
-	this.afterClose= function (result, currentIndex) {
-		return this.afterDisable (result, currentIndex);
+	this.afterClose= function (result, currentIndex, elem) {
+		return this.afterDisable (result, currentIndex, elem);
 	}
 	
-	this.getIds = function (from, ids) {
-		switch(typeof from) {
-			case 'string':
-			case 'number':
-			var from = (typeof from == "number") ? (new Number(from)).toString() : from;
-			var from = (from.indexOf(',') != -1) ? from.split : new Array(from);
-			break;
-		}
-		switch(typeof ids) {
-			case 'string':
-			case 'number':
-			var ids = (typeof ids == "number") ? (new Number(ids)).toString() : ids;
-			var ids = (ids.indexOf(',') != -1) ? ids.split(',') : new Array(ids);
-			break;
-		}
-		if(typeof ids == 'object') {
-			for (var i=0; i < from.length; i++) {
-				if(ids.hasOwnProperty(i))
-					from[i] += ids[i];
-			}
-		}
-		return '#'+from.join(', #');
-	}
-	
-	this.afterDisable = function (result, currentIndex) {
+	this.afterDisable = function (result, currentIndex, elem) {
 		if(result.success)
 		{
-			var $module = $nitm.module(currentIndex);
-			var containers = $nitm.getObj(self.getIds($module.views.itemId, result.id));
-			containers.each(function(index, element) {
+			self.getItem(elem, result.id).each(function(index, element) {
 				var container = $(element);
 				container.find("[role~='"+self.actions.disabledOnClose+"']").map(function () {
 					switch($(this).css('visbility') == undefined)
@@ -357,25 +327,22 @@ function NitmEntity () {
 			try {
 				$nitm.module('tools').removeParent(elem);
 			} catch (error) {
-				var $module = $nitm.module(currentIndex);
-				var container = $nitm.getObj(self.getIds($module.views.itemId, result.id));
+				var container = self.getItem(elem, result.id);
 				if(conatiner.length >= 1)
 					container.remove();
 			}
 		}
 	}	
 	
-	this.afterComplete = function (result, currentIndex) {
-		return this.afterResolve(result, currentIndex);
+	this.afterComplete = function (result, currentIndex, elem) {
+		return this.afterResolve(result, currentIndex, elem);
 	}
 	
-	this.afterResolve = function (result, currentIndex) {
+	this.afterResolve = function (result, currentIndex, elem) {
 		self.setCurrent(currentIndex);
 		if(result.success)
 		{
-			var $module = $nitm.module(currentIndex);
-			var containers = $nitm.getObj(self.getIds($module.views.itemId, result.id));
-			containers.each(function(index, element) {
+			self.getItem(elem, result.id).each(function(index, element) {
 				var container = $(element);
 				container.parent().find("[role~='"+self.views.statusIndicator+result.id+"']").removeClass().addClass(result.class);
 				container.find("[role~='"+self.actions.disabledOnResolve+"']").toggleClass($nitm.hidden, result.data);
@@ -386,13 +353,11 @@ function NitmEntity () {
 		}
 	}
 	
-	this.afterDuplicate = function (result, currentIndex) {
+	this.afterDuplicate = function (result, currentIndex, elem) {
 		self.setCurrent(currentIndex);
 		if(result.success)
 		{
-			var $module = $nitm.module(currentIndex);
-			var containers = $nitm.getObj(self.getIds($module.views.itemId, result.id));
-			containers.each(function(index, element) {
+			self.getItem(elem, result.id).each(function(index, element) {
 				var container = $(element);
 				container.removeClass().addClass(result.class);
 				var actionElem = container.find("[role~='"+self.actions.duplicateAction+"']");
@@ -402,11 +367,50 @@ function NitmEntity () {
 		}
 	}
 	
+	this.getItem = function (elem, id) {
+		var $module = $nitm.module(self.current);
+		try {
+			var baseName = $module.views.itemId;
+		} catch (error) {
+			var baseName = null;
+		}
+		if(!baseName)
+			return $(elem).parents(".item").first();
+		else
+			return $nitm.getObj(self.getIds(baseName, id))
+	}
+	
+	this.getIds = function (from, ids) {
+		switch(typeof from) {
+			case 'string':
+			case 'number':
+			var from = (typeof from == "number") ? (new Number(from)).toString() : from;
+			var from = (from.indexOf(',') != -1) ? from.split : new Array(from);
+			break;
+		}
+		switch(typeof ids) {
+			case 'string':
+			case 'number':
+			var ids = (typeof ids == "number") ? (new Number(ids)).toString() : ids;
+			var ids = (ids.indexOf(',') != -1) ? ids.split(',') : new Array(ids);
+			break;
+		}
+		if(typeof ids == 'object') {
+			for (var i=0; i < from.length; i++) {
+				if(ids.hasOwnProperty(i))
+					from[i] += ids[i];
+			}
+		}
+		return '#'+from.join(', #');
+	}
+	
 	this.setCurrent = function (currentIndex) {
 		try {
 			var currentIndex = (typeof currentIndex != 'string') ? this.id : currentIndex;
-		} catch(error) {}
-		self.current = (currentIndex == undefined) ? self.current : currentIndex.split(':').pop();
+			self.current = (currentIndex == undefined) ? self.current : currentIndex.split(':').pop();
+		} catch(error) {
+			console.log(error);
+		}
 	}
 }
 

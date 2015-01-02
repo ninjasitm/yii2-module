@@ -429,7 +429,7 @@ function Tools ()
 	this.cloneParent = function (elem)
 	{
 		var $element = $(elem);
-		var clone = $($element.data('clone')).clone();
+		var clone = $nitm.getObj($element.data('clone')).clone();
 		clone.find('input').not(':hidden').each(function (){$(this).val('')});
 		var currentId = !clone.attr('id') ? clone.prop('tagName') : clone.attr('id');
 		clone.attr('id', currentId+Date.now());
@@ -488,8 +488,8 @@ function Tools ()
 		switch($element.prop('tagName'))
 		{
 			case 'FORM':
-				var elem = $element.find(':submit').get(0);
-				break;
+			var elem = $element.find(':submit').get(0);
+			break;
 		}
 		
 		/*
@@ -542,60 +542,33 @@ function Tools ()
 			switch($(this).attr('role'))
 			{
 				case thisRole:
-					break;
+				break;
 					
 				default:
-					switch($(this).data('keep-enabled') || ($(this).attr('name') == '_csrf'))
-					{
-						case false:
-							switch(disabled == 1)
-							{
-								case true:
-									var _class = 'warning';
-									var _icon = 'plus';
-									break;
-									
-								default:
-									var _class = 'danger';
-									var _icon = 'ban';
-									break;
-							}
-							switch(dontDisableFields)
-							{
-								case false:
-								case undefined:
-									for(var event in elemEvents)
-									{
-										switch(disabled)
-										{
-											case true:
-												$(this).on(event, function (event) {
-													return false;
-												});
-												break;
-												
-											case false:
-												$(this).on(event, function (event) {
-													$(this).trigger(event);
-												});
-												break;
-										}
-									}
-									switch(disabled)
-									{
-										case 1:
-										case true:
-											$(this).attr('disabled', disabled);
-											break;
-											
-										default:
-											$(this).removeAttr('disabled');
-											break;
-									}
-									break;
-							}
+				switch($(this).data('keep-enabled') || ($(this).attr('name') == '_csrf'))
+				{
+					case false:
+					var _class = 'warning';
+					var _icon = 'plus';
+					if(disabled) {
+						var _class = 'danger';
+						var _icon = 'ban';
 					}
-					break;
+					if(!dontDisableFields)
+					{
+						for(var event in elemEvents)
+						{
+							var func = disabled ? function (event) {return false;} : function (event) {$(this).trigger(event);};
+							$(this).on(event, func);
+						}
+						if(disabled)
+							$(this).attr('disabled', disabled);
+						else
+							$(this).removeAttr('disabled');
+								break;
+					}
+				}
+				break;
 			}
 		});
 		

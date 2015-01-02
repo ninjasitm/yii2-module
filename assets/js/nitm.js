@@ -187,6 +187,7 @@ function Nitm ()
 		if(obj instanceof jQuery)
 		{
 			var id = 'alert'+Date.now();
+			var newClass = this.classes.hasOwnProperty(newClass) ? this.classes[newClass] : newClass;
 			var message = $('<div id="'+id+'" class="'+newClass+'">').html(newMessage.toString());
 			obj.append(message).fadeIn();
 			setTimeout(function () {$('#'+id).fadeOut();$('#'+id).remove()}, 10000);
