@@ -22,7 +22,7 @@ class DefaultController extends BaseController
 	public function init()
 	{
 		parent::init();
-		static::$currentUser =  \Yii::$app->user->identity;
+		static::$currentUser =  \Yii::$app->user;
 	}
 	
 	public function behaviors()
@@ -172,6 +172,11 @@ class DefaultController extends BaseController
 		$options = $this->getVariables($type, $id, $options);
 		$format = Response::formatSpecified() ? $this->getResponseFormat() : 'html';
 		$this->setResponseFormat($format);
+		if(\Yii::$app->request->isAjax)
+		{
+			$js = "\$nitm.module('tools').init('".ArrayHelper::getValue(Response::$viewOptions, 'args.formOptions.container.id', '')."');";
+			Response::$viewOptions['js'] = !isset(Response::$viewOptions['js']) ? $js : Response::$viewOptions['js'].$js;
+		}
 		return $this->renderResponse($options, Response::$viewOptions, \Yii::$app->request->isAjax);
 	}
 
@@ -569,7 +574,7 @@ class DefaultController extends BaseController
 				break;
 			}
         }
-		$ret_val['message'] = ($this->model->validate() && !$saved) ? "No need to update. Everything is the same" : @$ret_val['message'];
+		$ret_val['message'] = (!$saved) ? "No need to update. Everything is the same" : @$ret_val['message'];
 		$ret_val['action'] = $this->action->id;
 		$ret_val['id'] = $this->model->getId();
 		return $this->renderResponse($ret_val, Response::$viewOptions, \Yii::$app->request->isAjax);

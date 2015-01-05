@@ -166,7 +166,7 @@ class User extends \dektrium\user\models\User
 					$key = \Yii::$app->user->identity->email;
 					break;
 				}
-				$url = "http://gravatar.com/avatar/$key";
+				$url = "https://gravatar.com/avatar/$key";
 				break;
 			}
 			Cache::cache()->set('user-avatar'.$this->getId(), urlencode($url), 3600);

@@ -161,12 +161,15 @@ function NitmEntity () {
 		var proceed = false;
 		try {
 			var $data = $(form).data('yiiActiveForm');
-			if(($data.submitting || !$data.validated) && !$form.data('validated'))
-				$form.one('ajaxComplete.yiiActiveForm', function (ajaxEvent, xhr, settings) {
-					self.operation(form, callback, currentIndex, event);
-				});
+			if($data.attibuts.length >= 1)
+				if(($data.submitting || !$data.validated) && !$form.data('validated'))
+					$form.one('ajaxComplete.yiiActiveForm', function (ajaxEvent, xhr, settings) {
+						self.operation(form, callback, currentIndex, event);
+					});
+				else
+					proceed = $data.validated;
 			else
-				proceed = $data.validated;
+				proceed = true;
 		} catch (error) {
 			proceed = true;
 		}

@@ -16,12 +16,15 @@ use yii\widgets\ActiveField;
         <div class="pull-left">
         <?php 
             $form = ActiveForm::begin(['id' => 'show_section',
-                        'action' => '/configuration/get',
-                        'options' => ['class' => 'form-inline'],
-                        'fieldConfig' => [
-                                'inputOptions' => ['class' => 'form-control pull-left']
-                                ],
-                        ]); ?>
+			'action' => '/configuration/get',
+			'options' => ['class' => 'form-inline'],
+			'enableAjaxValidation' => false,
+			'enableClientValidation' => false,
+			'validateOnSubmit' => false,
+			'fieldConfig' => [
+					'inputOptions' => ['class' => 'form-control pull-left']
+					],
+			]); ?>
         <?=
             $form->field($model, 'section'
                         )->dropDownList($model->config['current']['sections'])->label("Select ".$model->config['current']['type_text']." to edit:", ['class' => 'sr-only']); 

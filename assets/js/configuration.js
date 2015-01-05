@@ -51,15 +51,6 @@ function Configuration()
 	this.defaultInit = [
 		'initChanging',
 	];
-
-	this.init = function (container) {
-		this.defaultInit.map(function (method, key) {
-			if(typeof self[method] == 'function')
-			{
-				self[method](container);
-			}
-		});
-	}
 	
 	//functions
 	this.initChanging = function () {
@@ -71,7 +62,7 @@ function Configuration()
 				form.off('submit');
 				form.on('submit', function (e) {
 					e.preventDefault();
-					$nitm.module('configuration').operation(this);
+					self.operation(this);
 				});
 				break;
 			}
@@ -116,11 +107,11 @@ function Configuration()
 				switch(shouldConfirm)
 				{
 					case true:
-					if(confirm(message)) $nitm.module('entity').operation(this);
+					if(confirm(message)) self.operation(this);
 					break;
 					
 					default:
-					$nitm.module('entity').operation(this);
+					self.operation(this);
 					break;
 				}
 				return false;

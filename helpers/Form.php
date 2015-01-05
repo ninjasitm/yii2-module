@@ -88,6 +88,13 @@ class Form extends Behavior
 					$model->setScenario($scenario);
 					$action = isset($options['action']) ? $options['action'] : ($model->getIsNewRecord() ? 'create' : 'update');
 					$formOptions = array_merge([
+						'container' => [
+							'id' => $model->isWhat()."-form".$model->getId().'-container',
+							'class' => implode(' ', [
+								$model->isWhat().'-'.$model->getScenario(),
+								\Yii::$app->request->isAjax ? '' : 'wrapper'
+							])
+						],
 						'action' => "/".$model->isWhat()."/$action".($action == 'create' ? '' : "/".$model->getId()),
 						'options' => [
 							'id' => $model->isWhat()."-form".$model->getId(),
