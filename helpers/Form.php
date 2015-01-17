@@ -10,7 +10,7 @@ use yii\helpers\Html;
  */
 class Form extends Behavior
 {
-	public static function getVariables($model, $options, $modalOptions=[])
+	public static function getVariables($model, $options=[], $modalOptions=[])
 	{
 		$ret_val = [
 			"success" => false, 
@@ -110,12 +110,12 @@ class Form extends Behavior
 						'class' => $model->isNewRecord ? 'btn btn-success' : 'btn btn-primary',
 						'form' => $formOptions['options']['id'],
 					]);
-					Response::$viewOptions = [
+					Response::viewOptions(null, [
 						"view" => $options['view'],
 						'modalOptions' => static::getModalOptions($modalOptions, $model),
 						'title' => static::getTitle($model, $options['title']),
 						'footer' => $footer
-					];
+					]);
 					
 					/**
 					 * Get data provider information
@@ -127,20 +127,20 @@ class Form extends Behavior
 					]);
 					$ret_val['data'] = static::getDataProvider($model, $dataProviderOptions);
 					
-					Response::$viewOptions["args"] = array_merge([
+					Response::viewOptions("args", array_merge([
 						'scenario' => $scenario,
 						"formOptions" => $formOptions,
 						"model" => $model,
 						'dataProvider' => $ret_val['data'],
 						'action' => $action,
 						'type' => $model->isWhat(),
-					], $options['viewArgs']);
+					], $options['viewArgs']));
 					switch(\Yii::$app->request->isAjax)
 					{
 						case false:
-						Response::$viewOptions['options'] = [
+						Response::viewOptions('options', [
 							'class' => 'wrapper full-width full-height'
-						];
+						]);
 						break;
 					}
 					$ret_val['success'] = true;

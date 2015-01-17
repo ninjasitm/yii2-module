@@ -147,27 +147,31 @@ class Configer extends Model
 	{
 		$this->on("afterCreate", function($e) {
 			$this->config['current']['section'] = $this->event['data']['section'];
-			if($this->container == \Yii::$app->getModule('nitm')->configOptions['container'])
+			if($this->container == \Yii::$app->getModule('nitm')->config->container)
 			{
 				Session::set($this->correctKey($this->event['data']['key']), (is_null($decoded = json_decode(trim($this->event['data']['value']), true)) ? $this->event['data']['value'] : $decoded));
 			}
 			Session::set(self::dm.'.'.$this->location.'.config.'.$this->event['data']['key'], $this->event['data']);
-			\Yii::$app->getModule('nitm')->logger->addTrans($this->event['data']['db'],
-					  $this->event['data']['table'],
-					  $this->event['data']['action'],
-					  $this->event['data']['message']);
+			\Yii::$app->getModule('nitm')->logger->log([
+				'db_name' => $this->event['data']['db'],
+				'table_name' => $this->event['data']['table'],
+				'action' => $this->event['data']['action'],
+				'message' => $this->event['data']['message']
+			]);
 		});
 		
 		$this->on("afterUpdate", function($e) {
-			if($this->container == \Yii::$app->getModule('nitm')->configOptions['container'])
+			if($this->container == \Yii::$app->getModule('nitm')->config->container)
 			{
 				Session::set($this->correctKey($this->event['data']['key']), (is_null($decoded = json_decode(trim($this->event['data']['value']), true)) ? $this->event['data']['value'] : $decoded));
 			}
 			Session::set(self::dm.'.'.$this->location.'.config.'.$this->event['data']['key'].'.value', $this->event['data']['value']);
-			\Yii::$app->getModule('nitm')->logger->addTrans($this->event['data']['db'],
-					  $this->event['data']['table'],
-					  $this->event['data']['action'],
-					  $this->event['data']['message']);
+			\Yii::$app->getModule('nitm')->logger->log([
+				'db_name' => $this->event['data']['db'],
+				'table_name' => $this->event['data']['table'],
+				'action' => $this->event['data']['action'],
+				'message' => $this->event['data']['message']
+			]);
 		});
 		
 		$this->on("afterDelete", function($e) {
@@ -179,16 +183,18 @@ class Configer extends Model
 			}
 			$this->config['current']['section'] = @$this->event['data']['section'];
 			Session::del($this->correctKey($this->event['data']['key']));
-			switch($this->container == \Yii::$app->getModule('nitm')->configOptions['container'])
+			switch($this->container == \Yii::$app->getModule('nitm')->config->container)
 			{
 				case true:
 				Session::del($this->event['data']['key']);
 				break;
 			}
-			\Yii::$app->getModule('nitm')->logger->addTrans($this->event['data']['db'],
-					  $this->event['data']['table'],
-					  $this->event['data']['action'],
-					  $this->event['data']['message']);
+			\Yii::$app->getModule('nitm')->logger->log([
+				'db_name' => $this->event['data']['db'],
+				'table_name' => $this->event['data']['table'],
+				'action' => $this->event['data']['action'],
+				'message' => $this->event['data']['message']
+			]);
 		});
 	}
 	
@@ -241,7 +247,7 @@ class Configer extends Model
 			}
 			$this->config['load']['current'] = empty($this->config['current']['config']) ? false : true;
 			$this->config['load']['sections'] = (is_null($this->config['current']['sections'])) ? false : true;
-			switch($this->container == \Yii::$app->getModule('nitm')->configOptions['container'])
+			switch($this->container == \Yii::$app->getModule('nitm')->config->container)
 			{
 				case false:
 				Session::set(Session::settings.'.'.$this->event['data']['key'], $this->event['data']['value']);
@@ -384,7 +390,7 @@ class Configer extends Model
 			default:
 			switch($this->container)
 			{
-				case Yii::$app->getModule('nitm')->configOptions['container'];
+				case Yii::$app->getModule('nitm')->config->container;
 				array_unshift($key, Session::settings);
 				break;
 				

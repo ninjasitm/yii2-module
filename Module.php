@@ -16,51 +16,40 @@ class Module extends \yii\base\Module
 	
 	public $useFullnames;
 	
+	/**
+	 * Should the configuration engine be loaded?
+	 */
+	public $enableConfig = true;
+	
+	/**
+	 * Should the logging engine be loaded?
+	 */
+	public $enableLogger = true;
+	
+	/**
+	 * The log collections that can be displayed
+	 */
+	public $logCollections = ['nitm-log'];
+	
+	/**
+	 * Should the alerts engine be loaded?
+	 */
+	public $enableAlerts = true;
+	
 	/*
 	 * @var array options for nitm\models\Configer
-	 */
-	public $configOptions = [
-		'dir' => './config/ini/',
-		'engine' => 'db',
-		'container' => 'globals'
-	];
-	
-	/*
-	 * @var array options for nitm\models\Logger
-	 */
-	public $logOptions = [
-		'db' => null,
-		'table' => 'logs',
-	];
-	
-	/*
-	 * @var nitm\models\Configer object
 	 */
 	public $config;
 	
 	/*
-	 * @var nitm\models\Logger object
+	 * @var array options for nitm\models\Logger
 	 */
 	public $logger;
 	
 	/*
-	 * @var nitm\models\Alerts object
-	 */
-	public $alerts;
-	
-	/*
 	 * @var array options for nitm\models\Alerts
 	 */
-	public $alertOptions = [];
-	
-	/*
-	 * @var array options for nitm\models\Votes
-	 */
-	public $voteOptions = [
-		'individualCounts' => true,
-		'allowMultiple' => false,
-		'usePercentages' => true
-	];
+	public $alerts;
 	
 	/*
 	 * @var array The arrap mapping for search classes
@@ -72,10 +61,8 @@ class Module extends \yii\base\Module
 	{
 		parent::init();
 		// custom initialization code goes here
-		$this->config = new models\Configer($this->configOptions);
-		$this->logOptions['db'] = DB::getDefaultDbName();
-		$this->logger = new models\Logger();
-		$this->alerts = new helpers\alerts\Dispatcher($this->alertOptions);
+		
+		$this->bootstrap();
 		Session::del(Session::current);
 		
 		/**
@@ -87,5 +74,38 @@ class Module extends \yii\base\Module
 	public function getSearchClass($modelName)
 	{
 		return isset($this->searchClassMap[strtolower($modelName)]) ? $this->searchClassMap[strtolower($modelName)] : '\nitm\models\\'.\nitm\traits\Data::properName($modelName);
+	}
+	
+	protected function bootstrap()
+	{
+		if($this->enableConfig)
+			$this->config = \Yii::createObject(array_merge([
+				'class' => '\nitm\models\Configer',
+				'dir' => './config/ini/',
+				'engine' => 'db',
+				'container' => 'globals'
+			], (array)$this->config));
+		
+		if($this->enableLogger)
+			$this->logger = \Yii::createObject(array_merge([
+				'class' => '\nitm\log\Logger',
+				'dbName' => DB::getDefaultDbName(),
+			], (array)$this->logger));
+		
+		if($this->enableAlerts)
+			$this->alerts = \Yii::createObject(array_merge([
+				'class' => '\nitm\helpers\alerts\Dispatcher',
+			], (array)$this->alerts));
+	}
+	
+	/**
+	 * Determine whether this level is loggable
+	 */
+	public function canLog($level=null)
+	{
+		if($this->enableLogger && $this->logger)
+			if($level !== null && $level >= 0)
+				return in_array($level, range(0, $this->logger->level));
+		return false; 
 	}
 }

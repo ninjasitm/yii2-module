@@ -219,6 +219,7 @@ trait Nitm
      */
     public static function getCategoryList($type)
     {
+		
 		switch(CacheHelper::cache()->exists('category-list-'.$type))
 		{
 			case false:

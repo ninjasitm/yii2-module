@@ -42,14 +42,6 @@ trait Data {
 		}
 	}
 	
-	public function beforeSaveEvent($event)
-	{
-	}
-	
-	public function afterSaveEvent($event)
-	{
-	}
-	
 	/**
 	 * Get the unique ID of this object
 	 * @return string|int
@@ -79,7 +71,7 @@ trait Data {
 	public static function properClassName($value=null)
 	{
 		$ret_val = is_null($value) ?  static::className() : preg_replace('/[\-\_]/', " ", $value);
-		return implode('', explode(' ', static::properName($value)));
+		return implode('', array_map('ucfirst', explode(' ', static::properName($ret_val))));
 	}
 	
 	public static function getNamespace()

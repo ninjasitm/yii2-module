@@ -2,11 +2,15 @@
 namespace nitm\traits;
 
 use nitm\helpers\Response;
+use yii\helpers\ArrayHelper;
 
 /**
  * Traits defined for expanding active relation scopes until yii2 resolves traits issue
  */
  trait Controller {
+	
+	protected $_logLevel = 3;
+	protected $shouldLog = true;
 	
     /*
 	 * Check to see if somethign is supported
@@ -69,6 +73,84 @@ use nitm\helpers\Response;
 	public function getResponseFormat()
 	{
 		return Response::getFormat();
+	}
+	
+	/**
+	 * Use nitm logger to log something
+	 * @param string|array $message
+	 * @param int $level. Only log if logging level is above this
+	 * @param string $action
+	 * @param string $category The category to insert this with
+	 * @param string $internalCategory
+	 * @param object $model The model object
+	 * @return boolean
+	 */
+	protected function log($message, $level=0, $action=null, $options=[], $model=null)
+	{
+		if(\Yii::$app->getModule('nitm')->enableLogger)
+		{
+			if(is_null($message))
+				return false;
+				
+			if(!$model)
+				$model = ($model instanceof \nitm\models\Data) ? $model : new \nitm\models\Data(['noDbInit' => true]);
+			
+			/**
+			 * Only log this information if the logging $level is less than or equal to the gloabl accepted level
+			 */
+			if(\Yii::$app->getModule('nitm')->canLog($level)) {
+				$options = array_merge([
+					'internal_category' => 'user-activity',
+					'category' => 'User Activity',
+					'table_name' => $model->tableName(),
+					'message' => $message,
+					'level' => $level,
+					'timestamp' => time(),
+					'action' => (is_null($action) ? $this->action->id : $action), 
+				], $options);
+				return \Yii::$app->getModule('nitm')->logger->log($options);
+			}
+		}
+		return false;
+	}
+	
+	protected function commitLog()
+	{
+		return (\Yii::$app->getModule('nitm')->enableLogger) ? \Yii::$app->getModule('nitm')->logger->flush(true) : false;
+	}
+	
+	/**
+	 * Get te log parameters
+	 * @param boolean $saved
+	 * @param array $result
+	 * @param \nitm\models\Data based $model
+	 * @return array;
+	 */
+	protected function getLogParams($saved, $result, $model=null)
+	{
+		$action = strtolower(ArrayHelper::remove($result, 'actionName', $this->action->id));
+		$level = ArrayHelper::remove($result, 'logLevel', $this->_logLevel);
+		$category = ArrayHelper::remove($result, 'logCategory', 'User Action');
+		$internalCategory = ArrayHelper::remove($result, 'internalLogCategory', 'user-activity');
+		
+		if(!$model)
+			$model = $this->hasProperty('model') && ($this->model instanceof \nitm\models\Data) ? $this->model : new \nitm\models\Data(['noDbInit' => true]);
+		
+		$id = ArrayHelper::remove($result, 'id', $model->getId());
+		$message = [\Yii::$app->user->identity->username];
+		
+		array_push($message, " ".($saved ? $action.(in_array($action[strlen($action)-1], ['a', 'e', 'i', 'o', 'u']) ? 'd' : 'ed') : "failed to $action")." ", $this->model->isWhat());
+		if($id)
+			array_push($message, "with id $id");
+		if(!$saved)
+			array_push($message, "\n\nError was: \n\n".var_export($message));
+	
+		return [
+			implode(' ', $message), $action, $level, [
+				'category' => $category, 
+				'internal_category' => $internalCategory
+			], $model
+		];
 	}
 	
 	/*

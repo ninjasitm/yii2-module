@@ -49,6 +49,14 @@ class DefaultApiController extends Controller
 		];
 	}
 	
+	public function afterAction($action, $result)
+	{
+		$result = parent::afterAction($action, $result);
+		if(\Yii::$app->getModule('nitm')->enableLogger)
+			$this->commitLog();
+		return $result;
+	}
+	
 	public function actionSearch()
 	{
 		$ret_val = [
@@ -95,7 +103,7 @@ class DefaultApiController extends Controller
 			}
 			break;
 		}
-		echo $this->renderResponse($ret_val, Response::$viewOptions, $partial);
+		return $this->renderResponse($ret_val, Response::$viewOptions, $partial);
 	}
 }
 

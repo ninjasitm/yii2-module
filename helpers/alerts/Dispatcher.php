@@ -4,6 +4,7 @@ namespace nitm\helpers\alerts;
 
 use Yii;
 use yii\helpers\Html;
+use yii\helpers\ArrayHelper;
 use nitm\helpers\Cache;
 use nitm\widgets\models\Alerts;
 
@@ -25,6 +26,7 @@ class Dispatcher extends \yii\base\Component
 	protected $_originUserId;
 	protected $_message;
 	protected $_notifications = [];
+	protected $_sendCount = 0;
 	
 	private $_prepared = false;
 	private $_variables = [];
@@ -220,7 +222,7 @@ class Dispatcher extends \yii\base\Component
 		{
 			case true:
 			//Organize by global and individual alerts
-			foreach($this->_alerts  as $idx=>$alert)
+			foreach($this->_alerts as $idx=>$alert)
 			{
 				switch(1)
 				{
@@ -241,9 +243,10 @@ class Dispatcher extends \yii\base\Component
 					break;
 				}
 			}
+			
 			foreach($to as $scope=>$types)
 			{
-				if(!empty($types))
+				if(count($types))
 				{
 					switch($this->mode)
 					{
@@ -251,15 +254,37 @@ class Dispatcher extends \yii\base\Component
 						$this->sendAsSingle($scope, $types, $compose);
 						break;
 						
-						default:
+						default:	
 						$this->sendAsBatch($scope, $types, $compose);
 						break;
 					}
 				}
 			}
+			
 			$this->sendNotifications();
-			break;
 		}
+		
+		if(\Yii::$app->getModule('nitm')->enableLogger) {
+			$logger = \Yii::$app->getModule('nitm')->logger;
+			$logger->log([
+				'message' => "Sent ".$this->_sendCount." alerts to destinations.\n\nCriteria: ".json_encode($this->_criteria, JSON_PRETTY_PRINT)."\n\nRecipients: ".json_encode(array_map(function (&$group) {
+					return array_map(function (&$recipients) {
+						return array_map(function(&$recipient) {
+							ArrayHelper::remove($recipient, 'user');
+							return $recipient;
+						}, $recipients);
+					}, $group);
+				}, $to), JSON_PRETTY_PRINT),
+				'level' => 1,
+				'internal_category' => 'user-activity',
+				'category' => 'Dispatch',
+				'timestamp' => time(),
+				'action' => 'dispatch-alerts', 
+				'table' => Alerts::tableName(),
+			], 'nitm-alerts-log');
+			$logger->flush(true);
+		}
+			
 		$this->reset();
 		return true;
 	}
@@ -303,7 +328,7 @@ class Dispatcher extends \yii\base\Component
 				switch($type)
 				{
 					case 'email':
-					$view = ['html' => '@nitm/views/alerts/message/email'];
+					$view = ['html' => '@app/views/alerts/message/email'];
 					$params['content'] = $this->getEmailMessage($params['content']);
 					break;
 					
@@ -312,7 +337,7 @@ class Dispatcher extends \yii\base\Component
 					
 					$params['content'] = $this->getMobileMessage($params['content']);
 					$params['title'] = '';
-					$view = ['text' => '@nitm/views/alerts/message/mobile'];
+					$view = ['text' => '@app/views/alerts/message/mobile'];
 					break;
 				}
 				$params = $this->replaceCommon($params);
@@ -444,6 +469,7 @@ class Dispatcher extends \yii\base\Component
 			$this->_message->setFrom(\Yii::$app->params['components.alerts']['sender'])
 				->send();
 			$this->_message = null;
+			$this->_sendCount++;
 			return true;
 		}
 		else
@@ -478,8 +504,8 @@ class Dispatcher extends \yii\base\Component
 				'priority',
 				'user_id'
 			];
-			\nitm\models\Notification::find()->createCommand()->batchInsert(
-				\nitm\models\Notification::tableName(), 
+			\nitm\widgets\models\Notification::find()->createCommand()->batchInsert(
+				\nitm\widgets\models\Notification::tableName(), 
 				$keys, 
 				array_values($this->_notifications)
 			)->execute();

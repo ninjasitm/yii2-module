@@ -148,7 +148,7 @@ function Configuration()
 			form.off('submit');
 			form.on('submit', function (e) {
 				e.preventDefault();
-				$nitm.module('entity').operation(this);
+				self.operation(this);
 			});
 		});
 	}
@@ -342,7 +342,7 @@ function Configuration()
 			newData = newData.toString();
 			var form = $nitm.getObj('update_value_form_'+container);
 			form.find("[role='value']").val(newData);
-			$nitm.module('entity').operation(form.get(0));
+			self.operation(form.get(0));
 			$nitm.getObj(cellId).css('border','none');
 			/*var container = $nitm.getObj(cellId).html('<div id="'+cellId+'">'+newData+'</div>');
 			 *	container.off('click');

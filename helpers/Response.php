@@ -43,6 +43,24 @@ class Response extends Behavior
 		static::$view = !($view) ? static::$controller->getView() : $view;
 	}
 	
+	public static function viewOptions($name=null, $value=null, $append=false)
+	{
+		//Merge the view options with this array
+		if(is_null($name) && is_array($value))
+			static::$viewOptions = array_merge(static::$viewOptions, $value);
+		//If we have a value and a name then set it
+		else if(!is_null($value) && is_string($name))
+			\nitm\helpers\ArrayHelper::setValue(static::$viewOptions, $name, $value, $append);
+		//Otherwise we may be looking for a specific value
+		else if (is_string($name))
+			return \nitm\helpers\ArrayHelper::getValue(static::$viewOptions, $name);
+		//Or we may Want all of the options
+		else if (is_null($name) && is_null($value))
+			return static::$viewOptions;
+		else
+			return null;
+	}
+	
 	/*
 	 * Determine how to return the data
 	 * @param mixed $result Data to be displayed

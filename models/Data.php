@@ -6,6 +6,7 @@ use Yii;
 use yii\base\Event;
 use yii\db\ActiveRecord;
 use yii\db\ActiveQuery;
+use nitm\helpers\ArrayHelper;
 use ReflectionClass;
 
 /**
@@ -31,6 +32,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	\nitm\traits\Data;
 	
 	//public members
+	public $noDbInit = false;
 	public $initLocalConfig = true;
 	public $unique;
 	public $requestModel;
@@ -60,7 +62,8 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 
 	public function init()
 	{
-		parent::init();
+		if(!$this->noDbInit)
+			parent::init();
 		if((bool)$this->initLocalConfig && (bool)static::$initClassConfig)
 			$this->initConfig(static::isWhat());
 	}
@@ -163,6 +166,18 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			}
 		}
 		return array_merge(parent::behaviors(), $behaviors);
+	}
+	
+	public function beforeSaveEvent($event)
+	{
+	}
+	
+	public function afterSaveEvent($event)
+	{
+		/**
+		 * Commit the logs after this model is done saving
+		 */
+		$this->commitLog();
 	}
 	
 	public static function tableName()
@@ -402,17 +417,48 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	
 	/**
 	 * Log a transaction to the logger
-	 * @param strign $table
 	 * @param string $action
-	 * @param strign $message
+	 * @param string $message
+	 * @param int $level
+	 * @param string|null $table
 	 * @param string|null $db
+	 * @param string $category
+	 * @param string $internalCategory
+	 * @param string $collectionName
+	 * @return boolean
 	 */
-	protected function log($table, $action, $message, $db=null)
+	protected static function log($action, $message, $level=1, $options=[])
 	{
-		preg_match("/dbname=([^;]*)/", \Yii::$app->db->connectionString, $matches);
-		$db = ($db == null) ? $matches[1] : $db;
-		$logger = new Logger(null, null, null, Logger::LT_DB, $matches[1], $table);
-		$logger->addTrans($db, $table, $action, $message);
+		if(\Yii::$app->getModule('nitm')->enableLogger) {
+			if(\Yii::$app->getModule('nitm')->canLog($level)) {
+				try {
+					$collectionName = ArrayHelper::remove($options, 'collection_name', 'nitm-log');
+					
+					$options = array_merge([
+						'internal_category' => 'user-activity',
+						'category' => 'Model Activity',
+						'db_name' => static::$active['db']['name'],
+						'table_name' => static::$active['table']['name'],
+						'message' => $message,
+						'level' => $level,
+						'timestamp' => time(), 
+						'action' => $action, 
+					], $options);
+					
+					return \Yii::$app->getModule('nitm')->logger->log($options, $collectionName);
+				} catch (\Exception $e) {}
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * Commit the logs to the database
+	 * @return boolean
+	 */
+	protected static function commitLog()
+	{
+		return \Yii::$app->getModule('nitm')->logger->flush(true);
 	}
 	
 	/**

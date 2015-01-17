@@ -46,18 +46,18 @@ trait Configer {
 	{
 		Session::del('settings.alerts');
 		$module = \Yii::$app->getModule('nitm');
-		$container = empty($container) ? $module->configOptions['container'] : $container;
+		$container = empty($container) ? $module->config->container : $container;
 		switch(1)
 		{
 			case !CacheHelper::cache()->exists('config-'.$container):
 			case !isset(static::$settings[$container]):
-			case ($container == $module->configOptions['container']) && (!Session::isRegistered(Session::settings)):
-			$module->config->setEngine($module->configOptions['engine']);
-			$module->config->setType($module->configOptions['engine'], $container);
-			switch($module->configOptions['engine'])
+			case ($container == $module->config->container) && (!Session::isRegistered(Session::settings)):
+			$module->config->setEngine($module->config->engine);
+			$module->config->setType($module->config->engine, $container);
+			switch($module->config->engine)
 			{
 				case 'file':
-				$module->setDir($module->configOptions['dir']);
+				$module->setDir($module->config->dir);
 				break;
 			}
 			switch(1)
@@ -75,13 +75,13 @@ trait Configer {
 					static::$settings[$container] = $config;
 					break;
 					
-					case ($container == $module->configOptions['container']) && (!Session::isRegistered(Session::settings)):
-					$config = $module->config->getConfig($module->configOptions['engine'], $container, true);
+					case ($container == $module->config->container) && (!Session::isRegistered(Session::settings)):
+					$config = $module->config->getConfig($module->config->engine, $container, true);
 					Session::set(Session::settings, $config);
 					break;
 					
-					case ($container != $module->configOptions['container']) && !isset(static::$settings[$container]):
-					$config = $module->config->getConfig($module->configOptions['engine'], $container, true);
+					case ($container != $module->config->container) && !isset(static::$settings[$container]):
+					$config = $module->config->getConfig($module->config->engine, $container, true);
 					CacheHelper::cache()->set('config-'.$container, $config, 120);
 					Session::set(Session::current.'.'.$container, $config);
 					static::$settings[$container] = $config;

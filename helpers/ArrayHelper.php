@@ -7,6 +7,8 @@
 
 namespace nitm\helpers;
 
+use yii\helpers\ArrayHelper as BaseArrayHelper;
+
 /**
  * ArrayHelper provides additional array functionality that you can use in your
  * application.
@@ -14,7 +16,7 @@ namespace nitm\helpers;
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @since 2.0
  */
-class ArrayHelper extends \yii\helpers\ArrayHelper
+class ArrayHelper extends BaseArrayHelper
 {
 	public static function mapRecursive($array, $callback) {
 		if(is_array($array) || $array instanceof ArrayAccess)
@@ -51,4 +53,35 @@ class ArrayHelper extends \yii\helpers\ArrayHelper
 		}
 		return $ret_val;
 	}
+	
+	public function setValue(&$array, $key, $value, $append=false)
+	{
+        if ($key instanceof \Closure) {
+            return $key($array, $default);
+        }
+		
+        if (($pos = strrpos($key, '.')) !== false) {
+			$keys = explode('.', $key);
+			$name = array_shift($keys);
+			static::setValue($array[$name], implode('.', $keys), $value, $append);
+        } else {
+			if (is_array($array) && array_key_exists($key, $array)) {
+				if(is_array($array[$key]) && is_array($value))
+					$array[$key] = array_merge($array[$key], $value);
+				else
+					$array[$key] = ($append === true) ? $array[$key].$value : $value;
+			}
+			else if (is_object($array)) {
+				$array->$key = ($append === true) ? $array->$key.$value : $value;
+				return true;
+			} elseif (is_array($value) && is_array(static::getValue($array, $key, null))) {
+				$array[$key] = array_merge($array[$key], $value);
+				return true;
+			} else {
+				$array[$key] = $value;
+				return true;
+			}
+			return false;
+		}
+    }
 }
