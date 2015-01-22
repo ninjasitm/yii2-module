@@ -85,10 +85,10 @@ class Container extends BaseConfiger
         return $this->hasMany(Value::className(), ['containerid' => 'id'])
 		->select([
 			'*',
-			"CONCAT((SELECT `name` FROM `".Section::tableName()."` WHERE id=sectionid), '.', name) AS unique_id", 
-			"name AS unique_name", 
-			"(SELECT `name` FROM `".Section::tableName()."` WHERE id=sectionid) AS 'section_name'", 
-			"(SELECT `name` FROM `".Container::tableName()."` WHERE id=containerid) AS 'container_name'"
+			'CONCAT((SELECT '.$this->getDb()->quoteColumnName('name').' FROM '.$this->getDb()->quoteTableName(Section::tableName()).' WHERE id=sectionid), \'.\', name) AS unique_id', 
+			'name AS unique_name', 
+			'(SELECT name FROM '.Section::tableName().' WHERE id=sectionid) AS "section_name"', 
+			'(SELECT name FROM '.Container::tableName().' WHERE id=containerid) AS "container_name"'
 		])
 		->orderBy(['name' => SORT_ASC])
 		->indexBy('unique_id');
