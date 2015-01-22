@@ -230,29 +230,26 @@ use yii\helpers\ArrayHelper;
 	 */
 	protected function getHasNewQuery()
 	{
-		return "(SELECT SUM(hasNew) FROM 
-			(
-				SELECT SUM(
-					IF(
-						parent_id=id AND 
-						parent_type='".$this->model->isWhat()."' AND
-						(updated_at>=updated_at OR created_at>=updated_at) AND
-						(".static::$currentUser->lastActive()."<=UNIX_TIMESTAMP(updated_at) OR ".static::$currentUser->lastActive()."<=UNIX_TIMESTAMP(updated_at)),
-						1, 0
-					)
-				) AS hasNew FROM `".\nitm\widgets\models\Issues::tableName()."`
-				UNION ALL 
-				SELECT SUM(
-					IF(
-						parent_id=id AND 
-						parent_type='".$this->model->isWhat()."' AND
-						(updated_at>=updated_at OR created_at>=updated_at) AND 
-						(".static::$currentUser->lastActive()."<=UNIX_TIMESTAMP(updated_at) OR ".static::$currentUser->lastActive()."<=UNIX_TIMESTAMP(updated_at)),
-						1, 0
-					)
-				) AS hasNew FROM `".\nitm\widgets\models\Replies::tableName()."`
-			) newActivity) as hasNewActivity
-		";
+		//Check parent_id columns in issues, vote...etc tables
+		return "(SELECT SUM(hasNew) FROM (
+			SELECT SUM (
+				CASE WHEN (
+					parent_id=id AND 
+					parent_type='".$this->model->isWhat()."' AND
+					(updated_at>=updated_at OR created_at>=updated_at) AND
+					('".date("Y-m-d H:i:s", static::$currentUser->lastActive())."'<=updated_at OR '".date("Y-m-d H:i:s", static::$currentUser->lastActive())."'<=updated_at)
+				) THEN 1 ELSE 0 END
+			) AS hasNew FROM ".\nitm\widgets\models\Issues::tableName()."
+			UNION ALL 
+			SELECT SUM (
+				CASE WHEN (
+					parent_id=id AND 
+					parent_type='".$this->model->isWhat()."' AND
+					(updated_at>=updated_at OR created_at>=updated_at) AND 
+					('".date("Y-m-d H:i:s", static::$currentUser->lastActive())."'<=updated_at OR '".date("Y-m-d H:i:s", static::$currentUser->lastActive())."'<=updated_at)
+				) THEN 1 ELSE 0 END
+			) AS hasNew FROM ".\nitm\widgets\models\Replies::tableName()."
+		) newActivity) as hasNewActivity";
 	}
 	
 	/**

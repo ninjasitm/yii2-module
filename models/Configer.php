@@ -1590,9 +1590,10 @@ class Configer extends Model
 				{
 					case !$this->containerModel instanceof Container:
 					case !is_null($container) && (is_object($this->containerModel) && !($this->containerModel->name == $container || $this->containerModel->id == $container)):
+					$where = is_int($container) ? ['id' => $container] : ['name' => $container];
 					$model = Container::find()
-						->where(['or', "name='$container'", "id='$container'"])
 						->with('sections')
+						->where($where)
 						->one();
 					switch($model instanceof Container)
 					{
@@ -1629,8 +1630,9 @@ class Configer extends Model
 			case false:
 			if(!$this->sectionModel instanceof Section)
 			{
+				$where = is_int($section) ? ['id' => $section] : ['name' => $section];
 				$found = $this->containerModel->getSections()
-					->where(['or', "name='$section'", "id='$section'"])
+					->where($where)
 					->one();
 				$this->sectionModel = $found instanceof Section ? $found : null;
 				$ret_val = $this->sectionModel;
