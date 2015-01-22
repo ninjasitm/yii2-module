@@ -88,11 +88,11 @@ class ConfigurationController extends DefaultController implements DefaultContro
 		switch($this->model->engine)
 		{
 			case 'file':
-			$this->model->setDir(\Yii::$app->getModule('nitm')->configOptions['dir']);
+			$this->model->setDir(\Yii::$app->getModule('nitm')->config->dir);
 			break;
 		}
 		//determine the correct container
-		$this->model->container = empty($this->model->container) ? (empty($container) ? \Yii::$app->getModule('nitm')->configOptions['container'] : $container) : $this->model->container;
+		$this->model->container = empty($this->model->container) ? (empty($container) ? \Yii::$app->getModule('nitm')->config->container : $container) : $this->model->container;
 		
 		//if we're not requesting a specific section then only load the sections and no values
 		$this->model->prepareConfig($this->model->engine, $this->model->container, $this->model->getValues);
@@ -160,12 +160,12 @@ class ConfigurationController extends DefaultController implements DefaultContro
 							$this->model->container,
 							null,
 							$this->model->engine);
-					$this->model->config['current']['config'] = Session::getVal($this->model->correctKey($this->model->config['current']['action']['key']));
+					$this->model->config('current.config', Session::getVal($this->model->correctKey($this->model->config['current']['action']['key'])));
 					$view = [
 						'view' => 'values/value',
 						'data' => [
 							"model" => $this->model,
-							"data" => $this->model->config['current']['action'],
+							"data" => $this->model->config('current.action'),
 							"parent" => $this->model->section
 						]
 					];
@@ -181,7 +181,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 						'view' => 'values/index',
 						'data' => [
 							"model" => $this->model,
-							"data" => $this->model->config['current']['config']
+							"data" => $this->model->confi('current.config')
 						]
 					];
 					break;
@@ -190,10 +190,10 @@ class ConfigurationController extends DefaultController implements DefaultContro
 			}
 			break;
 		}
-		switch($this->model->config['current']['action']['success'] && \Yii::$app->request->isAjax && (Helper::boolval(@$_REQUEST['getHtml']) === true))
+		switch($this->model->config('current.action.success') && \Yii::$app->request->isAjax && (Helper::boolval(@$_REQUEST['getHtml']) === true))
 		{
 			case true:
-			$this->model->config['current']['action']['data'] = $this->renderAjax($view['view'], $view['data']);
+			$this->model->config('current.action.data', $this->renderAjax($view['view'], $view['data']));
 			break;
 		}
 		return $this->finalAction();
@@ -213,14 +213,14 @@ class ConfigurationController extends DefaultController implements DefaultContro
 			switch($this->model->what)
 			{
 				case 'section':
-				switch(isset($this->model->config['current']['config'][$this->model->section]))
+				switch($section = $this->model->config('current.config.'.$this->model->section))
 				{
 					case true:
-					$this->model->config['current']['config'] = $this->model->config['current']['config'][$this->model->section];
+					$this->model->config('current.config', $section);
 					break;
 					
 					default:
-					$this->model->config['current']['config'] = null;
+					$this->model->config('current.config', null);
 					break;
 				}
 				$ret_val["success"] = true;
@@ -230,23 +230,23 @@ class ConfigurationController extends DefaultController implements DefaultContro
 					case true:
 					$ret_val['data'] = $this->renderAjax('values/index', [
 						"model" => $this->model,
-						"values" => $this->model->config['current']['config'],
+						"values" => $this->model->config('current.config'),
 						"parent" => $this->model->section
 					]);
 					break;
 				
 					default:
-					$ret_val['data'] = $this->model->config['current']['config'];
+					$ret_val['data'] = $this->model->config('current.config');
 					break;
 				}
 				break;
 			}
 			break;
 		}
-		Response::$viewOptions['args'] = [
+		Response::viewOptions('args', [
 			'content' => ArrayHelper::getValue($ret_val, 'data', '')
-		];
-		$this->model->config['current']['action'] = $ret_val;
+		]);
+		$this->model->config('current.action', $ret_val);
 		return $this->finalAction();
 	}
 	
@@ -277,7 +277,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 							$this->model->container,
 							null,
 							$this->model->engine);
-					$this->model->config['current']['config'] = Session::getVal($this->model->correctKey($this->model->config['current']['action']['key']));
+					$this->model->config('current.config', Session::getVal($this->model->correctKey($this->model->config('current.action.key'))));
 					break;
 					
 					case 'deleteSection':
@@ -348,19 +348,19 @@ class ConfigurationController extends DefaultController implements DefaultContro
 	protected function finalAction($params=null)
 	{
 		\Yii::$app->getSession()->setFlash(
-			@$this->model->config['current']['action']['class'],
-			$this->model->config['current']['action']['message']
+			@$this->model->config('current.action.class'),
+			$this->model->config('current.action.message')
 		);
 		switch(\Yii::$app->request->isAjax)
 		{
 			//if this is an ajax call then print the result
 			case true:
-			$this->model->config['current']['action']['flash'] = \Yii::$app->getSession()->getFlash(
-			$this->model->config['current']['action']['class'], null, true);
-			Response::$viewOptions['args']['content'] = $this->model->config['current']['action'];
+			$this->model->config('current.action.flash', \Yii::$app->getSession()->getFlash(
+			$this->model->config('current.action.class'), null, true));
+			Response::viewOptions('args.content', $this->model->config('current.action'));
 			$format = Response::formatSpecified() ? $this->getResponseFormat() : 'json';
 			$this->setResponseFormat($format);
-			return $this->renderResponse($this->model->config['current']['action'], null, true);
+			return $this->renderResponse($this->model->config('current.action'), null, true);
 			break;
 			
 			//otherwise we're going back to the index

@@ -3,25 +3,25 @@
 namespace nitm\helpers;
 
 use yii\base\Behavior;
-use yii\helpers\ArrayHelper;
+use nitm\helpers\ArrayHelper;
 
 //class that sets up and retrieves, deletes and handles modifying of contact data
 class Response extends Behavior
 {
 	public static $view;
 	public static $controller;
-	public static $viewOptions = [
+	public static $format;
+	public static $forceAjax = false;
+	public static $viewPath = '@nitm/views/response/index';
+	public static $viewModal = '@nitm/views/response/modal';
+	
+	protected static $viewOptions = [
 		'content' => '',
 		'view' => '@nitm/views/response/index', //The view file
 		'options' => [
 			'class' => ''
 		],
 	];
-	public static $format;
-	public static $forceAjax = false;
-	public static $viewPath = '@nitm/views/response/index';
-	public static $viewModal = '@nitm/views/response/modal';
-	
 	protected static $layouts = [
 		'column1' => '@nitm/views/layouts/column1'
 	];
@@ -45,20 +45,7 @@ class Response extends Behavior
 	
 	public static function viewOptions($name=null, $value=null, $append=false)
 	{
-		//Merge the view options with this array
-		if(is_null($name) && is_array($value))
-			static::$viewOptions = array_merge(static::$viewOptions, $value);
-		//If we have a value and a name then set it
-		else if(!is_null($value) && is_string($name))
-			\nitm\helpers\ArrayHelper::setValue(static::$viewOptions, $name, $value, $append);
-		//Otherwise we may be looking for a specific value
-		else if (is_string($name))
-			return \nitm\helpers\ArrayHelper::getValue(static::$viewOptions, $name);
-		//Or we may Want all of the options
-		else if (is_null($name) && is_null($value))
-			return static::$viewOptions;
-		else
-			return null;
+		return ArrayHelper::getOrSetValue(static::$viewOptions, $name, $value, $append);
 	}
 	
 	/*

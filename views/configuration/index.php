@@ -20,7 +20,7 @@ $this->title = "Edit configration parameters";
 <div class="col-md-9 col-lg-9 col-sm-12 full-height">
 	<div class="configuration-container" id="configuration_container">
             <?php
-                switch(@$model->config['load']['sections'])
+                switch($model->config('load.sections'))
                 {
                     case true:
                     echo $this->render('sections/index',  array("model" => $model));
@@ -29,7 +29,7 @@ $this->title = "Edit configration parameters";
                     default:
                     echo Html::tag('div',
                             Html::tag('h2',  
-                                @$model->config['messges']['reason']
+                                $model->config('messges.reason')
                             ),
                             ['class' => "alert alert-danger"]
                         );

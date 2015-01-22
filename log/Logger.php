@@ -20,7 +20,7 @@ class Logger extends \yii\log\Logger
 	public $level = 0;
 	public $traceLevel = 1;
 	public $dbName;
-	public $collectionName;
+	public $collectionName = 'no-log-selected';
 	public $oldCollectionName;
 	public $type;
 	public $currentUser;

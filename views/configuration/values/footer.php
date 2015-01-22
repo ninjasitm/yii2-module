@@ -22,19 +22,18 @@ $model->setScenario('createValue');
 			'enableAjaxValidation' => true
 		]); ?>
         <?php
-                echo $form->field($model, 'name')->textInput(array('placeholder' => 'Setting name...'))->label("Name", ['class' => 'sr-only']);
-                echo $form->field($model, 'value')->textInput(array('placeholder' => 'Setting value...'))->label("Value", ['class' => 'sr-only']);
+			echo $form->field($model, 'name')->textInput(['placeholder' => 'Setting name...'])->label("Name", ['class' => 'sr-only']);
+            echo $form->field($model, 'value')->textInput(['placeholder' => 'Setting value...'])->label("Value", ['class' => 'sr-only']);
         ?>
         <?php
-                echo Html::activeHiddenInput($model, 'container', array('value' => $container));
-                echo Html::activeHiddenInput($model, 'section', array('value' => $section));
-                echo Html::activeHiddenInput($model, 'what', array('value' => 'value'));
-                echo Html::submitButton('Add Key/Value', [
-												'class' => 'btn btn-primary',
-												'title' => "Add value to $section",
-												"data-loading-text" => "Adding...",
-											]
-                                        );
+			echo Html::activeHiddenInput($model, 'container', ['value' => $container]);
+			echo Html::activeHiddenInput($model, 'section', ['value' => $section]);
+			echo Html::activeHiddenInput($model, 'what', ['value' => 'value']);
+			echo Html::submitButton('Add Key/Value', [
+				'class' => 'btn btn-primary',
+				'title' => "Add value to $section",
+				"data-loading-text" => "Adding...",
+			]);
         ?>
         <?php ActiveForm::end(); ?>
 </div>

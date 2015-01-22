@@ -151,6 +151,11 @@ class File extends \yii\helpers\FileHelper
 		}
 	}
 	
+	public function getNames($in)
+	{
+		return $this->getFiles($in, true);
+	}
+	
 	public function getFiles($in, $namesOnly)
 	{
 		$directory = new Directory();

@@ -49,7 +49,7 @@ trait Data {
 	public function getId()
 	{
 		$key = $this->primaryKey();
-		return $this->$key[0];
+		return (int)(string)$this->$key[0];
 	}
 	
 	/*

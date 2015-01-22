@@ -9,10 +9,12 @@ use yii\helpers\Html;
 		<?php
 			foreach($values as $section=>$value)
 			{
-				echo $this->render('value',  array("model" => $model,
-									  "section" => $section,
-									  "data" => $value,
-									  "surround" => @$surround));
+				echo $this->render('value',  [
+					"model" => $model,
+					"section" => $section,
+					"data" => $value,
+					"surround" => @$surround
+				]);
 			}
 		?>
 		</div>
@@ -21,9 +23,11 @@ use yii\helpers\Html;
 	<?php break;?>
 <?php endswitch;?>
 
-<?php
+<?=
 	//render the footer for this section
-	echo $this->render("footer", array("model" => $model,
-							"section" => $parent,
-							"container" => $model->config['current']['container']));
+	$this->render("footer", [
+		"model" => $model,
+		"section" => $parent,
+		"container" => $model->config('current.container')
+	]);
 ?>

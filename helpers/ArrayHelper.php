@@ -63,7 +63,9 @@ class ArrayHelper extends BaseArrayHelper
         if (($pos = strrpos($key, '.')) !== false) {
 			$keys = explode('.', $key);
 			$name = array_shift($keys);
-			static::setValue($array[$name], implode('.', $keys), $value, $append);
+			if(!isset($array[$name]))
+				$array[$name] = [];
+			self::setValue($array[$name], implode('.', $keys), $value, $append);
         } else {
 			if (is_array($array) && array_key_exists($key, $array)) {
 				if(is_array($array[$key]) && is_array($value))
@@ -74,7 +76,7 @@ class ArrayHelper extends BaseArrayHelper
 			else if (is_object($array)) {
 				$array->$key = ($append === true) ? $array->$key.$value : $value;
 				return true;
-			} elseif (is_array($value) && is_array(static::getValue($array, $key, null))) {
+			} elseif (is_array($value) && is_array(self::getValue($array, $key, null))) {
 				$array[$key] = array_merge($array[$key], $value);
 				return true;
 			} else {
@@ -84,4 +86,22 @@ class ArrayHelper extends BaseArrayHelper
 			return false;
 		}
     }
+	
+	public function getOrSetValue(&$array, $key=null, $value=null, $append=false)
+	{
+		//Merge the view options with this array
+		if(is_null($key) && is_array($value))
+			$array = array_merge($array, $value);
+		//If we have a value and a name then set it
+		else if(!is_null($value) && is_string($key))
+			self::setValue($array, $key, $value, $append);
+		//Otherwise we may be looking for a specific value
+		else if (is_string($key))
+			return self::getValue($array, $key);
+		//Or we may Want all of the options
+		else if (is_null($key) && is_null($value))
+			return $array;
+		else
+			return null;
+	}
 }
