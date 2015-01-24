@@ -87,9 +87,8 @@ class Section extends BaseConfiger
 		->select([
 			'*',
 			"name AS unique_id", 
-			"name AS unique_name", 
-			"(SELECT name AS 'section_name'", 
-			"(SELECT name FROM `".Container::tableName()."` WHERE id=containerid) AS 'container_name'"
+			"(SELECT name FROM `".static::tableName()."` WHERE id=sectionid) AS section_name", 
+			"(SELECT name FROM `".Container::tableName()."` WHERE id=containerid) AS container_name"
 		])
 		->orderBy(['name' => SORT_ASC]);
     }

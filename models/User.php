@@ -98,7 +98,7 @@ class User extends \dektrium\user\models\User
 			}
 			if($update) $this->updateActivity();
 		} catch (\Exception $error) {}
-		return $ret_val;
+		return date('Y-m-d G:i:s', $ret_val);
 	}
 	
 	/**

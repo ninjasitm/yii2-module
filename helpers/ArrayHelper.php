@@ -65,22 +65,23 @@ class ArrayHelper extends BaseArrayHelper
 			$name = array_shift($keys);
 			if(!isset($array[$name]))
 				$array[$name] = [];
+				
 			self::setValue($array[$name], implode('.', $keys), $value, $append);
         } else {
 			if (is_array($array) && array_key_exists($key, $array)) {
 				if(is_array($array[$key]) && is_array($value))
-					$array[$key] = array_merge($array[$key], $value);
+					$array[$key] = ($append === true) ? array_merge($array[$key], $value) : $value;
 				else
 					$array[$key] = ($append === true) ? $array[$key].$value : $value;
 			}
 			else if (is_object($array)) {
 				$array->$key = ($append === true) ? $array->$key.$value : $value;
 				return true;
-			} elseif (is_array($value) && is_array(self::getValue($array, $key, null))) {
-				$array[$key] = array_merge($array[$key], $value);
-				return true;
 			} else {
-				$array[$key] = $value;
+				if($append === true)
+					$array[$key][] = $value;
+				else
+					$array[$key] = $value;
 				return true;
 			}
 			return false;

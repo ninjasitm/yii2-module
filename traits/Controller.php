@@ -231,25 +231,29 @@ use yii\helpers\ArrayHelper;
 	protected function getHasNewQuery()
 	{
 		//Check parent_id columns in issues, vote...etc tables
-		return "(SELECT SUM(hasNew) FROM (
-			SELECT SUM (
-				CASE WHEN (
-					parent_id=id AND 
-					parent_type='".$this->model->isWhat()."' AND
-					(updated_at>=updated_at OR created_at>=updated_at) AND
-					('".date("Y-m-d H:i:s", static::$currentUser->lastActive())."'<=updated_at OR '".date("Y-m-d H:i:s", static::$currentUser->lastActive())."'<=updated_at)
-				) THEN 1 ELSE 0 END
-			) AS hasNew FROM ".\nitm\widgets\models\Issues::tableName()."
-			UNION ALL 
-			SELECT SUM (
-				CASE WHEN (
-					parent_id=id AND 
-					parent_type='".$this->model->isWhat()."' AND
-					(updated_at>=updated_at OR created_at>=updated_at) AND 
-					('".date("Y-m-d H:i:s", static::$currentUser->lastActive())."'<=updated_at OR '".date("Y-m-d H:i:s", static::$currentUser->lastActive())."'<=updated_at)
-				) THEN 1 ELSE 0 END
-			) AS hasNew FROM ".\nitm\widgets\models\Replies::tableName()."
-		) newActivity) as hasNewActivity";
+		$types = \Yii::$app->getModule('nitm-widgets')->checkActivityFor;
+		if(!count($types))
+			return "";
+			
+		foreach((array)$types as $type=>$options)
+		{
+			if(is_int($type)) {
+				$type = $options;
+				$options = [
+					['parent_id' => 'id'], 
+					['parent_type' => $this->model->isWhat()],
+					'(updated_at>=updated_at OR created_at>=updated_at)',
+					"('".static::$currentUser->lastActive()."'<=updated_at OR '".static::$currentUser->lastActive()."'<=updated_at)"
+				];
+			}
+			$select[] = "SELECT SUM (
+				CASE WHEN (".implode(' AND ', array_map(function ($value) {
+					$options = [];
+					return \Yii::$app->db->getQueryBuilder()->buildCondition($value, $options);
+				}, $options)).") THEN 1 ELSE 0 END
+			) AS hasNew FROM ".$type::tableName();
+		}
+		return "(SELECT SUM(hasNew) FROM (".implode(' UNION ALL ', $select).")) as hasNewActivity";
 	}
 	
 	/**

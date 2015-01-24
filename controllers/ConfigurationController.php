@@ -58,6 +58,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 	
 	function beforeAction($action)
 	{
+		$beforeAction = parent::beforeAction($action);
 		switch(isset($_GET['engine']))
 		{
 			case true:
@@ -82,7 +83,8 @@ class ConfigurationController extends DefaultController implements DefaultContro
 		$container = Session::getVal($dm.'.current.config');
 		$engine = Session::getVal($dm.'.current.engine');
 		//set the engine
-		$this->model->engine = empty($this->model->engine) ? (empty($engine) ? \Yii::$app->getModule('nitm')->configOptions['engine'] : $engine) : $this->model->engine;
+		$this->model->engine = !$this->model->engine ? (!$engine ? \Yii::$app->getModule('nitm')->config->engine : $engine) : $this->model->engine;
+		
 		$this->model->setEngine($this->model->engine);
 		
 		switch($this->model->engine)
@@ -96,8 +98,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 		
 		//if we're not requesting a specific section then only load the sections and no values
 		$this->model->prepareConfig($this->model->engine, $this->model->container, $this->model->getValues);
-		parent::beforeAction($action);
-		return true;
+		return $beforeAction;
 	}
 	
 	public function actionIndex()
@@ -213,7 +214,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 			switch($this->model->what)
 			{
 				case 'section':
-				switch($section = $this->model->config('current.config.'.$this->model->section))
+				switch(!is_null($section = $this->model->config('current.config.'.$this->model->section)))
 				{
 					case true:
 					$this->model->config('current.config', $section);

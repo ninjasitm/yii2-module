@@ -1,8 +1,9 @@
 <?php
-	extract($data);
-	$value = is_array($value) ? json_encode($value) : $value;
 	use yii\helpers\Html;
 	use yii\widgets\ActiveForm;
+	
+	extract($data);
+	$value = is_array($value) ? json_encode($value) : $value;;
 ?>
 
 <div class="list-group-item col-md-12 col-lg-12" id="value_<?= $unique_id; ?>">

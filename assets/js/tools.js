@@ -61,13 +61,18 @@ function Tools ()
 				var events = $(this).data('events') != undefined ? $(this).data('events').split(',') : ['click'];
 				$.each(events, function (index, eventName) {
 					$(_target).off(eventName);
-					var _callback = function (e) {
-						e.preventDefault();
-						$($nitm).trigger('nitm-animate-submit-start', [_target]);
-						$.when(self.visibility(_target)).done(function () {
-							$($nitm).trigger('nitm-animate-submit-stop', [_target]);
-						});
-					}
+					if($(_target).data('no-animation'))
+						var _callback = function (e) {
+							self.visibility(_target)
+						}
+					else
+						var _callback = function (e) {
+							e.preventDefault();
+							$($nitm).trigger('nitm-animate-submit-start', [_target]);
+							$.when(self.visibility(_target)).done(function () {
+								$($nitm).trigger('nitm-animate-submit-stop', [_target]);
+							});
+						}
 					if($(this).data('run-once'))
 						$(_target).one(eventName, _callback);
 					else
@@ -80,10 +85,7 @@ function Tools ()
 	
 	this.visibility = function (object, removeListener) {
 		var _visSelf = this;
-		this.target = $nitm.getObj($(object).data('id'));
 		this.on = $(object).data('on');
-		this.success = ($(object).data('success') != undefined) ? $(object).data('success') : null;
-		this.url = $(object).data('url') ? $(object).data('url') : $(object).attr('href');
 		this.getUrl = true;
 		
 		switch($(this).data('on') != undefined)
@@ -101,6 +103,9 @@ function Tools ()
 		
 		if(this.getRemote())
 		{
+			this.target = $nitm.getObj($(object).data('id'));
+			this.success = ($(object).data('success') != undefined) ? $(object).data('success') : null;
+			this.url = $(object).data('url') ? $(object).data('url') : $(object).attr('href');
 			var ret_val = $.ajax({
 				url: this.url, 
 				dataType: $(object).data('type') ? $(object).data('type') : 'html',

@@ -279,17 +279,17 @@ function Nitm ()
 		{
 			case true:
 			this.getObj(e).each(function () {
+				if($(this).hasClass('hidden') && $(this).is(':hidden')) 
+					$(this).css('display', 'none').removeClass('hidden');
 				$(this).show('slow');
-				if($(this).hasClass('hidden')) 
-					$(this).removeClass('hidden');
 			});
 			break;
 			
 			default:
 			this.getObj(e).each(function () {
+				if($(this).hasClass('hidden') && $(this).is(':hidden')) 
+					$(this).css('display', 'none').removeClass('hidden');
 				$(this).slideToggle('slow');
-				if($(this).hasClass('hidden')) 
-					$(this).toggleClass('hidden');
 			});
 			break;
 		}
