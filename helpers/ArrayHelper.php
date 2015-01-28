@@ -71,8 +71,10 @@ class ArrayHelper extends BaseArrayHelper
 			if (is_array($array) && array_key_exists($key, $array)) {
 				if(is_array($array[$key]) && is_array($value))
 					$array[$key] = ($append === true) ? array_merge($array[$key], $value) : $value;
+				else if(is_array($array[$key]) && !is_array($value))
+					$array[$key][] = $value;
 				else
-					$array[$key] = ($append === true) ? $array[$key].$value : $value;
+					$array[$key] = $value;
 			}
 			else if (is_object($array)) {
 				$array->$key = ($append === true) ? $array->$key.$value : $value;

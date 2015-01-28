@@ -8,6 +8,7 @@ use yii\base\Event;
 use yii\helpers\ArrayHelper;
 use nitm\models\User;
 use nitm\models\Category;
+use nitm\models\ParentMap;
 use nitm\helpers\Cache as CacheHelper;
 
 /**
@@ -225,9 +226,7 @@ trait Nitm
 			case false:
 			$model = new Category([
 				'queryFilters' => [
-					'where' => [
-						['parent_ids IN '.new \yii\db\Expression("(SELECT id FROM ".Category::tableName()." WHERE slug='".$type."' LIMIT 1)")]
-					],
+					'where' => 'id IN '.new \yii\db\Expression("(SELECT id FROM ".ParentMap::tableName()." WHERE (remote_id=id AND remote_type='$type' && remote_table='".Category::tableName()."'))"),
 					'orderBy' => ['name' => SORT_ASC]
 				]
 			]);
