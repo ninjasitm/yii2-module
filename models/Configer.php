@@ -248,8 +248,8 @@ class Configer extends Model
 				$this->config('current.config', null);
 				break;
 			}
-			$this->config('load.current', empty($this->config('current.config')) ? false : true);
-			$this->config('load.sections', (is_null($this->config('current.sections'))) ? false : true);
+			$this->config('load.current', (bool)count($this->config('current.config'))>=1);
+			$this->config('load.sections', (bool)count($this->config('current.sections'))>=1);
 			switch($this->container == \Yii::$app->getModule('nitm')->config->container)
 			{
 				case false:
@@ -625,9 +625,9 @@ class Configer extends Model
 				 */;
 				if($force || self::hasNew()) {
 					if($this->section)
-						$ret_val = $this->section($this->section)->values;
+						$ret_val = \yii\helpers\ArrayHelper::getValue($this->section($this->section), 'values');
 					else
-						$ret_val = $this->container($container)->values;
+						$ret_val = \yii\helpers\ArrayHelper::getValue($this->container($container), 'values');
 				}
 				break;
 			}
@@ -1456,7 +1456,7 @@ class Configer extends Model
 			
 			case 'file':
 			$this->config('containers', $this->_objects['file']->getFiles($in, $objectsOnly));
-			$this->config('load.containers', !empty($this->config('containers')));
+			$this->config('load.containers', (bool)count($this->config('containers'))>=1);
 			break;
 		}
 		return $ret_val;
@@ -1502,7 +1502,7 @@ class Configer extends Model
 			case 'file':
 			$in = ($in == null) ? $this->dir['config'] : $in;
 			$this->config('sections', $this->_objects['file']->getNames($in));
-			$this->config('load.sections', !empty($this->config('sections')));
+			$this->config('load.sections', (bool)count($this->config('sections'))>=1);
 			break;
 		}
 		return $ret_val;

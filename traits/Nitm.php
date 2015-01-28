@@ -226,7 +226,7 @@ trait Nitm
 			$model = new Category([
 				'queryFilters' => [
 					'where' => [
-						'parent_ids' => new \yii\db\Expression("(SELECT id FROM ".Category::tableName()." WHERE slug='".$type."' LIMIT 1)")
+						['parent_ids IN '.new \yii\db\Expression("(SELECT id FROM ".Category::tableName()." WHERE slug='".$type."' LIMIT 1)")]
 					],
 					'orderBy' => ['name' => SORT_ASC]
 				]

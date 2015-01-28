@@ -328,15 +328,20 @@ class Helper extends Model
 	
 	public static function concatAttributes($models, $attributes, $glue='-', $discardEmpty=false)
 	{
-		foreach(array($models) as $model)
+		$ret_val = [];
+		if(count($models))
 		{
-			$ret_val[] = implode($glue, array_map(function ($attribute) use($model, $discardEmpty) {
-				try {
-					return call_user_func([$model, $attribute]);
-				} catch(\Exception $e) {
-					return \yii\helpers\ArrayHelper::getValue($model, $attribute, ($discardEmpty ? null : $attribute));
-				}
-			}, (array)$attributes));
+			$models = is_array(current($models)) || is_object(current($models)) ? $models : [$models];
+			foreach($models as $model)
+			{
+				$ret_val[] = implode($glue, array_map(function ($attribute) use($model, $discardEmpty) {
+					if(is_callable($attribute)) {
+						return call_user_func($attribute, $model);
+					} else {
+						return \yii\helpers\ArrayHelper::getValue($model, $attribute, ($discardEmpty ? null : $attribute));
+					}
+				}, (array)$attributes));
+			}
 		}
 		return implode($glue, array_filter($ret_val));
 	}

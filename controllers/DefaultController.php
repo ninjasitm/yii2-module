@@ -182,7 +182,7 @@ class DefaultController extends BaseController
 		$this->setResponseFormat($format);
 		
 		if(\Yii::$app->request->isAjax)
-			Response::viewOptions('js', "\$nitm.module('tools').init('".ArrayHelper::getValue(Response::viewOptions(), 'args.formOptions.container.id', '')."');", true);
+			Response::viewOptions('js', "\$nitm.module('tools').init('".Response::viewOptions('args.formOptions.container.id')."');", true);
 		
 		return $this->renderResponse($options, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
@@ -273,14 +273,21 @@ class DefaultController extends BaseController
 				$result['message'] = implode('<br>', array_map(function ($value) {
 					return array_shift($value);
 				}, $this->model->getErrors()));
+				
 				\Yii::$app->getSession()->setFlash('error', $result['message']);
 			}
 			else
 				$this->shouldLog = false;
-			Response::viewOptions("view", '/'.$this->model->isWhat().'/create');
+				
+			/**
+			 * If the save failed, we're most likely going back to the form so get the form variables
+			 */
+			Response::viewOptions(null, array_merge($this->getVariables($this->model->isWhat()), [
+				"view" => '/'.$this->model->isWhat().'/create'
+			]), true);
         }
 		
-		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]));
+		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]), true);
 		return $this->finalAction($ret_val, $result);
     }
 	
@@ -305,12 +312,12 @@ class DefaultController extends BaseController
 			$this->setResponseFormat('json');
 			return \yii\widgets\ActiveForm::validate($this->model);
 		}
-		
+		 
 		if(\Yii::$app->request->isAjax && !Response::formatSpecified())
 			$this->setResponseFormat(\Yii::$app->request->get('_pjax') ? 'html' : 'json');
 		else
 			$this->setResponseFormat('html');
-			
+		
         if (!empty($post) && $this->model->save()) {
 			$metadata = isset($post[$this->model->formName()]['contentMetadata']) ? $post[$this->model->formName()]['contentMetadata'] : null;
 			$ret_val = true;
@@ -323,7 +330,7 @@ class DefaultController extends BaseController
 				);
 				break;
 			}
-			$result['message'] = "Succesfully updated ".$this->model->isWhat();
+			$result['message'] = "Succesfully updated ".$this->model->isWhat()." with id: ".$this->model->getId();
 			Response::viewOptions("view",  '/'.$this->model->isWhat().'/view');
 			
         } else {
@@ -335,11 +342,17 @@ class DefaultController extends BaseController
 			}
 			else
 				$this->shouldLog = false;
-				
-			Response::viewOptions("view", '/'.$this->model->isWhat().'/update'); 
+			
+			/**
+			 * If the save failed, we're most likely going back to the form so get the form variables
+			 */
+			Response::viewOptions(null, array_merge($this->getVariables($this->model->isWhat(), $this->model->getId()), [
+				"view" => '/'.$this->model->isWhat().'/update'
+			]), true);
+			
         }
 				
-		Response::viewOptions("args",array_merge($viewOptions, ["model" => $this->model]));
+		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]), true);
 		
 		return $this->finalAction($ret_val, $result);
     }

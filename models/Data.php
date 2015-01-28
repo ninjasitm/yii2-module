@@ -168,16 +168,23 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		return array_merge(parent::behaviors(), $behaviors);
 	}
 	
-	public function beforeSaveEvent($event)
+	public function beforeSave($insert)
 	{
+		return parent::beforeSave($insert);
 	}
 	
-	public function afterSaveEvent($event)
+	public function afterSave($insert, $attributes)
 	{
 		/**
 		 * Commit the logs after this model is done saving
 		 */
 		$this->commitLog();
+		
+		/**
+		 * If this has parents specified then check and add them accordingly
+		 */
+		$this->addParentMap();
+		return parent::afterSave($insert, $attributes);
 	}
 	
 	public static function tableName()
@@ -459,6 +466,53 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	protected static function commitLog()
 	{
 		return \Yii::$app->getModule('nitm')->logger->flush(true);
+	}
+	
+	/**
+	 * Adds the parents for this model
+	 * ParentMap are specieid in the parent_ids attribute
+	 * Parent object belong to the same table
+	 */
+	protected function addParentMap($parents=[])
+	{
+		if(count($parents) >= 1)
+		{
+			$attributes = [
+				'remote_type', 'remote_id', 'remote_class', 'remote_table', 
+				'parent_type', 'parent_id', 'parent_class', 'parent_table'
+			];
+			sort($attributes);
+			
+			/**
+			 * Go through the parents and make sure the id mapping is correct
+			 */
+			foreach($parents as $idx=>$parent)
+			{
+				if(!$parent['parent_type'] || !$parent['parent_id'] || !$parent['parent_class'] || !$parent['parent_table'])
+					continue;
+				$parents[$parent['parent_id']] = array_merge([
+					'remote_id' => $this->getId(),
+					'remote_type' => $this->isWhat(),
+					'remote_class' => $this->className(),
+					'remote_table' => $this->tableName(),
+				], $parent);
+				
+				ksort($parents[$parent['parent_id']]);
+				unset($parents[$idx]);
+			}
+			
+			$query = ParentMap::find();
+			foreach($parents as $parent)
+				$query->orWhere($parent);
+			
+			$toAdd = array_values(array_map(function ($attrs) {
+				return array_values($attrs);
+			}, array_diff_key($parents, $query->indexBy('parent_id')->asArray()->all())));
+			
+			if(count($toAdd) >= 1)
+				\Yii::$app->db->createCommand()->batchInsert(ParentMap::tableName(), $attributes, $toAdd)->execute();
+		}
+		return isset($toAdd) ? array_keys($toAdd) : false;
 	}
 	
 	/**

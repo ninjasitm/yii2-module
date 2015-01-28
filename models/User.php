@@ -196,11 +196,10 @@ class User extends \dektrium\user\models\User
 	 */
 	public function fullName($withUsername=false)
 	{
-		$profile = $this->profile instanceof Profile ? $this->profile : Profile::find()->where(['user_id' => $this->id])->one();
-		switch(is_object($profile))
+		switch(is_object(\yii\helpers\ArrayHelper::getValue($this->getRelatedRecords(), 'profile', null)))
 		{
 			case true:
-			$ret_val = $profile->name.($withUsername ? '('.$this->username.')' : '');
+			$ret_val = $this->profile->name.($withUsername ? '('.$this->username.')' : '');
 			break;
 			
 			default:

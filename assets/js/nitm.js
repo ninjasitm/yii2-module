@@ -641,6 +641,7 @@ function Nitm ()
 		var hierarchy = name.split(':');
 		var moduleName = hierarchy.pop();
 		var parent = (hierarchy.length == 0) ? self : this.module(hierarchy.join(':'));
+		parent = parent==undefined ? self.modules : parent;
 		if(!parent.hasOwnProperty('modules')) {
 			parent['modules'] = {};
 			Object.defineProperty(parent, 'modules', {

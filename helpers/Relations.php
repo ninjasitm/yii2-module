@@ -25,28 +25,33 @@ class Relations
 			 * This provides support for ElasticSearch which doesn't properly populate records. May be bad codding but for now this works
 			 */
 			default:
-			if($model->hasAttribute($name) || $model->hasProperty($name) && (sizeof($options) == 0))
-				$attributes = $model->$name;
-			else
-				$attributes = $options;
-			switch($array === true)
+			if(class_exists($className))
 			{
-				case true:
-				$ret_val = array_map(function ($attributes) use ($className) {
-					return new $className($attributes);
-				}, (array)$attributes);
-				break;
-				
-				default:
-				if(is_object($attributes) && $attributes->className() == $className)
-					$ret_val = $attributes;
+				if($model->hasAttribute($name) || $model->hasProperty($name) && (sizeof($options) == 0))
+					$attributes = $model->$name;
 				else
+					$attributes = $options;
+				switch($array === true)
 				{
-					$construct = !is_array($attributes) ? [] : $attributes;
-					$ret_val = is_string($className) ? new $className($construct) : $attributes;
+					case true:
+					$ret_val = array_map(function ($attributes) use ($className) {
+						return new $className($attributes);
+					}, (array)$attributes);
+					break;
+					
+					default:
+					if(is_object($attributes) && $attributes->className() == $className)
+						$ret_val = $attributes;
+					else
+					{
+						$construct = !is_array($attributes) ? [] : $attributes;
+						$ret_val = is_string($className) ? new $className($construct) : $attributes;
+					}
+					break;
 				}
-				break;
 			}
+			else
+				$ret_val = null;
 			break;
 		}
 		$model->populateRelation($name, $ret_val);

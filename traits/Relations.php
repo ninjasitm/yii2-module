@@ -2,6 +2,8 @@
 namespace nitm\traits;
 
 use nitm\helpers\Cache;
+use nitm\helpers\Relations as RelationsHelper;
+use nitm\models\ParentMap;
 
 /**
  * Traits defined for expanding active relation scopes until yii2 resolves traits issue
@@ -41,7 +43,7 @@ trait Relations {
      */
     public function getUser($options=[])
     {
-		return $this->getUserRelationQuery(['id' => 'user_id'], $options);
+		return $this->getUserRelationQuery(['id' => 'user_id'], $options)->with('profile');
     }
 	
 	public function user()
@@ -56,7 +58,7 @@ trait Relations {
      */
     public function getAuthor($options=[])
     {
-		return $this->getUserRelationQuery(['id' => 'author_id'], $options);
+		return $this->getUserRelationQuery(['id' => 'author_id'], $options)->with('profile');
     }
 	
 	public function author()
@@ -71,7 +73,7 @@ trait Relations {
      */
     public function getEditor($options=[])
     {
-		return $this->getUserRelationQuery(['id' => 'editor_id'], $options);
+		return $this->getUserRelationQuery(['id' => 'editor_id'], $options)->with('profile');
     }
 	
 	public function editor()
@@ -86,7 +88,7 @@ trait Relations {
      */
     public function getCompletedBy($options=[])
     {
-		return $this->getUserRelationQuery(['id' => 'completed_by'], $options);
+		return $this->getUserRelationQuery(['id' => 'completed_by'], $options)->with('profile');
     }
 	
 	public function completedBy()
@@ -101,7 +103,7 @@ trait Relations {
      */
     public function getResolvedBy($options=[])
     {
-		return $this->getUserRelationQuery(['id' => 'resolved_by'], $options);
+		return $this->getUserRelationQuery(['id' => 'resolved_by'], $options)->with('profile');
     }
 	
 	public function resolvedBy()
@@ -116,7 +118,7 @@ trait Relations {
      */
     public function getClosedBy($options=[])
     {
-		return $this->getUserRelationQuery(['id' => 'closed_by'], $options);
+		return $this->getUserRelationQuery(['id' => 'closed_by'], $options)->with('profile');
     }
 	
 	public function closedBy()
@@ -131,7 +133,7 @@ trait Relations {
      */
     public function getDisabledBy($options=[])
     {
-		return $this->getUserRelationQuery(['id' => 'disabled_by'], $options);
+		return $this->getUserRelationQuery(['id' => 'disabled_by'], $options)->with('profile');
     }
 	
 	public function disabledBy()
@@ -146,7 +148,7 @@ trait Relations {
      */
     public function getDeletedBy($options=[])
     {
-		return $this->getUserRelationQuery(['id' => 'deleted_by'], $options);
+		return $this->getUserRelationQuery(['id' => 'deleted_by'], $options)->with('profile');
     }
 	
 	public function deletedBy()
@@ -171,33 +173,6 @@ trait Relations {
 		$className = is_null($className) ? \nitm\models\Category::className() : $className;
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 		return $this->getCachedRelation(Cache::cacheKey($this, $idKey, 'category', $many), $className, [], $many, $relation);
-	}
-
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getParent()
-    {
-		$options['where'] = !isset($options['where']) ? [] : $options['where'];
-		return $this->getCategoryRelation(['id' => 'parent_ids'], $options);
-    }
-	
-	public function parent()
-	{
-		return $this->getCachedCategoryModel('parent_ids');
-	}
-
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getParents($options=[])
-    {
-		return $this->getCategoryRelation(['id' => 'parent_ids'], $options, null, true);
-    }
-	
-	public function parents()
-	{
-		return $this->getCachedCategoryModel('parent_ids', null, null, true);
 	}
 
     /**
@@ -244,12 +219,89 @@ trait Relations {
 		return implode('\\', $parts);
 	}
 	
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getParentMap()
+    {
+		$options = [
+			'where' => ['remote_type' => $this->isWhat()],
+			'select' => '*'
+		];
+		return $this->getRelationQuery(ParentMap::className(), ['remote_id' => 'id'], $options);
+    }
+	
+	public function parentMap()
+	{
+		return $this->getCachedRelation(Cache::cacheKey($this, 'id', 'parentMap'), ParentMap::className(), [], false, 'parentMap');
+	}
+	
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getParentsMap()
+    {
+		$options = [
+			'where' => ['remote_type' => $this->isWhat()],
+			'select' => '*'
+		];
+		return $this->getRelationQuery(ParentMap::className(), ['remote_id' => 'id'], $options, true);
+    }
+	
+	public function parentsMap()
+	{
+		return $this->getCachedRelation(Cache::cacheKey($this, 'id', 'parentsMap', true), ParentMap::className(), [], true, 'parentsMap');
+	}
+	
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getParent()
+    {
+		/**
+		 * parent_id represents the outter part of the query and will matcch to the static::className's id
+		 * This is the parent_id in the PartntMap table
+		 * remote_id maps to the current class's id
+		 */
+		return $this->getRelationQuery(static::className(), ['id' => 'parent_id'])
+			->viaTable(ParentMap::tableName(), ['remote_id' => 'id'], function($query) {
+				$query->where(['remote_type' => $this->isWhat()]);
+				return $query;
+			});
+    }
+	
+	public function parent()
+	{
+		return $this->getCachedRelation(Cache::cacheKey($this, 'id', $this->isWhat().'-parent'), static::className(), [], false, 'parent');
+	}
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getParents()
+    {
+		/**
+		 * parent_id represents the outter part of the query and will matcch to the static::className's id
+		 * This is the parent_id in the PartntMap table
+		 * remote_id maps to the current class's id
+		 */
+		return $this->getRelationQuery(static::className(), ['id' => 'parent_id'], ['where' => []], true)
+			->viaTable(ParentMap::tableName(), ['remote_id' => 'id'], function($query) {
+				$query->where(['remote_type' => $this->isWhat()]);
+				return $query;
+			});
+    }
+	
+	public function parents()
+	{
+		return $this->getCachedRelation(Cache::cacheKey($this, 'id', $this->isWhat().'-parents', true), static::className(), [], true, 'parents');
+	}
+	
 	protected function getRelationQuery($className, $link, $options=[], $many=false)
 	{
 		$className = $this->getRelationClass($className, get_called_class());
 		$callers = debug_backtrace(null, 3);
 		$relation = $callers[2]['function'];
-		$options['where'] = isset($options['where']) ? $options['where'] : ["parent_type" => $this->isWhat()]; 
 		$options['select'] = isset($options['select']) ? $options['select'] : '*';
 		//Disabled due to Yii framework inability to return statistical relations
 		//if(static::className() != $className)
@@ -260,8 +312,10 @@ trait Relations {
 		{
 			foreach($options as $option=>$params)
 			{
-				if(is_string($option))
+				if(is_string($option)) {
+					$params = is_array($params) ? array_filter($params) : $params;
 					$ret_val->$option($params);
+				}
 			}
 		}
 		return $ret_val;
@@ -273,8 +327,18 @@ trait Relations {
 		//Disabled due to Yii framework inability to return statistical relations
 		//if(static::className() != $className)
 			//$ret_val->with(['count', 'newCount']);
-		$cacheFunction = $many === true ? 'getCachedModelArray' : 'getCachedModel';
-		return Cache::$cacheFunction($this, $key, $modelClass, $relation, $options);
+		$getFunction = $many === true ? 'getCachedModelArray' : 'getCachedModel';
+		$ret_val = Cache::$getFunction($this, $key, $modelClass, $relation, $options);
+		if(!$ret_val)
+		{
+			if(!is_null($relation))
+			{
+				$setFunction = $many === true ? 'setCachedModelArray' : 'setCachedModel';
+				$ret_val = RelationsHelper::getRelatedRecord($relation, $this);
+				Cache::$setFunction($key, $ret_val, $modelClass);
+			}
+		}
+		return $ret_val;
 	}
 	
 	public static function setCachedRelationModel($model, $idKey='id', $relation=null, $many=false)

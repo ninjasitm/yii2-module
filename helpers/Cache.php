@@ -17,7 +17,8 @@ class Cache extends Model
 	
 	public function cacheKey($model, $idKey, $relation=null, $many=false)
 	{
-		return ($many == true ? 'many' : 'one').'-'.$relation.'-'.Helper::concatAttributes($model, $idKey);
+		$id = Helper::concatAttributes($model, $idKey);
+		return ($many == true ? 'many' : 'one').'-'.$relation.'-'.(!$id ? $idKey.'-'.$model->getId() : $id);
 	}
 	
 	/**
@@ -53,9 +54,9 @@ class Cache extends Model
 		static::$cache->set($key, $model, $duration);
 	}
 	
-	public static function setModelArray($key, $array)
+	public static function setModelArray($key, $array, $duration=5000)
 	{
-		static::setModel($key, $array);
+		static::setModel($key, $array, $duration);
 	}
 	
 	/**
@@ -98,6 +99,18 @@ class Cache extends Model
 	public static function setCachedModel($key, $model)
 	{
 		return static::setModel($key, [$model->className(), \yii\helpers\ArrayHelper::toArray($model)]);
+	}
+	
+	/**
+	 * Wrap setting the model to include th className
+	 * @param string $key
+	 * @param array $models
+	 * @param string $modelClass
+	 * @return boolean
+	 */
+	public static function setCachedModelArray($key, $models, $modelClass)
+	{
+		return static::setModel($key, [$modelClass, \yii\helpers\ArrayHelper::toArray($models)]);
 	}
 	
 	public static function deleteCachedModel($key)
@@ -189,7 +202,7 @@ class Cache extends Model
 			case true:
 			$array = static::getModelArray($key);
 			
-			if((class_exists($array[0])) && (is_array($array[1]) && count($array[1]) >= 1))
+			if((class_exists($array[0])) && (is_array($array[1]) && count(array_filter($array[1])) >= 1))
 			{
 				try {
 					foreach($array[1] as $attributes)
@@ -200,7 +213,10 @@ class Cache extends Model
 					/**
 					 * Most likely $array[1] is a single array with attributes
 					 */
-					 $ret_val[] = new $array[0]($array[1]);
+					 foreach($array[1] as $attributes)
+					 {
+					 	$ret_val[] = new $array[0]($attributes);
+					 }
 				}
 			}
 			else

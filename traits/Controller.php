@@ -160,7 +160,7 @@ use yii\helpers\ArrayHelper;
 	protected function renderResponse($result=null, $params=null, $partial=true)
 	{
 		Response::initContext(\Yii::$app->controller,  \Yii::$app->controller->getView());
-		$render = (($partial === true) || (Response::$forceAjax === true)) ? 'renderAjax' : 'render';
+		$params = is_null($params) ? Response::viewOptions() : $params;
 		return Response::render($result, $params, $partial);
 	}
 	
