@@ -8,6 +8,15 @@ namespace nitm\helpers;
 
 class Relations
 {
+	/**
+	 * Get a relation. Either a model or array of models
+	 * @param string $name The name of the relation
+	 * @param Object $model The model this relation is attached to
+	 * @param string $className The string name of the class
+	 * @param array $options The options usedfor custructing a model if necessary
+	 * @param boolean $many Is this an array of models?
+	 * @param return array|object of class modelClass
+	 */
 	public static function getRelatedRecord($name, $model, $className=null, $options=[], $array=false)
 	{
 		switch(1)
@@ -44,7 +53,7 @@ class Relations
 						$ret_val = $attributes;
 					else
 					{
-						$construct = !is_array($attributes) ? [] : $attributes;
+						$construct = ArrayHelper::getValue($attributes, 'construct', []);
 						$ret_val = is_string($className) ? new $className($construct) : $attributes;
 					}
 					break;
@@ -56,6 +65,70 @@ class Relations
 		}
 		$model->populateRelation($name, $ret_val);
 		return $ret_val;
+	}
+	
+	/**
+	 * Get a cached relation. Either a model or array of models
+	 * @param string|array $idKey  The properties that makeup the cacheKey
+	 * @param boolean $many Is this an array of models?
+	 * @param string $modelClass The string name of the class
+	 * @param string $relation The name of the relation
+	 * @param Object $model The model this relation is attached to
+	 * @param return array|object of class modelClass
+	 */
+	
+	public function getCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, $options=[], $model=null)
+	{
+		if(isset($this) && is_null($model))
+			$model = $this;
+		
+		$many = $many === true ? true : false;
+		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
+		$modelClass = is_null($modelClass) ? $model->getRelation($relation)->modelClass : $modelClass;
+		$key = Cache::cacheKey($model, $idKey, $relation, $many);
+		
+		if(Cache::exists($key))
+		{
+			//Disabled due to Yii framework inability to return statistical relations
+			//if(static::className() != $className)
+				//$ret_val->with(['count', 'newCount']);
+			$cacheFunction = $many === true ? 'getCachedModelArray' : 'getCachedModel';
+			$ret_val = Cache::$cacheFunction($this, $key, $modelClass, $relation, $options);
+		}
+		else
+		{
+			$ret_val = self::getRelatedRecord($relation, $model, $modelClass, $options, $many);
+			self::setCachedRelation($idKey, $many, $modelClass, [$relation, $ret_val], $model);
+		}
+		return $ret_val;
+	}
+	
+	/**
+	 * Set a cached relation. Either a model or array of models
+	 * @param string|array $idKey  The properties that makeup the cacheKey
+	 * @param boolean $many Is this an array of models?
+	 * @param string $modelClass The string name of the class
+	 * @param string $relation The name of the relation
+	 * @param Object $model The model this relation is attached to
+	 * @param return array|object of class modelClass
+	 */
+	public function setCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, $model=null)
+	{
+		if(isset($this) && is_null($model))
+			$model = $this;
+		
+		if(is_array($relation)) {
+			$related = array_pop($relation);
+			$relation = array_pop($relation);
+		}
+		else {
+			$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
+			$related = self::getRelatedRecord($relation, $model, $modelClass, [], $many);
+		}
+		$modelClass = is_null($modelClass) ? $model->getRelation($relation)->modelClass : $modelClass;
+		$cacheFunction = $many === true ? 'setCachedModelArray' : 'setCachedModel';
+		
+		return Cache::$cacheFunction(Cache::cacheKey($model, $idKey, $relation, $many), $related, $modelClass);
 	}
 }
 

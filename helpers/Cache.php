@@ -4,7 +4,6 @@ namespace nitm\helpers;
 
 use yii\db\ActiveRecord;
 use yii\base\Model;
-use yii\helpers\ArrayHelper;
 use nitm\helpers\Helper;
 
 /*
@@ -201,9 +200,9 @@ class Cache extends Model
 		{
 			case true:
 			$array = static::getModelArray($key);
-			
 			if((class_exists($array[0])) && (is_array($array[1]) && count(array_filter($array[1])) >= 1))
 			{
+				$array[1] = is_array(current($array[1])) ? $array[1] : [$array[1]];
 				try {
 					foreach($array[1] as $attributes)
 					{

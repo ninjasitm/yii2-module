@@ -33,7 +33,7 @@ trait Relations {
 	protected function getCachedUserModel($idKey, $className=null)
 	{
 		$className = is_null($className) ? \Yii::$app->user->identityClass : \nitm\models\User::className();
-		return $this->getCachedRelation(Cache::cacheKey($this, $idKey, 'user'), $className, [], false, \nitm\helpers\Helper::getCallerName());
+		return $this->getCachedRelation($idKey, $className, [], false, \nitm\helpers\Helper::getCallerName(), 'user');
 	}
 	 
     /**
@@ -172,7 +172,7 @@ trait Relations {
 	{
 		$className = is_null($className) ? \nitm\models\Category::className() : $className;
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
-		return $this->getCachedRelation(Cache::cacheKey($this, $idKey, 'category', $many), $className, [], $many, $relation);
+		return $this->getCachedRelation($idKey, $className, [], $many, $relation);
 	}
 
     /**
@@ -233,7 +233,7 @@ trait Relations {
 	
 	public function parentMap()
 	{
-		return $this->getCachedRelation(Cache::cacheKey($this, 'id', 'parentMap'), ParentMap::className(), [], false, 'parentMap');
+		return $this->getCachedRelation('id', ParentMap::className(), [], false, 'parentMap');
 	}
 	
     /**
@@ -250,7 +250,7 @@ trait Relations {
 	
 	public function parentsMap()
 	{
-		return $this->getCachedRelation(Cache::cacheKey($this, 'id', 'parentsMap', true), ParentMap::className(), [], true, 'parentsMap');
+		return $this->getCachedRelation('id', ParentMap::className(), [], true, 'parentsMap');
 	}
 	
     /**
@@ -272,7 +272,7 @@ trait Relations {
 	
 	public function parent()
 	{
-		return $this->getCachedRelation(Cache::cacheKey($this, 'id', $this->isWhat().'-parent'), static::className(), [], false, 'parent');
+		return $this->getCachedRelation('id', static::className(), [], false, 'parent');
 	}
 
     /**
@@ -294,7 +294,7 @@ trait Relations {
 	
 	public function parents()
 	{
-		return $this->getCachedRelation(Cache::cacheKey($this, 'id', $this->isWhat().'-parents', true), static::className(), [], true, 'parents');
+		return $this->getCachedRelation('id', static::className(), [], true, 'parents');
 	}
 	
 	protected function getRelationQuery($className, $link, $options=[], $many=false)
@@ -321,24 +321,16 @@ trait Relations {
 		return $ret_val;
 	}
 	
-	public function getCachedRelation($key, $modelClass, $options=[], $many=false, $relation=null)
+	public function getCachedRelation($idKey, $modelClass, $options=[], $many=false, $relation=null)
 	{
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
-		//Disabled due to Yii framework inability to return statistical relations
-		//if(static::className() != $className)
-			//$ret_val->with(['count', 'newCount']);
-		$getFunction = $many === true ? 'getCachedModelArray' : 'getCachedModel';
-		$ret_val = Cache::$getFunction($this, $key, $modelClass, $relation, $options);
-		if(!$ret_val)
-		{
-			if(!is_null($relation))
-			{
-				$setFunction = $many === true ? 'setCachedModelArray' : 'setCachedModel';
-				$ret_val = RelationsHelper::getRelatedRecord($relation, $this);
-				Cache::$setFunction($key, $ret_val, $modelClass);
-			}
-		}
-		return $ret_val;
+		return RelationsHelper::getCachedRelation($idKey, $many, $modelClass, $relation, $options, $this);
+	}
+	
+	public function setCachedRelation($idKey, $modelClass, $options=[], $many=false, $relation=null)
+	{
+		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
+		return RelationsHelper::setCachedRelation($idKey, $many, $modelClass, $relation, $this);
 	}
 	
 	public static function setCachedRelationModel($model, $idKey='id', $relation=null, $many=false)
