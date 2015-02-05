@@ -9,6 +9,8 @@ use yii\helpers\Html;
 		<?php
 			foreach($values as $section=>$value)
 			{
+				if(!is_array($value))
+					continue;
 				echo $this->render('value',  [
 					"model" => $model,
 					"section" => $section,

@@ -81,7 +81,7 @@ class ArrayHelper extends BaseArrayHelper
 				return true;
 			} else {
 				if($append === true)
-					$array[$key][] = $value;
+					$array[$key] .= $value;
 				else
 					$array[$key] = $value;
 				return true;

@@ -17,7 +17,7 @@ use yii\widgets\ActiveForm;
 		switch($model->engine)
 		{
 			case $v:
-			$model->config('current.engine_url', $url);
+			$model->config('current.engine', $url);
 			break;
 		}
 		$_engines[$url] = $k;
@@ -27,7 +27,7 @@ use yii\widgets\ActiveForm;
 	);
 	echo Html::dropDownList(
 		'engine',
-		$model->config('current.engine_url'),
+		$model->config('current.engine'),
 		$_engines,
 		[
 			"class" => "btn-default form-control",

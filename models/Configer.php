@@ -148,6 +148,7 @@ class Configer extends Model
 	 */
 	public static function config($name=null, $value=null, $append=false)
 	{
+		echo "Setting $name and appending?: $append to value ".jsON_encode($value)."<br>\n";
 		return \nitm\helpers\ArrayHelper::getOrSetValue(static::$config, $name, $value, $append);
 	}
 	
@@ -158,20 +159,18 @@ class Configer extends Model
 	{
 		$this->on("afterCreate", function($e) {
 			$this->config('current.section', $this->_event['data']['section']);
-			if($this->container == \Yii::$app->getModule('nitm')->config->container)
-			{
-				Session::set($this->correctKey($this->_event['data']['key']), (is_null($decoded = json_decode(trim($this->_event['data']['value']), true)) ? $this->_event['data']['value'] : $decoded));
+			if($this->container == \Yii::$app->getModule('nitm')->config->container) {
+				Session::set($this->_event['data']['key'], (is_null($decoded = json_decode(trim($this->_event['data']['value']), true)) ? $this->_event['data']['value'] : $decoded));
 			}
-			Session::set(self::dm.'.'.$this->_location.'.config.'.$this->_event['data']['key'], $this->_event['data']);
+			Session::set($this->_event['data']['key'], $this->_event['data']['value']);
 			\Yii::$app->getModule('nitm')->logger->log($this->getEventData());
 		});
 		
 		$this->on("afterUpdate", function($e) {
-			if($this->container == \Yii::$app->getModule('nitm')->config->container)
-			{
-				Session::set($this->correctKey($this->_event['data']['key']), (is_null($decoded = json_decode(trim($this->_event['data']['value']), true)) ? $this->_event['data']['value'] : $decoded));
+			if($this->container == \Yii::$app->getModule('nitm')->config->container) {
+				Session::set($this->_event['data']['key'], (is_null($decoded = json_decode(trim($this->_event['data']['value']), true)) ? $this->_event['data']['value'] : $decoded));
 			}
-			Session::set(self::dm.'.'.$this->_location.'.config.'.$this->_event['data']['key'].'.value', $this->_event['data']['value']);
+			Session::set($this->_event['data']['key'].'.value', $this->_event['data']['value']);
 			\Yii::$app->getModule('nitm')->logger->log($this->getEventData());
 		});
 		
@@ -183,7 +182,7 @@ class Configer extends Model
 				break;
 			}
 			$this->config('current.section', @$this->_event['data']['section']);
-			Session::del($this->correctKey($this->_event['data']['key']));
+			Session::del($this->_event['data']['key']);
 			switch($this->container == \Yii::$app->getModule('nitm')->config->container)
 			{
 				case true:
@@ -1032,8 +1031,9 @@ class Configer extends Model
 		switch($this->_location)
 		{
 			case 'db':
-			$this->containerModel = new ConfigContainer([
-				'name' => $name
+			$this->containerModel = new Container([
+				'name' => $name,
+				'scenario' => 'create'
 			]);
 			$message = '';
 			switch($this->containerModel->save())
@@ -1045,7 +1045,7 @@ class Configer extends Model
 				$this->_event['data'] = [
 					'table' => 'config',
 					'db' => DB::getDbName(),
-					'action' => $action[$result],
+					'action' => 'create',
 					'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." ".$message
 				];
 				$this->trigger('afterCreate');
@@ -1104,6 +1104,7 @@ class Configer extends Model
 		$name = isset($hierarchy[4]) ? $hierarchy[4] : (sizeof($hierarchy) == 3 ? $hierarchy[2] : null);
 		$sectionName = isset($hierarchy[3]) ? $hierarchy[3] : $hierarchy[1];
 		$ret_val = [
+			'value' => $originalValue,
 			'success' => false,
 			'key' => $correctKey,
 			'section' =>$sectionName,
@@ -1122,7 +1123,7 @@ class Configer extends Model
 				case 2:
 				$value = [
 					'containerid' => $container->id,
-					'name' => $sectionName
+					'name' => $sectionName,
 				];
 				$model = new Section($value);
 				$message = "Added section ".$sectionName;
@@ -1233,7 +1234,7 @@ class Configer extends Model
 				case 2:
 				$message = "Updated the section name to $value";
 				$values = ['value' => $value];
-				$model = Section::findOne($this->id);
+				$model = $this->section(!$this->id ? $key : $this->id);
 				break;
 			
 				//we're updating a value
@@ -1242,7 +1243,7 @@ class Configer extends Model
 				$message = "Updated the value [$key] from ".@$old_value['value']." to ".$value;
 				$values = ['value' => $value];
 				$ret_val['name'] = $name;
-				$model = Value::findOne($this->id);
+				$model = $this->value($sectionName, !$this->id ? $key : $this->id);
 				break;
 			}
 			switch(is_object($model))
@@ -1329,7 +1330,7 @@ class Configer extends Model
 				//we're deleting a section
 				case 4:
 				case 2:
-				$model = Section::findOne($this->id);
+				$model = $this->section(!$this->id ? $key : $this->id);
 				$message = "Deleted the section: $key";
 				$delete['process'] = true;
 				break;
@@ -1339,7 +1340,7 @@ class Configer extends Model
 				case 3:
 				$ret_val['name'] = $name;
 				$message = "Deleted the value: $key";
-				$model = Value::findOne($this->id);
+				$model = $this->value($sectionName, !$this->id ? $key : $this->id);
 				break;
 			}
 			switch(is_object($model) && $model->delete())
@@ -1656,6 +1657,30 @@ class Configer extends Model
 			$ret_val = static::$_cache[$this->containerModel->name]->sections[$section];
 			break;
 		}
+		return $ret_val;
+	}
+	 
+	/*
+	 * Get the section id for a given value
+	 * @param string|int $container
+	 * @param string|int $section
+	 * @return int containerid
+	 */
+	private function value($section, $id)
+	{
+		$ret_val = null;
+		if(!$this->section($section))
+			return null;
+		else
+			if(is_int($id))
+				$where = ['id' => $id];
+			else
+				$where = ['name' => $id];
+				
+		$ret_val = $this->section($sectionname)->getValue()
+			->where($where)
+			->one();
+			
 		return $ret_val;
 	}
 	 

@@ -11,7 +11,7 @@ use yii\widgets\ActiveForm;
 		switch($model->container)
 		{
 			case $v:
-			$model->config('current.container_url', $url);
+			$model->config('current.container', $url);
 			break;
 		}
 		$_containers[$url] = $k;
@@ -21,7 +21,7 @@ use yii\widgets\ActiveForm;
 	);
 	echo Html::dropDownList(
 		'container',
-		$model->config('current.container_url'),
+		$model->config('current.container'),
 		$_containers,
 		[
 			"class" => "btn-default form-control",

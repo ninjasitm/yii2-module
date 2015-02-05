@@ -18,14 +18,14 @@ class DefaultApiController extends Controller
 	public function behaviors()
 	{ 
 		$behaviors = array(
-			'verbs' => [
+			'verbFilter' => [
 				'class' => \yii\filters\VerbFilter::className(),
 				'actions' => [
 					'filter' => ['get', 'post'],
 				]
 			],
 		);
-		return $behaviors;
+		return array_merge(parent::behaviors(), $behaviors);
 	}
 
 	public function init()

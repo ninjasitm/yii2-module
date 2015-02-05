@@ -40,7 +40,7 @@ class Section extends BaseConfiger
             [['name'], 'string'],
 			[['name'], 'filter', 'filter' => 'trim'],
             [['created_at', 'updated_at'], 'safe'],
-            [['name', 'containerid'], 'unique', 'targetAttribute' => ['name'], 'message' => 'This section already exists'],
+            [['name'], 'unique', 'targetAttribute' => ['name', 'containerid'], 'message' => 'This section already exists'],
         ];
     }
 	

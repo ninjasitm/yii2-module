@@ -161,7 +161,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 							$this->model->container,
 							null,
 							$this->model->engine);
-					$this->model->config('current.config', Session::getVal($this->model->correctKey($this->model->config['current']['action']['key'])));
+					$this->model->config('current.config', Session::getVal($this->model->correctKey($this->model->config('current.action.key'))));
 					$view = [
 						'view' => 'values/value',
 						'data' => [
@@ -182,7 +182,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 						'view' => 'values/index',
 						'data' => [
 							"model" => $this->model,
-							"data" => $this->model->confi('current.config')
+							"data" => []
 						]
 					];
 					break;
@@ -217,11 +217,11 @@ class ConfigurationController extends DefaultController implements DefaultContro
 				switch(!is_null($section = $this->model->config('current.config.'.$this->model->section)))
 				{
 					case true:
-					$this->model->config('current.config', $section);
+					$this->model->config('current.config', (array)$section);
 					break;
 					
 					default:
-					$this->model->config('current.config', null);
+					$this->model->config('current.config', []);
 					break;
 				}
 				$ret_val["success"] = true;
