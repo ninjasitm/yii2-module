@@ -118,10 +118,10 @@ class Session extends Model
 	public static function set($cIdx, $data, $compare=false, $array=false)
 	{		
 		$ret_val = false;
+		
 		if(is_array($cIdx) && (sizeof($data) < sizeof($cIdx)))
-		{
 			return false;
-		}
+
 		$csdm = ($compare === true) ? self::comparer : @static::getCsdm();
 		$cIdx = (is_null($cIdx)) ? $csdm : $cIdx;
 		$cIdx = (is_array($cIdx)) ? $cIdx : array($cIdx);

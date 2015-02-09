@@ -99,7 +99,7 @@ class ArrayHelper extends BaseArrayHelper
 		else if(!is_null($value) && is_string($key))
 			self::setValue($array, $key, $value, $append);
 		//Otherwise we may be looking for a specific value
-		else if (is_string($key))
+		else if (is_string($key) && is_array($array))
 			return self::getValue($array, $key);
 		//Or we may Want all of the options
 		else if (is_null($key) && is_null($value))

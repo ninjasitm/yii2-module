@@ -40,7 +40,7 @@ class LogController extends DefaultController
 		if(!is_null($type))
 			Entry::$collectionName = EntrySearch::$collectionName = $type;
 		else
-			Entry::$collectionName = $this->module->logCollections[0];
+			Entry::$collectionName = EntrySearch::$collectionName = $this->module->logCollections[0];
 		
 		return parent::actionIndex(EntrySearch::className(), [
 			'with' => [

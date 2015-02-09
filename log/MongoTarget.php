@@ -74,7 +74,7 @@ class MongoTarget extends \yii\log\DbTarget
 					return key($key['key']);
 				}, $this->db->getCollection($collection)->mongoCollection->getIndexInfo());
 			
-			$message['timestamp'] = !isset($message['timestamp']) ? mmicrotime(true) : $message['timestamp'];
+			$message['timestamp'] = !isset($message['timestamp']) ? microtime(true) : $message['timestamp'];
 			
 			/**
 			 * Gather the indexes

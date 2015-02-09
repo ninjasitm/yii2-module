@@ -218,6 +218,7 @@ function Configuration()
 			break;
 			
 			default:
+			console.log(result);
 			$nitm.getObj('#'+self.views.containers.createValue).before($(result.data));
 			self.initDeleting('#'+'value_'+result.unique_id);
 			self.initUpdating('#'+'value_'+result.unique_id);

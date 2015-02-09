@@ -21,10 +21,8 @@ use Yii;
  * @property mixed $ip_addr
  * @property mixed $host
  */
-class Entry extends \yii\mongodb\ActiveRecord
-{
-	use \nitm\traits\Data;
-	
+class Entry extends \nitm\search\BaseMongo
+{	
 	public static $collectionName = 'nitm-log';
 	public static $namespace = "\nitm\models\log";
 	
@@ -131,4 +129,5 @@ class Entry extends \yii\mongodb\ActiveRecord
 		}
 		return $ret_val;
 	}
+	
 }

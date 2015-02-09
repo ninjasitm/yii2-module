@@ -92,6 +92,8 @@ class Logger extends \yii\log\Logger
 	//function to add db transaction
 	public function log($array, $collectionName=null)
 	{
+		echo "Logging";
+		exit;
 		if(\yii::$app->getModule('nitm')->enableLogger && count($array))
 		{
 			$parser = (\UAParser\Parser::create());

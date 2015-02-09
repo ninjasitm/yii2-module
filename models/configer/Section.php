@@ -86,7 +86,7 @@ class Section extends BaseConfiger
         return $this->hasMany(Value::className(), ['sectionid' => 'id'])
 		->select([
 			'*',
-			"name AS unique_id", 
+			"CONCAT((SELECT name FROM `".static::tableName()."` WHERE id=sectionid), '.', name) AS unique_id", 
 			"(SELECT name FROM `".static::tableName()."` WHERE id=sectionid) AS section_name", 
 			"(SELECT name FROM `".Container::tableName()."` WHERE id=containerid) AS container_name"
 		])

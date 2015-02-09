@@ -24,15 +24,18 @@ $this->params['breadcrumbs'][] = $this->title;
 	</div>
 
     <?= GridView::widget([
+		'filterUrl' => '/log',
         'dataProvider' => $dataProvider,
         'filterModel' => $searchModel,
 		'striped' => false,
 		'bordered' => false,
         'columns' => [
             [
-				'label' => 'created',
+				'label' => 'Created',
 				'attribute' => 'timestamp',
-				'format' => 'datetime'
+				'value' => function ($model) {
+					return (new \yii\i18n\Formatter)->asDatetime((int)$model->timestamp);
+				}
 			],
            	[
 				'label' => 'Method',
@@ -114,7 +117,15 @@ $this->params['breadcrumbs'][] = $this->title;
 				"class" => 'item '.\nitm\helpers\Statuses::getIndicator($model->getStatus()),
 				'style' => 'display:none; border:none'
 			]);
-		}
+		},
+		'pager' => [
+			'class' => \nitm\widgets\ias\ScrollPager::className(),
+			'overflowContainer' => '#'.$isWhat.'-ias-container',
+			'container' => '#'.$isWhat,
+			'item' => ".item",
+			'negativeMargin' => 150,
+			'delay' => 500,
+		]
     ]); ?>
 
 </div>

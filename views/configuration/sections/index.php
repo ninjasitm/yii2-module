@@ -26,13 +26,12 @@ use yii\widgets\ActiveField;
 				],
 			]); ?>
         <?=
-            $form->field($model, 'section'
-                        )->dropDownList($model->config('current.sections'))->label("Select ".$model->config('current.type_text')." to edit:", ['class' => 'sr-only']); 
+            $form->field($model, 'section')->dropDownList($model->config('current.sections'))->label("Select ".$model->config('current.type_text')." to edit:", ['class' => 'sr-only']); 
         ?>
         <?php 
-            echo Html::activeHiddenInput($model, 'what', array('value' => 'section'));
-            echo Html::activeHiddenInput($model, 'getValues', array('value' => true));
-            echo Html::activeHiddenInput($model, 'container', array('value' => $model->config('current.container')));
+            echo Html::activeHiddenInput($model, 'what', ['value' => 'section']);
+            echo Html::activeHiddenInput($model, 'getValues', ['value' => true]);
+            echo Html::activeHiddenInput($model, 'container', ['value' => $model->config('current.container')]);
             echo Html::submitButton('Change', [
                     'class' => 'btn btn-primary',
                     "data-loading-text" => "Loading..."
@@ -43,31 +42,30 @@ use yii\widgets\ActiveField;
         </div>
         <div class="pull-left">
         <?php $form = ActiveForm::begin(['id' => 'delete_section',
-                        'action' => '/configuration/delete',
-                        'options' => ['class' => 'form-inline',
-                        'role' => 'deleteSection'],
-                        'fieldConfig' => [
-                                'inputOptions' => ['class' => 'form-control']
-                                ],
-                        ]); ?>
+			'action' => '/configuration/delete',
+			'options' => [
+				'class' => 'form-inline',
+				'role' => 'deleteSection'
+			],
+			'fieldConfig' => [
+				'inputOptions' => ['class' => 'form-control']
+			],
+		]); ?>
         <?php
-            echo Html::activeHiddenInput($model, 'what', array('value' => 'section'));
-            echo Html::activeHiddenInput($model, 'container', array('value' => $model->config('current.container')));
-            echo Html::activeHiddenInput($model, 'section', array('value' => @$model->config('current.section')));
+            echo Html::activeHiddenInput($model, 'what', ['value' => 'section']);
+            echo Html::activeHiddenInput($model, 'container', ['value' => $model->config('current.container')]);
+            echo Html::activeHiddenInput($model, 'section', ['value' => @$model->config('current.section')]);
             echo Html::submitButton('Delete', [
-                    'class' => 'btn btn-danger pull-left',
-                    "data-loading-text" => "Deleting..."
-                    ]
-                );
+				'class' => 'btn btn-danger pull-left',
+				"data-loading-text" => "Deleting..."
+			]);
         ?>
         <?php ActiveForm::end(); ?>
         </div>
 	</div>
 </div>
 <div class="configuration-body">
-	<?php
-		echo $this->render('sections',  array("model" => $model));
-	?>
+	<?= $this->render('sections',  ["model" => $model]); ?>
 </div>
 <div class="configuration-footer">
     <div class="col-md-12 col-lg-12">
@@ -78,18 +76,15 @@ use yii\widgets\ActiveField;
 				'action' => '/configuration/create',
 				'options' => ['class' => 'form-inline' ],
 				'fieldConfig' => [
-						'inputOptions' => ['class' => 'form-control pull-left']
-						],
+					'inputOptions' => ['class' => 'form-control pull-left']
+				],
 				'enableAjaxValidation' => true
-				]);
-            ?>
+			]); ?>
+            <?= $form->field($model, 'value')->textInput(['placeholder' => 'Section name...'])->label("Name the section", ['class' => 'sr-only']); ?>
             <?=
-                $form->field($model, 'value')->textInput(array('placeholder' => 'Section name...'))->label("Name the section", ['class' => 'sr-only']);
-            ?>
-            <?php
-                echo Html::activeHiddenInput($model, 'what', array('value' => "section"));
-                echo Html::activeHiddenInput($model, 'container', array('value' => $model->config('current.container')));
-                echo Html::submitButton('Create Section', array('class' => 'btn btn-primary'));
+                Html::activeHiddenInput($model, 'what', ['value' => "section"])
+                .Html::activeHiddenInput($model, 'container',['value' => $model->config('current.container')])
+                .Html::submitButton('Create Section', ['class' => 'btn btn-primary']);
             ?>
             <?php ActiveForm::end(); ?>
         </div>

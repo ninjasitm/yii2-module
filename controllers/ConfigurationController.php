@@ -161,7 +161,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 							$this->model->container,
 							null,
 							$this->model->engine);
-					$this->model->config('current.config', Session::getVal($this->model->correctKey($this->model->config('current.action.key'))));
+					$this->model->config('current.config', Session::getVal($this->model->uriOf($this->model->config('current.action.key'))));
 					$view = [
 						'view' => 'values/value',
 						'data' => [
@@ -214,7 +214,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 			switch($this->model->what)
 			{
 				case 'section':
-				switch(!is_null($section = $this->model->config('current.config.'.$this->model->section)))
+				switch($this->model->section && !is_null($section = $this->model->config(['current', 'config', $this->model->section])))
 				{
 					case true:
 					$this->model->config('current.config', (array)$section);
@@ -278,7 +278,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 							$this->model->container,
 							null,
 							$this->model->engine);
-					$this->model->config('current.config', Session::getVal($this->model->correctKey($this->model->config('current.action.key'))));
+					$this->model->config('current.config', Session::getVal($this->model->uriOf($this->model->config('current.action.key'))));
 					break;
 					
 					case 'deleteSection':
