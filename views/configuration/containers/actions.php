@@ -11,17 +11,17 @@ use yii\widgets\ActiveForm;
 		switch($model->container)
 		{
 			case $v:
-			$model->config('current.container', $url);
+			$model->config('current.container_url', $url);
 			break;
 		}
 		$_containers[$url] = $k;
 	});
 	echo Html::label(
-		(empty($model->config('current.container')) ? "Load config from" : "Current config: ".$model->config('current.container'))
+		(!$model->config('current.container') ? "Load config from" : "Current config: ".$model->config('current.container'))
 	);
 	echo Html::dropDownList(
 		'container',
-		$model->config('current.container'),
+		$model->config('current.container_url'),
 		$_containers,
 		[
 			"class" => "btn-default form-control",

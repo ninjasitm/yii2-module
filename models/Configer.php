@@ -148,7 +148,7 @@ class Configer extends Model
 	 */
 	public static function config($name=null, $value=null, $append=false)
 	{
-		echo "Setting $name and appending?: $append to value ".jsON_encode($value)."<br>\n";
+		//echo "Setting $name and appending?: $append to value ".jsON_encode($value)."<br>\n";
 		return \nitm\helpers\ArrayHelper::getOrSetValue(static::$config, $name, $value, $append);
 	}
 	

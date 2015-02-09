@@ -27,6 +27,11 @@ class Module extends \yii\base\Module
 	public $enableLogger = true;
 	
 	/**
+	 * Should the importing engine be loaded?
+	 */
+	public $enableImporter = true;
+	
+	/**
 	 * The log collections that can be displayed
 	 */
 	public $logCollections = ['nitm-log'];
@@ -50,6 +55,11 @@ class Module extends \yii\base\Module
 	 * @var array options for nitm\models\Alerts
 	 */
 	public $alerts;
+	
+	/**
+	 * @var array options for importer
+	 */
+	public $importer;
 	
 	/*
 	 * @var array The arrap mapping for search classes
@@ -96,6 +106,11 @@ class Module extends \yii\base\Module
 			$this->alerts = \Yii::createObject(array_merge([
 				'class' => '\nitm\helpers\alerts\Dispatcher',
 			], (array)$this->alerts));
+		
+		if($this->enableImporter)
+			$this->importer = \Yii::createObject(array_merge([
+				'class' => '\nitm\importer\Importer',
+			], (array)$this->importer));
 	}
 	
 	/**
