@@ -85,6 +85,7 @@ class DefaultController extends BaseController
 			case 'resolve':
 			case 'complete':
 			case 'close':
+			case 'view':
 			$this->enableCsrfValidation = false;
 			break;
 		}
