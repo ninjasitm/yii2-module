@@ -669,11 +669,11 @@ class Dispatcher extends \yii\base\Component
 		switch($scope)
 		{
 			case 'global':
-			$footer = "\n\nYou are receiving this becuase of a global alert matching: ";
+			$footer = "\nYou are receiving this because of a global alert matching: ";
 			break;
 			
 			default:
-			$footer = "\n\nYou are receiving this because your alert settings matched: ";
+			$footer = "\nYou are receiving this because your alert settings matched: ";
 			break;
 		}
 		if(isset($alert['priority']) && !is_null($alert['priority']))

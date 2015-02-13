@@ -19,6 +19,8 @@ use Yii;
  */
 class ParentMap extends \yii\db\ActiveRecord
 {
+	use \nitm\traits\Relations, \nitm\traits\Data;
+	
     /**
      * @inheritdoc
      */

@@ -80,7 +80,7 @@ class ArrayHelper extends BaseArrayHelper
 				$array->$key = ($append === true) ? $array->$key.$value : $value;
 				return true;
 			} else {
-				if($append === true)
+				if($append === true && isset($array[$key]))
 					$array[$key] .= $value;
 				else
 					$array[$key] = $value;

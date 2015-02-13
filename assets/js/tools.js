@@ -85,29 +85,30 @@ function Tools ()
 	
 	this.visibility = function (object, removeListener) {
 		var _visSelf = this;
-		this.on = $(object).data('on');
-		this.getUrl = true;
+		var on = $(object).data('on');
+		var getUrl = true;
+		var url = !$(object).data('url') ? $(object).attr('href') : $(object).data('url');
 		
 		switch($(this).data('on') != undefined)
 		{
 			case true:
-			if($(this).data('on').length == 0) this.getUrl = false;
+			if($(this).data('on').length == 0) getUrl = false;
 			break;
 		}
 		
-		this.getRemote = function () {
-			var basedOnGetUrl = (_visSelf.url != undefined) && (_visSelf.url != '#') && (_visSelf.url.length >= 2) && _visSelf.getUrl;
+		var getRemote = function () {
+			var basedOnGetUrl = (url != undefined) && (url != '#') && (url.length >= 2) && getUrl;
 			var basedOnRemoteOnce = ($(object).data('remote-once') != undefined) ? (Boolean($(object).data('remote-once')) && !$(object).data('got-remote')) : true;
 			return basedOnGetUrl && basedOnRemoteOnce;
 		}
 		
-		if(this.getRemote())
+		if(getRemote())
 		{
 			this.target = $nitm.getObj($(object).data('id'));
 			this.success = ($(object).data('success') != undefined) ? $(object).data('success') : null;
 			this.url = $(object).data('url') ? $(object).data('url') : $(object).attr('href');
 			var ret_val = $.ajax({
-				url: this.url, 
+				url: url, 
 				dataType: $(object).data('type') ? $(object).data('type') : 'html',
 				complete: function (result) {
 					$nitm.module('tools').replaceContents(result.responseText, object, _visSelf);
