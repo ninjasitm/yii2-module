@@ -52,7 +52,7 @@ class BaseController extends Controller
 		parent::init();
 	}
 	
-	public static function has()
+	public static function assets()
 	{
 		return [
 		];

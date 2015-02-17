@@ -94,6 +94,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		$has = is_array(static::has()) ? static::has() : [];
 		foreach($has as $name=>$dataProvider)
 		{
+			$name = is_numeric($name) ? $dataProvider : $name;
 			switch($this->hasProperty($name) || $this->hasAttribute($name))
 			{
 				case true:

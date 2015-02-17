@@ -17,8 +17,10 @@ use Yii;
  *
  * @property ImportedData $importedData
  */
-class Element extends \nitm\models\Entity
+class Element extends BaseImported
 {
+	protected $is = 'import-item';
+	
     /**
      * @inheritdoc
      */
@@ -32,14 +34,21 @@ class Element extends \nitm\models\Entity
      */
     public function rules()
     {
-        return [
-            [['imported_data_id', 'raw_data', 'author_id', 'signature'], 'required'],
-            [['imported_data_id', 'author_id'], 'integer'],
-            [['raw_data', 'signature'], 'string'],
+        return array_merge(parent::rules(), [
+            [['imported_data_id'], 'required'],
+            [['imported_data_id'], 'integer'],
             [['created_at'], 'safe'],
-            [['is_imported'], 'boolean']
-        ];
+            [['is_imported'], 'boolean'],
+        ]);
     }
+	
+	public function scenarios()
+	{
+		return [
+			'create' => ['imported_data_id', 'raw_data', 'signature'],
+			'default' => []
+		];
+	}
 
     /**
      * @inheritdoc
@@ -60,8 +69,26 @@ class Element extends \nitm\models\Entity
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getImportedData()
+    public function getSource()
     {
-        return $this->hasOne(ImportedData::className(), ['id' => 'imported_data_id']);
+        return $this->hasOne(Source::className(), ['id' => 'imported_data_id'])->select(Source::selectFields());
     }
+	
+	public function findFromRaw($importId, $id)
+	{
+		return array_map(function ($row) use ($importId) {
+			return new Element([
+				'raw_data' => $row['raw_data'], 
+				'imported_data_id' => $importId,
+				'is_imported' => $row['is_imported']
+			]);
+		}, Source::find()
+			->where(['id' => $importId])
+			->select([
+				new \yii\db\Expression("json_extract_path(raw_data, '$id') AS raw_data"),
+				new \yii\db\Expression("(SELECT 1 FROM ".Element::tableName()." WHERE signature=MD5(json_extract_path_text(raw_data, '$id')) AND imported_data_id=".$importId." LIMIT 1) AS is_imported"),
+			])
+			->asArray()
+			->all());
+	}
 }

@@ -18,6 +18,10 @@ class BaseParser extends \yii\base\Object
 {
 	public $data;
 	public $parsedData;
+	public $limit = 100;
+	public $offset = 0;
+	
+	public $fields = [];
 	
 	public function parse($data)
 	{

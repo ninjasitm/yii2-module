@@ -176,7 +176,7 @@ class DefaultController extends BaseController
 	 * @param array $options
 	 * @return string | json
 	 */
-	public function actionForm($type=null, $id=null, $options=[])
+	public function actionForm($type=null, $id=null, $options=[], $returnData=false)
 	{
 		$options = $this->getVariables($type, $id, $options);
 		$format = Response::formatSpecified() ? $this->getResponseFormat() : 'html';
@@ -185,7 +185,7 @@ class DefaultController extends BaseController
 		if(\Yii::$app->request->isAjax)
 			Response::viewOptions('js', "\$nitm.module('tools').init('".Response::viewOptions('args.formOptions.container.id')."');", true);
 		
-		return $this->renderResponse($options, Response::viewOptions(), \Yii::$app->request->isAjax);
+		return $returnData ? Response::viewOptions() : $this->renderResponse($options, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
 
     /**

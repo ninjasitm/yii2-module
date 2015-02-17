@@ -19,6 +19,7 @@ class Importer extends \yii\base\Object
 	private $_types;
 	private $_parsers;
 	private $_sources;
+	private $_parser;
 	
 	public function init()
 	{
@@ -42,6 +43,9 @@ class Importer extends \yii\base\Object
 	
 	public function getParser($type=false)
 	{
+		if(isset($this->_parser[$type]))
+			return $this->_parser[$type];
+			
 		switch($type)
 		{
 			case in_array($type, $this->getTypes()):
@@ -54,8 +58,9 @@ class Importer extends \yii\base\Object
 		}
 		if(!class_exists($class))
 			throw new \yii\base\ErrorExcetpion("Couldn't find parser for '$type'");
-			
-		return \Yii::createObject(['class' => $class]);
+		
+		$this->_parser[$type] = \Yii::createObject(['class' => $class]);
+		return $this->_parser[$type];
 	}
 	
 	/**

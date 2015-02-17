@@ -10,11 +10,10 @@ use nitm\models\Configer;
 use nitm\helpers\Response;
 use nitm\interfaces\DefaultControllerInterface;
 
-class ConfigurationController extends DefaultController implements DefaultControllerInterface
+class ConfigurationController extends DefaultController
 {	
 	public function init()
 	{
-		$this->addJs('admin', true);
 		parent::init();
 		$this->model = new Configer();
 	}
@@ -49,7 +48,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 		return array_replace_recursive(parent::behaviors(), $behaviors);
 	}
 	
-	public static function has()
+	public static function assets()
 	{
 		return [
 			'configuration'

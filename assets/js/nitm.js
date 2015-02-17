@@ -713,10 +713,10 @@ function Nitm ()
 		try {
 			var defaults = (typeof defaults == 'object') ? defaults : object.defaultInit;
 			defaults.map(function (method) {
-				if(typeof object[method] == 'function'){
-					var container = (container == undefined) ? ((typeof object == 'object') ? object.views.container : null) : container;
+				try {
+					var containerId = (container== undefined) ? ((typeof object == 'object') ? object.views.containerId : null) : container;
 					object[method](container, key);
-				}
+				} catch (error){}
 			});
 		} catch (error) {}
 	}

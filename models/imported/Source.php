@@ -3,6 +3,7 @@
 namespace nitm\models\imported;
 
 use Yii;
+use yii\helpers\ArrayHelper;
 
 /**
  * This is the model class for table "{{%imported_data}}".
@@ -18,10 +19,18 @@ use Yii;
  * @property User $author
  * @property ImportedDataElement[] $importedDataElements
  */
-class Source extends \nitm\models\Entity
-{
-	public $previewImport = false;
-	public $location;
+class Source extends BaseImported
+{	
+	public $previewImport;
+	
+	protected static $_is = 'import';
+	
+	public function init()
+	{
+		parent::init();
+		if($this->isNewRecord)
+			$this->source = 'file';
+	}
 	
     /**
      * @inheritdoc
@@ -36,13 +45,30 @@ class Source extends \nitm\models\Entity
      */
     public function rules()
     {
-        return [
+        return array_merge(parent::rules(), [
             [['created_at'], 'safe'],
-            [['author_id', 'name', 'raw_data', 'type', 'data_type'], 'required'],
-            [['author_id'], 'integer'],
-            [['name', 'raw_data', 'type', 'data_type'], 'string']
-        ];
+            [['name', 'raw_data', 'type', 'data_type'], 'required', 'on' => ['create', 'update']],
+            [['name', 'type', 'data_type'], 'string'],
+			[['name'], 'unique', 'targetAttribute' => ['name', 'type', 'data_type']],
+        ]);
     }
+	
+	public static function has()
+	{
+		return array_merge(parent::has(), [
+			'editor'
+		]);
+	}
+	
+	public function scenarios()
+	{
+		return [
+			'create' => ['name', 'raw_data', 'type', 'data_type', 'source'],
+			'update' => ['name', 'type', 'data_type'],
+			'delete' => ['id'], 
+			'default' => []
+		];
+	}
 
     /**
      * @inheritdoc
@@ -63,8 +89,92 @@ class Source extends \nitm\models\Entity
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getImportedDataElements()
+    public function getElements()
     {
-        return $this->hasMany(ImportedDataElement::className(), ['imported_data_id' => 'id']);
+        return $this->hasMany(Element::className(), ['imported_data_id' => 'id']);
     }
+	
+	public function getRawData()
+	{
+		if(!isset($this->raw_data))
+			$this->raw_data = $this->find()
+				->where(['id' => $this->getId()])
+				->select('raw_data')
+				->one()->raw_data;
+		return $this->raw_data;
+	}
+	
+	public function getRawDataArray($offset=0, $limit=200)
+	{
+		$rows = array_pop(array_map(function ($row) {
+			$decoded = json_decode($row['raw_data'], true);
+				return $decoded;
+			}, $this->find()
+				->where(['id' => $this->getId()])
+				->select([
+					new \yii\db\Expression("raw_data"),
+				])
+				->limit($limit)
+				->offset($offset)
+				->asArray()
+				->all()
+		));
+		$isImported = Element::find()
+			->select(['id', 'signature', 'is_imported'])
+			->where([
+				'signature' => array_map(function ($row) {
+					return Element::getSignature(Element::encode($row));
+				}, $rows),
+				'imported_data_id' => $this->getId()
+			])
+			->asArray()
+			->all();
+		$ret_val = array_map(function ($row) use(&$isImported){
+			if(is_array($isImported))
+				foreach($isImported as $idx=>$same)
+				{
+					if(($signature = Element::getSIgnature(Element::encode($row))) == $same['signature'])
+					{
+						$row = array_merge($row, $same);
+						unset($isImported[$idx]);
+					}
+				}
+			$row['is_imported'] = ArrayHelper::getValue($row, 'is_imported', false);
+			return $row;
+		}, $rows);
+		return $ret_val;
+	}
+	
+	public function selectFields()
+	{
+		return [
+			'name', 'type', 'data_type', 
+			'count', 'total', 'source', 
+			'signature', 'completed', 'completed_by', 
+			'completed_at', 'created_at', 'id'
+		];
+	}
+	
+	public function encode($data=null)
+	{
+		$data = is_null($data) ? $this->raw_data : $data;
+		$this->total = count($data);
+		return parent::encode($data);
+	}
+	
+	public function saveElement($attributes)
+	{
+		$element = new \nitm\models\imported\Element($attributes);
+		$element->setScenario('create');
+		$existing = Element::find()->where([
+			'imported_data_id' => $this->id,
+			'signature' => $element->getSignature($element->encode($element->raw_data))
+		])->one();
+		if($existing instanceof Element)
+			$element = $existing;
+		$element->imported_data_id = $this->id;
+		$element->is_imported = true;
+		$element->save();
+		return $element;
+	}
 }

@@ -50,7 +50,6 @@ class Cache extends Model
 	{
 		//static::$_cache[$key] = $model;
 		//echo "Setting model for: $key<br>";
-		static::$cache->set($key, $model, $duration);
 	}
 	
 	public static function setModelArray($key, $array, $duration=5000)
@@ -143,7 +142,7 @@ class Cache extends Model
 			default:
 			switch(1)
 			{
-				case !is_null($property) && !is_null($modelClass):
+				case !is_null($property) && !is_null($modelClass) && ($sender instanceof \yii\base\Model):
 				switch($sender->hasProperty($property))
 				{
 					case true:
@@ -169,8 +168,6 @@ class Cache extends Model
 						break;
 						
 						default:
-						echo $modelClass;
-						exit;
 						$ret_val = new $modelClass($options);
 						break;
 					}

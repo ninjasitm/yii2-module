@@ -31,7 +31,7 @@ use yii\helpers\ArrayHelper;
 		//don't init on ajax requests so that we don't send duplicate files
 		if(\Yii::$app->request->isAjax && !$force)
 			return;
-		$assets = array_merge($assets, (array)static::has());
+		$assets = array_merge($assets, (array)static::assets());
 		foreach($assets as $asset)
 		{
 			//This may be an absolute namespace to an asset
@@ -195,8 +195,7 @@ use yii\helpers\ArrayHelper;
      */
     protected function findModel($className, $id, $with=null, $queryOptions=[])
     {
-		$baseModel = new $className;
-        if ($id !== null && ($model = $className::find()->where([$baseModel->primaryKey()[0] => $id])) !== null) {
+        if ($id !== null && ($model = $className::find()->where([$className::primaryKey()[0] => $id])) !== null) {
 			$with = is_array($with) ? $with : (is_null($with) ? null : [$with]);
 			switch(is_array($with))
 			{

@@ -15,12 +15,13 @@ use nitm\helpers\Icon;
 			\nitm\widgets\modal\Modal::widget([
 				'size' => 'large',
 				"header" => Html::tag('h1', "Import New Data"),
-				"content" => $this->render("forms/_form", ["model" => $model]),
 				'toggleButton' => [
 					'tag' => 'a',
 					'label' => "New Import ".Icon::forAction('plus'), 
-					'title' => Yii::t('yii', 'Create New Import Job '),
-					'class' => 'fa-2x',
+					'href' => \Yii::$app->urlManager->createUrl(['/import/form/create', '__format' => 'modal']),
+					'title' => \Yii::t('yii', "Add a new ".$model->properName()),
+					'role' => 'dynamicAction createAction disabledOnClose',
+					'class' => 'btn btn-success btn-lg'
 				],
 			]);
 		?>
@@ -50,15 +51,15 @@ use nitm\helpers\Icon;
 				$ret_val = "";
 				if($model->hasNewActivity)
 					$ret_val .= \nitm\widgets\activityIndicator\ActivityIndicator::widget();
-				$ret_val .= Html::tag('h1', $model->getId());
+				$ret_val .= Html::tag('h4', $model->getId());
 				return $ret_val;
 			},
-			'contentOptions' => function ($model) {
-				return [
-					'rowspan' => 2,
-					'role' => 'voteIndicator'.$model->getId(),
-					'style' => "vertical-align: middle; background-color:rgba(255,51,0,".$model->voteModel()->rating()['ratio'].")"
-				];
+		],
+		[
+			'label' => '%',
+			'format' => 'html',
+			'value' => function ($model) {
+				return Html::tag('h4', Html::tag('span', $model->count/$model->total, ['role' => 'percentComplete'])."%");
 			}
 		],
 		'name',
@@ -81,7 +82,7 @@ use nitm\helpers\Icon;
 			'attribute' => 'data_type',
 			'label' => 'Data Type',
 			'value' => function ($model) {
-				return $model->url('data_type', $model->properName(type));
+				return $model->url('data_type', $model->properName($model->data_type));
 			}
 		],
 		//'closed:boolean',
@@ -133,9 +134,9 @@ use nitm\helpers\Icon;
 						'size' => 'x-large',
 						'toggleButton' => [
 							'tag' => 'a',
-							'label' => Icon::forAction('update'), 
+							'label' => Icon::forAction('view'), 
 							'href' => \Yii::$app->urlManager->createUrl([$url, '__format' => 'modal']),
-							'title' => Yii::t('yii', 'Edit '),
+							'title' => Yii::t('yii', 'View '),
 							'class' => 'fa-2x',
 							'role' => 'dynamicAction updateAction disabledOnClose',
 						],
@@ -147,28 +148,16 @@ use nitm\helpers\Icon;
 						]
 					]);
 				},
-				'close' => function ($url, $model) {
-					return Html::a(Icon::forAction('close', 'closed', $model), \Yii::$app->urlManager->createUrl([$url]), [
-						'title' => Yii::t('yii', ($model->closed ? 'Open' : 'Close').' '.$model->title),
-						'role' => 'metaAction closeAction',
-						'class' => 'fa-2x',
-						'data-parent' => 'tr',
-						'data-pjax' => '0',
-					]);
-				},
-				'complete' => function ($url, $model) {
-					return Html::a(Icon::forAction('complete', 'completed', $model), \Yii::$app->urlManager->createUrl([$url]), [
-						'title' => Yii::t('yii', ($model->completed ? 'Incomplete' : 'Complete').' '.$model->title),
-						'role' => 'metaAction resolveAction disabledOnClose',
-						'class' => 'fa-2x',
-						'data-parent' => 'tr',
-						'data-pjax' => '0',
+				'replies' => function($url, $model) {
+					return $this->context->replyCountWidget([
+						"model" => $model->replyModel(),
+						'fullDetails' => false,
 					]);
 				}
 			],
-			'template' => "{form/update} {complete} {close}",
+			'template' => "{form/update} {replies}",
 			'urlCreator' => function($action, $model, $key, $index) {
-				return '/'.$model->isWhat().'/'.$action.'/'.$model->getId();
+				return '/import/'.$action.'/'.$model->getId();
 			},
 			'options' => [
 				'rowspan' => 3,
@@ -188,74 +177,9 @@ use nitm\helpers\Icon;
 		];
 	},
 	'afterRow' => function ($model, $key, $index, $grid){
-		$replies = $this->context->replyCountWidget([
-			"model" => $model->replyModel(),
-			'fullDetails' => false,
-		]);
-		$revisions = $this->context->revisionsCountWidget([
-			'model' => $model->revisionModel(),
-			"parentId" => $model->getId(), 
-			"parentType" => $model->isWhat(),
-			'fullDetails' => false ,
-		]);
-		$issues = $this->context->issueCountWidget([
-			'model' => $model->issueModel(),
-			'enableComments' => true,
-			"parentId" => $model->getId(), 
-			"parentType" => $model->isWhat(),
-			'fullDetails' => false,
-		]);
-		$follow = \nitm\widgets\alerts\Follow::widget([
-			'model' => $model->followModel(),
-			'buttonOptions' => [
-				'size' => 'normal'
-			]
-		]);
-		$title = Html::tag(
-			'h4', 
-			$model->title
-		);
-		
-		$activityInfo = Html::tag('div',
-			Html::tag('div', $replies, ['class' => 'col-md-3 col-lg-3 text-center']).
-			Html::tag('div', $revisions, ['class' => 'col-md-3 col-lg-3 text-center']).
-			Html::tag('div', $issues, ['class' => 'col-md-3 col-lg-3 text-center']).
-			Html::tag('div', $follow, ['class' => 'col-md-3 col-lg-3 text-center']),
-			[
-				'class' => 'row'
-			]
-		);
-		$links = Html::tag('div', \nitm\widgets\metadata\ShortLink::widget([
-			'label' => 'View',
-			'url' => \Yii::$app->urlManager->createAbsoluteUrl([$model->isWhat().'/view/'.$model->getId()]),
-			'header' => $model->title,
-			'type' => 'modal',
-			'size' => 'large'
-		]));
-		$links .= Html::tag('div', \nitm\widgets\metadata\ShortLink::widget([
-			'label' => 'Update',
-			'url' => \Yii::$app->urlManager->createAbsoluteUrl([$model->isWhat().'/form/update/'.$model->getId()]),
-			'header' => $model->title,
-			'type' => 'modal',
-			'size' => 'x-large',
-			'modalOptions' => [
-				'dialogOptions' => [
-					'class' => 'modal-full'
-				]
-			]
-		]));
 			
-		$statusInfo = \lab1\widgets\StatusInfo::widget([
+		$statusInfo = \nitm\widgets\metadata\StatusInfo::widget([
 			'items' => [
-				[
-					'blamable' => $model->editor(),
-					'date' => $model->updated_at,
-					'value' => $model->edits,
-					'label' => [
-						'true' => "Updated ",
-						'false' => "No updates"
-					]
-				],
 				[
 					'blamable' => $model->completedBy(),
 					'date' => $model->completed_at,
@@ -265,21 +189,12 @@ use nitm\helpers\Icon;
 						'false' => "Not completed"
 					]
 				],
-				[
-					'blamable' => $model->closedBy(),
-					'date' => $model->closed_at,
-					'value' => $model->closed,
-					'label' => [
-						'true' => "Closed ",
-						'false' => "Not closed"
-					]
-				],
 			],
 		]);
 		
 		$metaInfo = Html::tag('div', 
 			Html::tag('div', 
-				implode('<br>', [$title, $statusInfo, $activityInfo, $links])
+				implode('<br>', [$statusInfo])
 			),[
 				'class' => 'wrapper'
 			]

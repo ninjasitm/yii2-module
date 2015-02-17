@@ -177,6 +177,8 @@ function NitmEntity () {
 		} catch (error) {
 			proceed = true;
 		}
+	
+		console.log(proceed);
 		
 		if(!proceed)
 			return;

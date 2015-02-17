@@ -4,9 +4,10 @@ namespace nitm\helpers;
 use yii\base\Behavior;
 use nitm\helpers\Response;
 use yii\helpers\Html;
+use yii\helpers\ArrayHelper;
 
 /**
- * Form trait which supports teh retrieval of form variables
+ * Form trait which supports the retrieval of form variables
  */
 class Form extends Behavior
 {
@@ -32,7 +33,7 @@ class Form extends Behavior
 				switch($options['modelClass'])
 				{
 					case $model->className():
-					switch(isset($options['id']) && !$options['id'])
+					switch(is_null(ArrayHelper::getValue($options, 'id', null)))
 					{
 						/**
 						 * If there's no ID for the given model then use it as is
@@ -176,9 +177,13 @@ class Form extends Behavior
 		{
 			case true:
 			$object = $model;
-			foreach($options['provider'] as $property)
+			foreach($options['provider'] as $func=>$property)
 			{
-				if($object->hasMethod($property))
+				if(is_callable($property))
+					$object = call_user_func($property, $object);
+				else if(is_object($property))
+					$object = call_user_func([$property, $func], $object);
+				else if(is_object($object) && $object->hasMethod($property))
 					$object = call_user_func_array([$object, $property], isset($options['args']) ? $options['args'] : []);
 				else if(is_object($object) && $object->hasAttribute($property))
 					$object = $object->$property;
