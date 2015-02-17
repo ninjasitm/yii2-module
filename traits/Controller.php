@@ -233,26 +233,49 @@ use yii\helpers\ArrayHelper;
 		$types = \Yii::$app->getModule('nitm-widgets')->checkActivityFor;
 		if(!count($types))
 			return "";
-			
+		
+		
 		foreach((array)$types as $type=>$options)
 		{
 			if(is_int($type)) {
 				$type = $options;
 				$options = [
-					['parent_id' => 'id'], 
+					'parent_id='.$this->model->tableName().'.id', 
 					['parent_type' => $this->model->isWhat()],
-					'(updated_at>=updated_at OR created_at>=updated_at)',
-					"('".static::$currentUser->lastActive()."'<=updated_at OR '".static::$currentUser->lastActive()."'<=updated_at)"
 				];
 			}
-			$select[] = "SELECT SUM (
-				CASE WHEN (".implode(' AND ', array_map(function ($value) {
-					$options = [];
-					return \Yii::$app->db->getQueryBuilder()->buildCondition($value, $options);
-				}, $options)).") THEN 1 ELSE 0 END
-			) AS hasNew FROM ".$type::tableName();
+			$query = $type::find();
+			$query->from([
+				$type::tableName(),
+				$this->model->tableName()
+			]);
+			$query->select(["SUM(IF((
+					(
+						'".static::$currentUser->lastActive()."'<=".$this->model->tableName().".created_at 
+						OR 
+						'".static::$currentUser->lastActive()."'<=".$this->model->tableName().".updated_at
+					) 
+					AND 
+					(
+						".$type::tableName().".updated_at>=".$this->model->tableName().".created_at 
+						OR 
+						".$type::tableName().".updated_at>=".$this->model->tableName().".updated_at
+						OR 
+						".$type::tableName().".created_at>=".$this->model->tableName().".created_at
+						OR 
+						".$type::tableName().".created_at>=".$this->model->tableName().".updated_at
+					)
+				), 
+				1, 0)
+			) AS hasNew"]);
+			foreach($options as $option)
+			{
+				$query->andWhere($option);
+			}
+			$select[] = $query->createCommand()->getRawSql();
+			unset($query);
 		}
-		return "(SELECT SUM(hasNew) FROM (".implode(' UNION ALL ', $select).")) as hasNewActivity";
+		return "(SELECT SUM(hasNew) FROM (".implode(' UNION ALL ', $select).") hasNewData) AS hasNewActivity";
 	}
 	
 	/**

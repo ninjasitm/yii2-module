@@ -25,7 +25,6 @@ use yii\db\ActiveRecord;
  */
 class BaseConfiger extends ActiveRecord
 {
-	use \nitm\search\traits\ModelIndexerTrait;
 	
 	public $container;
 	public $unique_id;
@@ -37,7 +36,6 @@ class BaseConfiger extends ActiveRecord
 	public function init()
 	{
 		parent::init();
-		$this->disableSearchIndexing = true;
 	}
 	
 	public function behaviors()

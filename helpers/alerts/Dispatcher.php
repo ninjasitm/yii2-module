@@ -31,10 +31,19 @@ class Dispatcher extends \yii\base\Component
 	private $_prepared = false;
 	private $_variables = [];
 	private $_alerts;
+	private $_alertStack = [];
 	
 	const BATCH = 'batch';
 	const SINGLE = 'single';
 	const UNDEFINED = '__undefined__';
+	
+	const EVENT_PREPARE = 'prepare';
+	const EVENT_PROCESS = 'process';
+	
+	public function init()
+	{
+		$this->initEvents();
+	}
 	
 	public static function supportedMethods()
 	{
@@ -45,6 +54,12 @@ class Dispatcher extends \yii\base\Component
 		];
 	}
 	
+	protected function initEvents()
+	{
+		$this->on(self::EVENT_PREPARE, [$this, 'prepareAlerts']);
+		$this->on(self::EVENT_PROCESS, [$this, 'processAlerts']);
+	}
+	
 	public function reset()
 	{
 		$this->_variables = [];
@@ -53,8 +68,117 @@ class Dispatcher extends \yii\base\Component
 		$this->_prepared = false;
 	}
 	
+	protected function getKey($model)
+	{
+		return implode('-', [
+			$model->getScenario(),
+			$model->isWhat(), 
+			$model->getId()
+		]);
+	}
+	
+	public function prepareAlerts($event, $for='any', $priority='any')
+	{
+		if(!\Yii::$app->getModule('nitm')->enableAlerts)
+			return;
+		if($event->handled)
+			return;
+			
+		$this->processEventData($event);
+		$this->_alertStack[$this->getKey($event->sender)] = [
+			'remote_type' => $event->sender->isWhat(),
+			'remote_for' => $for,
+			'priority' => $priority,
+			'action' => $event->sender->getScenario()
+		];
+	}
+	
+	/**
+	 * Process the alerts according to $message and $parameters
+	 * @param array $event = The event triggering the action
+	 * @param array $options = the subject and mobile/email messages:
+	 * [
+	 *		'subject' => String
+	 *		'message' => [
+	 *			'email' => The email message
+	 *			'mobile' => The mobile/text message
+	 *		]
+	 * ]
+	 */
+	public function processAlerts($event, $options=[])
+	{
+		if(!\Yii::$app->getModule('nitm')->enableAlerts)
+			return;
+		if($event->handled)
+			return;
+		
+		$this->criteria('remote_id', $event->sender->getId());
+		switch(!$this->criteria('action'))
+		{
+			case false:
+			$this->prepare($event);
+			switch($this->isPrepared())
+			{
+				case true:
+				//First check to see if this specific alert exits
+				if(count($options))
+					$this->sendAlerts($options, ArrayHelper::getValue($options, 'owner_id', null));
+				$event->handled = true;
+				break;
+				
+				default:
+				throw new \yii\base\Exception("No alert preparation was done!");
+				break;
+			}
+			break;
+			
+			default:
+			throw new \yii\base\Exception("Need an action to process the alert");
+			break;
+		}
+	}
+	
+	protected function processEventData($event)
+	{
+		$runtimeModifiable = [
+			'variables',
+			'usersWhere',
+			'reportedAction',
+			'criteria'
+		];
+		foreach($runtimeModifiable as $property)
+		{
+			switch($property)
+			{
+				case 'reportedAction':
+				$this->$property = ArrayHelper::remove($event->data, $property);
+				break;
+				
+				default:
+				$params = ArrayHelper::getValue($event, 'data.'.$property, null);
+				unset($event->data[$property]);
+				switch($property)
+				{
+					case 'variables':
+					case 'andWhere':
+					$params = [$params];
+					break;
+				}
+				if(count($params))
+					call_user_func_array([$this, $property], $params);
+				break;
+			}
+		}
+	}
+	
+	public function variables($variables)
+	{
+		$this->addVariables($variables);
+	}
+	
 	public function addVariables(array $variables)
 	{
+		$variables = is_array(current($variables)) ? array_pop($variables) : $variables;
 		$this->_variables = array_merge($variables, $this->_variables);
 	}
 	
@@ -63,12 +187,21 @@ class Dispatcher extends \yii\base\Component
 		$this->_variables = [];
 	}
 	
-	public function prepare($isNew, $basedOn)
+	public function prepare($event)
 	{
-		$basedOn['action'] = $isNew === true ? 'create' : 'update';
-		$this->reportedAction = $basedOn['action'].'d';
-		$this->_criteria = $basedOn;
-		$this->_prepared = true;
+		$this->processEventData($event);
+		$basedOn = array_merge(
+			(array)ArrayHelper::remove($this->_alertStack, $this->getKey($event->sender)), 
+			(array)$event->data
+		);
+		
+		if(is_array($basedOn))
+		{
+			$basedOn['action'] = $event->sender->isNewRecord === true ? 'create' : 'update';
+			$this->reportedAction = $basedOn['action'].'d';
+			$this->_criteria = $basedOn;
+			$this->_prepared = true;
+		}
 	}
 	
 	public function usersWhere($where=[])
@@ -211,18 +344,18 @@ class Dispatcher extends \yii\base\Component
 	
 	public function sendAlerts($compose, $ownerId)
 	{
-		$this->_alerts = $this->findAlerts($ownerId);
+		$alerts = $this->findAlerts($ownerId);
 		$to = [
 			'global' => [],
 			'individual'=> [],
 			'owner' => []
 		];
 		//Build the addresses
-		switch(is_array($this->_alerts ) && !empty($this->_alerts ))
+		switch(is_array($alerts) && count($alerts))
 		{
 			case true:
 			//Organize by global and individual alerts
-			foreach($this->_alerts as $idx=>$alert)
+			foreach($alerts as $idx=>$alert)
 			{
 				switch(1)
 				{
@@ -690,5 +823,27 @@ class Dispatcher extends \yii\base\Component
 		$footer .= "\n\nSite: ".Html::a(\Yii::$app->urlManager->createAbsoluteUrl('/'), \Yii::$app->homeUrl);
 			
 		return Html::tag('small', $footer);
+	}
+	
+	protected function getReportedAction($event)
+	{
+		switch($event->sender->getScenario())
+		{
+			case 'resolve':
+			$this->reportedAction = $event->sender->resolved == 1 ? 'resolved' : 'un-resolved';
+			break;
+			
+			case 'complete':
+			$this->reportedAction = $event->sender->completed == 1 ? 'completed' : 'in-completed';
+			break;
+			
+			case 'close':
+			$this->reportedAction = $event->sender->closed == 1 ? 'closed' : 're-opened';
+			break;
+			
+			case 'disable':
+			$this->reportedAction = $event->sender->disabled == 1 ? 'disabled' : 'enabled';
+			break;
+		}
 	}
 }

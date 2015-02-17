@@ -1578,6 +1578,7 @@ class Configer extends Model
 	private function container($container=null)
 	{
 		$ret_val = $this->containerModel;
+		$container = is_null($container) ? $this->container : $container;
 		switch($this->_location)
 		{
 			case 'file':
@@ -1627,7 +1628,7 @@ class Configer extends Model
 	private function section($section)
 	{
 		$ret_val = null;
-		switch(isset(static::$_cache[$this->containerModel->name]->sections[$section]))
+		switch(isset($this->container()->sections[$section]))
 		{
 			case false:
 			if(!$this->sectionModel instanceof Section)
