@@ -184,7 +184,8 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		/**
 		 * If this has parents specified then check and add them accordingly
 		 */
-		$this->addParentMap();
+		if(isset($attributes['parent_ids']))
+			$this->addParentMap();
 		return parent::afterSave($insert, $attributes);
 	}
 	
@@ -502,10 +503,11 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 				unset($parents[$idx]);
 			}
 			
+			
 			$query = ParentMap::find();
 			foreach($parents as $parent)
 				$query->orWhere($parent);
-			
+				
 			$toAdd = array_values(array_map(function ($attrs) {
 				return array_values($attrs);
 			}, array_diff_key($parents, $query->indexBy('parent_id')->asArray()->all())));

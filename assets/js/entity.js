@@ -16,7 +16,7 @@ function NitmEntity () {
 	this.forms = {
 		roles: {
 			ajaxSearch: "filter",
-			ajaxForm: 'ajaxForm'
+			ajaxForm: 'ajaxForm',
 		}
 	};
 	
@@ -55,28 +55,6 @@ function NitmEntity () {
 			 */
 			$nitm.initModule(object, name, object.defaultInit);	
 		} catch (error) {console.log(error);};
-	}
-	
-	this.initForms = function (containerId, currentIndex) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
-		try {
-			var roles = $nitm.module(currentIndex).forms.roles;
-		} catch(error) {
-			var roles = self.forms.roles;
-		}
-		$.map(roles, function(role, key) {
-			container.find("form[role~='"+role+"']").map(function() {
-				var $form = $(this);
-				$form.off('submit');
-				$form.on('submit', function (e) {
-					e.preventDefault();
-					if(self.hasActivity(this.id))
-						return false;
-					self.updateActivity(this.id);
-					return self.operation(this, null, currentIndex, e);
-				});
-			});
-		});
 	}
 	
 	this.initMetaActions = function (containerId, currentIndex) {
@@ -149,6 +127,28 @@ function NitmEntity () {
 	this.activityId = function (id) {
 		var $elem = $nitm.getObj(id);
 		return $elem.prop('tagName')+'-'+id;
+	}
+	
+	this.initForms = function (containerId, currentIndex) {
+		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		try {
+			var roles = $nitm.module(currentIndex).forms.roles;
+		} catch(error) {
+			var roles = self.forms.roles;
+		}
+		$.map(roles, function(role, key) {
+			container.find("form[role~='"+role+"']").map(function() {
+				var $form = $(this);
+				$form.off('submit');
+				$form.on('submit', function (e) {
+					e.preventDefault();
+					if(self.hasActivity(this.id))
+						return false;
+					self.updateActivity(this.id);
+					return self.operation(this, null, currentIndex, e);
+				});
+			});
+		});
 	}
 	
 	this.operation = function (form, callback, currentIndex, event) {

@@ -28,6 +28,13 @@ class Entity extends Data
 		$this->on(ActiveRecord::EVENT_AFTER_UPDATE, [$this, 'afterSaveEvent']);
 	}
 	
+	public function scenarios()
+	{
+		return array_merge(parent::scenarios(), [
+			'default' => []
+		]);
+	}
+	
 	public function beforeSaveEvent($event=null)
 	{
 		$event = is_null($event) ? new \yii\base\Event([
