@@ -424,7 +424,7 @@ function NitmEntity () {
 }
 
 $nitm.addOnLoadEvent(function () {
-	//$nitm.initModule(new NitmEntity());
+	$nitm.initModule(new NitmEntity());
 	//$nitm.module('entity').initSearch();
 	$(document).on('pjax:send', function (xhr, options) {
 		$(xhr.target).fadeOut('slow');

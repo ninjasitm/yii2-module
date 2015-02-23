@@ -475,7 +475,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	 * ParentMap are specieid in the parent_ids attribute
 	 * Parent object belong to the same table
 	 */
-	protected function addParentMap($parents=[])
+	public function addParentMap($parents=[])
 	{
 		if(count($parents) >= 1)
 		{
@@ -508,14 +508,14 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			foreach($parents as $parent)
 				$query->orWhere($parent);
 				
-			$toAdd = array_values(array_map(function ($attrs) {
-				return array_values($attrs);
-			}, array_diff_key($parents, $query->indexBy('parent_id')->asArray()->all())));
+			$toAdd = array_diff_key($parents, $query->indexBy('parent_id')->asArray()->all());
 			
 			if(count($toAdd) >= 1)
 				\Yii::$app->db->createCommand()->batchInsert(ParentMap::tableName(), $attributes, $toAdd)->execute();
 		}
-		return isset($toAdd) ? array_keys($toAdd) : false;
+		return isset($toAdd) ? array_map(function ($data) {
+			return $data['remote_id'];
+		}, $toAdd) : false;
 	}
 	
 	/**

@@ -29,7 +29,6 @@ class DefaultController extends BaseController
 	{
 		$behaviors = [
 			'access' => [
-				'class' => \yii\filters\AccessControl::className(),
 				'rules' => [
 					[
 						'actions' => ['login', 'error'],
@@ -40,7 +39,7 @@ class DefaultController extends BaseController
 						'actions' => [
 							'index', 'add', 'list', 'view', 'create', 
 							'update', 'delete', 'form', 'filter', 'disable',
-							'close', 'resolve', 'complete', 'error'
+							'close', 'resolve', 'complete', 'error',
 						],
 						'allow' => true,
 						'roles' => ['@'],
@@ -48,7 +47,6 @@ class DefaultController extends BaseController
 				],
 			],
 			'verbs' => [
-				'class' => \yii\filters\VerbFilter::className(),
 				'actions' => [
 					'index' => ['get', 'post'],
 					'list' => ['get', 'post'],
@@ -61,7 +59,7 @@ class DefaultController extends BaseController
 				],
 			],
 		];
-		return array_merge(parent::behaviors(), $behaviors);
+		return array_merge_recursive(parent::behaviors(), $behaviors);
 	}
 	
     /**
@@ -90,14 +88,6 @@ class DefaultController extends BaseController
 			break;
 		}
 		return parent::beforeAction($action);
-	}
-	
-	public function afterAction($action, $result)
-	{
-		$result = parent::afterAction($action, $result);
-		if(\Yii::$app->getModule('nitm')->enableLogger)
-			$this->commitLog();
-		return $result;
 	}
 
     /**

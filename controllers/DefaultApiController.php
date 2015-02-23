@@ -11,7 +11,7 @@ use nitm\models\Configer;
 
 class DefaultApiController extends Controller
 {
-	use \nitm\traits\Configer, \nitm\traits\Controller;
+	use \nitm\traits\Configer, \nitm\traits\Controller, \nitm\traits\ControllerActions;
 	
 	public $model;
 	
@@ -47,14 +47,6 @@ class DefaultApiController extends Controller
 	{
 		return [
 		];
-	}
-	
-	public function afterAction($action, $result)
-	{
-		$result = parent::afterAction($action, $result);
-		if(\Yii::$app->getModule('nitm')->enableLogger)
-			$this->commitLog();
-		return $result;
 	}
 	
 	public function actionSearch()

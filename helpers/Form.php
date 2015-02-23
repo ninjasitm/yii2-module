@@ -4,7 +4,6 @@ namespace nitm\helpers;
 use yii\base\Behavior;
 use nitm\helpers\Response;
 use yii\helpers\Html;
-use yii\helpers\ArrayHelper;
 
 /**
  * Form trait which supports the retrieval of form variables

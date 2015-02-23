@@ -11,7 +11,7 @@ use nitm\models\Configer;
 
 class BaseController extends Controller
 {
-	use \nitm\traits\Configer, \nitm\traits\Controller;
+	use \nitm\traits\Configer, \nitm\traits\Controller, \nitm\traits\ControllerActions;
 	
 	public $model;
 	public $metaTags = array();
@@ -22,16 +22,28 @@ class BaseController extends Controller
 	const ELEM_TYPE_PARAM = '__elemType';
 	
 	public function behaviors()
-	{ 
-		$behaviors = array(
+	{
+		$behaviors = [
+			'access' => [
+				'class' => \yii\filters\AccessControl::className(),
+				'rules' => [
+					[
+						'actions' => [
+							'filter', 'add-parent', 'remove-parent'
+						],
+						'allow' => true,
+						'roles' => ['@'],
+					],
+				],
+			],
 			'verbs' => [
 				'class' => \yii\filters\VerbFilter::className(),
 				'actions' => [
-					'filter' => ['get', 'post'],
-				]
+					'filter' => ['get', 'post']
+				],
 			],
-		);
-		return $behaviors;
+		];
+		return array_merge(parent::behaviors(), $behaviors);
 	}
 
 	public function init()
