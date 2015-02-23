@@ -21,7 +21,7 @@ use yii\helpers\ArrayHelper;
 		return (@$this->settings['supported'][$what] == true);
 	}
 	
-	public function assets()
+	public static function assets()
 	{
 		return [];
 	}

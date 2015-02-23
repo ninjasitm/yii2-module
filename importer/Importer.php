@@ -87,6 +87,11 @@ class Importer extends \yii\base\Object
 		$this->_types = $types;
 	}
 	
+	public function isSupported($parser)
+	{
+		return isset($this->_parsers[$parser]);
+	}
+	
 	public function setParsers($parsers=[])
 	{
 		$this->_parsers = array_merge($parsers, [

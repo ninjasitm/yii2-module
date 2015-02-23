@@ -47,7 +47,7 @@ class Source extends BaseImported
     {
         return array_merge(parent::rules(), [
             [['created_at'], 'safe'],
-            [['name', 'raw_data', 'type', 'data_type'], 'required', 'on' => ['create', 'update']],
+            [['name', 'type', 'data_type'], 'required', 'on' => ['create', 'update']],
             [['name', 'type', 'data_type'], 'string'],
 			[['name'], 'unique', 'targetAttribute' => ['name', 'type', 'data_type']],
         ]);
@@ -64,7 +64,7 @@ class Source extends BaseImported
 	{
 		return [
 			'create' => ['name', 'raw_data', 'type', 'data_type', 'source'],
-			'update' => ['name', 'type', 'data_type'],
+			'update' => ['name', 'type', 'data_type', 'raw_data'],
 			'delete' => ['id'], 
 			'default' => []
 		];
@@ -162,7 +162,7 @@ class Source extends BaseImported
 		return parent::encode($data);
 	}
 	
-	public function saveElement($attributes)
+	public function saveElement($attributes, $asArray=false)
 	{
 		$element = new \nitm\models\imported\Element($attributes);
 		$element->setScenario('create');
@@ -175,6 +175,50 @@ class Source extends BaseImported
 		$element->imported_data_id = $this->id;
 		$element->is_imported = true;
 		$element->save();
-		return $element;
+		return $asArray ? ArrayHelper::toArray($element) : $element;
+	}
+	
+	public function saveElements($attributes, $asArray=false, $fields=null)
+	{
+		$ret_val = [];
+		$fields = is_null($fields) ? [
+			'raw_data',
+			'imported_data_id',
+			'signature',
+			'author_id'
+		] : $fields;
+		
+		sort($fields);
+		$attributes = array_map(function ($element) use($fields){
+			ksort($element);
+			return array_intersect_key(array_merge($element, [
+				'raw_data' => Element::encode($element['raw_data']),
+				'imported_data_id' => $this->id,
+				'signature' => Element::getSignature(Element::encode($element['raw_data'])),
+				'author_id' => \Yii::$app->user->getId()
+			]), array_flip($fields));
+		}, $attributes);
+		
+		$command = \Yii::$app->getDb()->createCommand();
+		$sql = $command->batchInsert(Element::tableName(), $fields, $attributes)->getSql();
+		$sql .= ' ON DUPLCATE KEY imported_data_id='.$this->id;
+		
+		echo $sql;
+		exit;
+		$command->setSql($sql);
+		//If the batch insert was successful then get the inserted IDs based on the signature and return the job
+		if($command->execute())
+		{
+			$ret_val = array_map(function ($result) {
+				$result = [
+					'success' => true,
+					'id' => $result['id'],
+					'link' => \Yii::$app->urlManager->createUrl(['/import/element/'.$result['id']])
+				];
+			}, Element::find()->select(['id'])->where(['signature' => array_map(function ($element) {
+				return $element['signature']; 
+			}, $attributes)])->asArray()->all());
+		}
+		return $ret_val;
 	}
 }

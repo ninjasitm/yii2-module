@@ -104,6 +104,8 @@ class Dispatcher extends \yii\base\Component
 			return;
 		if($event->handled)
 			return;
+		if(!$this->_data->criteria('parent_type') || $this->_data->criteria('parent_type') == DispatcherData::UNDEFINED)
+			return;
 		
 		$this->_data->criteria('remote_id', $event->sender->getId());
 		switch(!$this->_data->criteria('action'))

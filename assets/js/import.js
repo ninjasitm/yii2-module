@@ -59,6 +59,16 @@ function Import()
 		});
 	}
 	
+	this.afterCreate = function (result, currentIndex, form) {
+		//Change the form to update the source since the source gets created on preview
+		var message = !result.message ? "Success! You can import specific records in this dataset below" : result.message;
+		$nitm.notify(message, $nitm.classes.success, form);
+		if(result.success) {
+			$(form).attr('action', result.url);
+			$(form).data('id', result.id);
+		}
+	}
+	
 	this.afterPreview = function(result, currentIndex, form) {
 		$(this.views.preview).html(result.data);
 		$(form).find(':submit').text("Import");

@@ -11,7 +11,7 @@ use nitm\helpers\Helper;
  */
 class Cache extends Model
 {
-	public static $cache;
+	protected static $cache;
 	private static $_cache = [];
 	
 	public function cacheKey($model, $idKey, $relation=null, $many=false)

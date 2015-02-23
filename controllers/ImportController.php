@@ -12,6 +12,7 @@ use yii\web\UploadedFile;
 
 class ImportController extends \nitm\controllers\DefaultController
 {
+	private $_importer;
 	
 	public function behaviors()
 	{
@@ -63,6 +64,22 @@ class ImportController extends \nitm\controllers\DefaultController
 		return \Yii::$app->getModule('nitm')->importer->getParser($type);
 	}
 	
+	public function getProcessor() 
+	{
+		if(isset($this->_importer))
+			return $this->_importer;
+		switch($this->model->data_type)
+		{
+			case 'drinks':
+			$this->_importer = new \app\helpers\import\DrinkImporter([
+				'name' => $this->model->name,
+				'job' => $this->model
+			]);
+			break;
+		}
+		return $this->_importer;
+	}
+	
 	public static function assets()
 	{
 		return [
@@ -81,34 +98,35 @@ class ImportController extends \nitm\controllers\DefaultController
 	
 	public function actionPreview()
 	{
-		$ret_val = [];
+		$ret_val = [
+			'success' => true
+		];
 		$post = \Yii::$app->request->post();
         $this->model->setScenario('create');
 		$this->model->load($post);
+		if(!$this->model->validate())
+			return [
+				'success' => false,
+				'message' => $this->model->getErrors()
+			];
 		switch($this->model->source)
 		{
 			case 'file':
 			$file = UploadedFile::getInstance($this->model, 'raw_data[file]');
-			$data = $file->tempName;
+			$ret_val['data'] = $file->tempName;
 			$ret_val['files'] = [
 				array_filter(array_intersect_key(\yii\helpers\ArrayHelper::toArray($file), array_flip(['name', 'size', 'error'])))
 			];
 			break;
 			
 			default:
-			$data = $this->model->raw_data['text'];
+			$ret_val['data'] = $this->model->raw_data['text'];
 			break;
 		}
-		switch($this->model->type)
-		{
-			case 'csv':
-			case 'json':
-			case 'xml':
-			$this->getImporter()->parse($data)->close();
-			$this->model->raw_data = $this->getImporter()->parsedData;
-			$ret_val['data'] = $this->model->raw_data;
-			break;
-		}
+		
+		if(!\Yii::$app->getModule('nitm')->importer->isSupported($this->model->type))
+			throw new\yii\base\ErrorException("Unsupported type: ".$this->model->type);
+			
 		return $ret_val;
 	}
 	

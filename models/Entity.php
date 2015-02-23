@@ -67,17 +67,22 @@ class Entity extends Data
 	
 	protected function getAlertOptions($event)
 	{
-		$options = [];
+		$options = [	
+			'parent_type' => $event->sender->isWhat(),
+			'action' => $event->sender->getScenario(),
+			'priority' => 'normal',
+			'remote_for' => 'any'
+		];
 		switch($event->sender->getScenario())
 		{
 			case 'create':
-			$options = [
+			$options = array_merge($options, [
 				'subject' => ['view' => '@app/mail/subjects/new/'.$event->sender->isWhat()],
 				'message' => [
 					'email' => ['view' => '@app/mail/email/new/'.$event->sender->isWhat()],
 					'mobile' => ['view' => '@app/mail/mobile/new/'.$event->sender->isWhat()]
 				]
-			];
+			]);
 			break;
 			
 			case 'complete':
@@ -85,16 +90,16 @@ class Entity extends Data
 			case 'disable':
 			case 'update':
 			case 'close':
-			$options = [
+			$options = array_merge($options, [
 				'subject' => ['view' => '@app/mail/subjects/update/'.$event->sender->isWhat()],
 				'message' => [
 					'email' => ['view' => '@app/mail/email/update/'.$event->sender->isWhat()],
 					'mobile' => ['view' => '@app/mail/mobile/update/'.$event->sender->isWhat()]
 				]
-			];
+			]);
 			break;
 		}
-		if(!empty($options) && !empty($event->sender->getId()))
+		if(!count($options) && !$event->sender->getId())
 		{
 			$options['owner_id'] = $event->sender->hasAttribute('author_id') ? $event->sender->author_id : null;
 		}

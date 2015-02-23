@@ -20,6 +20,10 @@ use nitm\helpers\Icon;
 	]);
 ?>
 </div>
+<div class="col-md-12 col-lg-12">
+    <span role="fileUploadMessge">
+    </span>
+</div>
 <?=
 	Tabs::widget([
 		'options' => [
@@ -51,9 +55,27 @@ use nitm\helpers\Icon;
 								$nitm.module("entity:import").afterPreview(data.result, "entity:import", e.target, data.fileInput);
 							}',
 							'fileuploadfail' => 'function(e, data) {
-								console.log(e);
-								console.log(data);
+								$([role="fileUploadMessage"]).html(data.message);
 							}',
+							'fileuploadadd' => 'function (e, data) {
+								//Only submit if the form is validated properly
+								var $activeForm = $("#'.$form->id.'").yiiActiveForm();
+								$(data.fileInput).fileupload({
+									url : "/import/preview/"+$activeForm.data("id")
+								});
+								$activeForm.yiiActiveForm("data").submitting = true; 
+								$activeForm.yiiActiveForm("validate");
+							}',
+							'fileuploadsubmit' => 'function(e, data) {
+								//Only submit if the form is validated properly
+								var $activeForm = $("#'.$form->id.'").yiiActiveForm();
+								
+								data.context.find(":submit").prop("disabled", false);
+								
+								var validated = $activeForm.yiiActiveForm("data").validated;
+								$activeForm.yiiActiveForm("data").validated = false;
+								return validated;
+							}'
 						],
 					]), [
 					'id' => 'import-from-file',
