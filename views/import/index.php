@@ -56,10 +56,10 @@ use nitm\helpers\Icon;
 			},
 		],
 		[
-			'label' => '%',
+			'label' => '% Imported',
 			'format' => 'html',
 			'value' => function ($model) {
-				return Html::tag('h4', Html::tag('span', $model->count/$model->total, ['role' => 'percentComplete'])."%");
+				return Html::tag('h4', Html::tag('span', round(($model->count/$model->total)*100), ['role' => 'percentComplete'])."%"."<br>".Html::tag('small', $model->count."/".$model->total));
 			}
 		],
 		'name',
@@ -71,7 +71,7 @@ use nitm\helpers\Icon;
 			'attribute' => 'type',
 			'label' => 'Type',
 			'value' => function ($model) {
-				return $model->url('type', $model->properName($model->type));
+				return $model->url('type', $model->type);
 			}
 		],
 		[

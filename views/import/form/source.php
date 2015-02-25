@@ -60,9 +60,6 @@ use nitm\helpers\Icon;
 							'fileuploadadd' => 'function (e, data) {
 								//Only submit if the form is validated properly
 								var $activeForm = $("#'.$form->id.'").yiiActiveForm();
-								$(data.fileInput).fileupload({
-									url : "/import/preview/"+$activeForm.data("id")
-								});
 								$activeForm.yiiActiveForm("data").submitting = true; 
 								$activeForm.yiiActiveForm("validate");
 							}',
@@ -71,10 +68,16 @@ use nitm\helpers\Icon;
 								var $activeForm = $("#'.$form->id.'").yiiActiveForm();
 								
 								data.context.find(":submit").prop("disabled", false);
+								//Change the URL to the URL of the newly created import Source
+								$(data.form).fileupload("option",
+									"url",
+									$activeForm.attr("action")
+								);
+								
 								
 								var validated = $activeForm.yiiActiveForm("data").validated;
 								$activeForm.yiiActiveForm("data").validated = false;
-								return validated;
+								return validated && ($activeForm.data("id") != undefined);
 							}'
 						],
 					]), [
@@ -97,7 +100,7 @@ use nitm\helpers\Icon;
 				'label' => 'Import From Text',
 				'content' => Html::tag('div', "<br>".$form->field($model, 'raw_data[text]')->textarea([
 					'placeholder' => "Paste raw data here in the form you chose above"
-				]), [
+				])->label("Text"), [
 					'id' => 'import-from-csv',
 					'class' => 'col-md-12 col-lg-12'
 				]),
@@ -111,6 +114,26 @@ use nitm\helpers\Icon;
 					'id' => 'import-from-csv-link',
 					'role' => 'importSource',
 					'data-source' => 'text'
+				]
+			],
+			[
+				'label' => 'Import From URL',
+				'content' => Html::tag('div', "<br>".$form->field($model, 'raw_data[url]')->textarea([
+					'placeholder' => "Paste url to acquire data from"
+				])->label("Url"), [
+					'id' => 'import-from-url',
+					'class' => 'col-md-12 col-lg-12'
+				]),
+				'options' => [
+					'id' => 'import-from-url-container',
+				],
+				'headerOptions' => [
+					'id' => 'import-from-url-tab'
+				],
+				'linkOptions' => [
+					'id' => 'import-from-url-link',
+					'role' => 'importSource',
+					'data-source' => 'url'
 				]
 			],
 		]

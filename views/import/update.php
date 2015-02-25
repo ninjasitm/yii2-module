@@ -14,6 +14,7 @@ $this->title = Yii::t('app', 'Update {modelClass}: {name}', [
 $this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Back'), 'url' => [parse_url(\Yii::$app->request->getReferrer(), PHP_URL_QUERY)]];
 $this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Actions'), 'url' => ['/list/'.$model->isWhat()."/"]];
 $this->params['breadcrumbs'][] = ['label' => $this->title];
+
 ?>
 <div id="<?= $formOptions['container']['id']; ?>" class="<?= $formOptions['container']['class'] ?>">
 	<?php if(!\Yii::$app->request->isAjax): ?>
@@ -27,6 +28,7 @@ $this->params['breadcrumbs'][] = ['label' => $this->title];
 		'scenario' => $scenario,
 		'action' => $action,
 		'type' => $type,
-		'dataProvider' => $dataProvider
+		'dataProvider' => $dataProvider,
+		'processor' => $processor
     ]) ?>
 </div>

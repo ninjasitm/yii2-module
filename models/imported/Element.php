@@ -45,6 +45,7 @@ class Element extends BaseImported
 	public function scenarios()
 	{
 		return [
+			'import' => ['is_imported'],
 			'create' => ['imported_data_id', 'raw_data', 'signature'],
 			'default' => []
 		];

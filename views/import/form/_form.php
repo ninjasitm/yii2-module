@@ -22,6 +22,9 @@ $formOptions = array_merge($formOptions, [
 ]);
 
 ?>
+<h4 class="text-warning">
+	All data uploaded or sent through this form WILL OVERWRITE existing data. If the import you are trying to create already exists please use a different name.
+</h4>
 <div class="row">
 	<div class="col-lg-12 col-md-12 col-sm-12">
     
@@ -73,7 +76,8 @@ $formOptions = array_merge($formOptions, [
     	<?= $this->render("../preview.php", [
 			'form' => $form, 
 			'model' => $model, 
-			'dataProvider' => $dataProvider
+			'dataProvider' => $dataProvider, 
+			'processor' => $processor
 		]); ?>
     <?php endif; ?>
     </div>

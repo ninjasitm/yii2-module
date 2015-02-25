@@ -109,12 +109,12 @@ function Import()
 			$elem.on('click', function (e) {
 				e.preventDefault();
 				$nitm.startSpinner($elem);
-				self.importElement(elem);
+				self.importElement($elem.get(0));
 			});
 		});
 	}
 	
-	this.importElement - function (element){
+	this.importElement = function (elem){
 		var $elem = $(elem);
 		$.post($elem.attr('href'), function(result) {
 			$nitm.stopSpinner($elem);

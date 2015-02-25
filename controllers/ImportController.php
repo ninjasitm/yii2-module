@@ -96,19 +96,21 @@ class ImportController extends \nitm\controllers\DefaultController
 		]);
     }
 	
-	public function actionPreview()
+	public function actionPreview($id)
 	{
 		$ret_val = [
 			'success' => true
 		];
 		$post = \Yii::$app->request->post();
-        $this->model->setScenario('create');
-		$this->model->load($post);
-		if(!$this->model->validate())
+		$this->model = $this->findModel(Source::className(), $id);
+		if(!$this->model)
 			return [
 				'success' => false,
-				'message' => $this->model->getErrors()
+				'message' => "The import with the id: $id doesn't exist"
 			];
+			
+        $this->model->setScenario('preview');
+		$this->model->load($post);
 		switch($this->model->source)
 		{
 			case 'file':

@@ -28,7 +28,7 @@ class CsvParser extends BaseParser
 			$this->seek($offset);
 		
 		$line = $offset;
-		while((($line <= $limit) && !$this->isEnd()) && ((($data = $this->read()) !== false)))
+		while((($line <= ($limit+$offset)) && !$this->isEnd()) && ((($data = $this->read()) != false)))
 		{
 			$data = array_filter($data);
 			if(count($data) >= 1)

@@ -5,10 +5,13 @@ use kartik\grid\GridView;
 use yii\helpers\Html;
 use yii\helpers\ArrayHelper;
 use nitm\helpers\Icon;
+use nitm\models\imported\Element;
 
 $importSubmit = Html::tag('div', 
 	Html::tag('div', 
-		Html::submitButton('Import', ['class' => 'btn btn-primary pull-right']), [
+		Html::submitButton('Import Page', ['class' => 'btn btn-primary pull-right'])
+		."&nbsp;&nbsp;".
+		Html::submitButton('Import All', ['role' => 'importAll', 'class' => 'btn btn-warning pull-right']), [
 		'class' => 'col-md-12 col-lg-12'
 	]),[
 		'class' => 'row'
@@ -29,6 +32,16 @@ $form = ActiveForm::begin([
 	]
 
 ]);
+
+//We're dealing with data pulled from the DB. Tansform it
+if($dataProvider instanceof \yii\data\ActiveDataProvider)
+	$dataProvider->setModels(array_map(function ($data) use($processor){
+		$rawData = ArrayHelper::remove($data, 'raw_data');
+		$data = $processor->transformFormAttributes(array_merge($data, Element::decode($rawData)));
+		$data['_id'] = $data['id'];
+		return $data;
+	}, $dataProvider->getModels()));
+	
 echo TabularForm::widget([
     // your data provider
     'dataProvider' => $dataProvider,
