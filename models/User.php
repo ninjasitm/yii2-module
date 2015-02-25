@@ -98,7 +98,7 @@ class User extends \dektrium\user\models\User
 			}
 			if($update) $this->updateActivity();
 		} catch (\Exception $error) {}
-		return $ret_val;
+		return date('Y-m-d G:i:s', $ret_val);
 	}
 	
 	/**
@@ -166,7 +166,7 @@ class User extends \dektrium\user\models\User
 					$key = \Yii::$app->user->identity->email;
 					break;
 				}
-				$url = "http://gravatar.com/avatar/$key";
+				$url = "https://gravatar.com/avatar/$key";
 				break;
 			}
 			Cache::cache()->set('user-avatar'.$this->getId(), urlencode($url), 3600);
@@ -196,11 +196,10 @@ class User extends \dektrium\user\models\User
 	 */
 	public function fullName($withUsername=false)
 	{
-		$profile = $this->profile instanceof Profile ? $this->profile : Profile::find()->where(['user_id' => $this->id])->one();
-		switch(is_object($profile))
+		switch(is_object(\yii\helpers\ArrayHelper::getValue($this->getRelatedRecords(), 'profile', null)))
 		{
 			case true:
-			$ret_val = $profile->name.($withUsername ? '('.$this->username.')' : '');
+			$ret_val = $this->profile->name.($withUsername ? '('.$this->username.')' : '');
 			break;
 			
 			default:

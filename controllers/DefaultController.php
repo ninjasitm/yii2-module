@@ -9,8 +9,8 @@ use nitm\helpers\Response;
 use nitm\helpers\Helper;
 
 class DefaultController extends BaseController
-{
-	use \nitm\traits\Widgets;
+{	
+	use \nitm\widgets\traits\Widgets;
 	
 	public $boolResult;
 	/**
@@ -29,7 +29,6 @@ class DefaultController extends BaseController
 	{
 		$behaviors = [
 			'access' => [
-				'class' => \yii\filters\AccessControl::className(),
 				'rules' => [
 					[
 						'actions' => ['login', 'error'],
@@ -40,7 +39,7 @@ class DefaultController extends BaseController
 						'actions' => [
 							'index', 'add', 'list', 'view', 'create', 
 							'update', 'delete', 'form', 'filter', 'disable',
-							'close', 'resolve', 'complete', 'error'
+							'close', 'resolve', 'complete', 'error',
 						],
 						'allow' => true,
 						'roles' => ['@'],
@@ -48,7 +47,6 @@ class DefaultController extends BaseController
 				],
 			],
 			'verbs' => [
-				'class' => \yii\filters\VerbFilter::className(),
 				'actions' => [
 					'index' => ['get', 'post'],
 					'list' => ['get', 'post'],
@@ -61,7 +59,7 @@ class DefaultController extends BaseController
 				],
 			],
 		];
-		return array_merge(parent::behaviors(), $behaviors);
+		return array_merge_recursive(parent::behaviors(), $behaviors);
 	}
 	
     /**
@@ -85,6 +83,7 @@ class DefaultController extends BaseController
 			case 'resolve':
 			case 'complete':
 			case 'close':
+			case 'view':
 			$this->enableCsrfValidation = false;
 			break;
 		}
@@ -92,8 +91,8 @@ class DefaultController extends BaseController
 	}
 
     /**
-     * Lists all Updates models.
-     * @return mixed
+     * Default index controller.
+     * @return string HTML index
      */
     public function actionIndex($className, $options=[])
     {
@@ -109,7 +108,7 @@ class DefaultController extends BaseController
         $searchModel = new $className($options['construct']);
 		$searchModel->addWith($options['with']);
         $dataProvider = $searchModel->search($options['params']);
-		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id.'/filter';
+		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
 		switch((sizeof($options['params']) == 0) || !isset($options['params']['sort']))
 		{	
 			case true:
@@ -167,12 +166,16 @@ class DefaultController extends BaseController
 	 * @param array $options
 	 * @return string | json
 	 */
-	public function actionForm($type=null, $id=null, $options=[])
+	public function actionForm($type=null, $id=null, $options=[], $returnData=false)
 	{
 		$options = $this->getVariables($type, $id, $options);
 		$format = Response::formatSpecified() ? $this->getResponseFormat() : 'html';
 		$this->setResponseFormat($format);
-		return $this->renderResponse($options, Response::$viewOptions, \Yii::$app->request->isAjax);
+		
+		if(\Yii::$app->request->isAjax)
+			Response::viewOptions('js', "\$nitm.module('tools').init('".Response::viewOptions('args.formOptions.container.id')."');", true);
+		
+		return $returnData ? Response::viewOptions() : $this->renderResponse($options, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
 
     /**
@@ -187,22 +190,30 @@ class DefaultController extends BaseController
 		$view = isset($options['view']) ? $options['view'] : '/'.$this->model->isWhat().'/view';
 		$args = isset($options['args']) ? $options['args'] : [];
 		
-		Response::$viewOptions = array_merge(Response::$viewOptions, $options);
+		Response::viewOptions(null, $options);
 		/**
 		 * Some default values we would like
 		 */
-		if(!isset(Response::$viewOptions['view']))
-			Response::$viewOptions["view"] = '@nitm/views/view/index';
-		if(!isset(Response::$viewOptions['args']))
-			Response::$viewOptions['args'] = [
-				'content' => $this->renderAjax($view, array_merge(["model" => $this->model], $args)),
-			];
-		if(!isset(Response::$viewOptions['scripts']))	
-			Response::$viewOptions['scripts'] = new \yii\web\JsExpression("\$nitm.onModuleLoad('nitm', function (){\$nitm.module('nitm').initForms(null, 'nitm:".$this->model->isWhat()."');\$nitm.module('nitm').initMetaActions(null, 'nitm:".$this->model->isWhat()."');})");
+		Response::viewOptions("view", '@nitm/views/view/index');
+		Response::viewOptions('args', [
+			'content' => $this->renderAjax($view, array_merge(["model" => $this->model], $args)),
+		]);
+			
+		if(Response::viewOptions('assets')) {
+			$this->initAssets(Response::viewOptions('assets'), true);
+		}
+			
+		if(!Response::viewOptions('scripts'))	
+			Response::viewOptions('scripts', new \yii\web\JsExpression("\$nitm.onModuleLoad('entity', function (){\$nitm.module('entity').initForms(null, '".$this->model->isWhat()."').initMetaActions(null, '".$this->model->isWhat()."');})"));
 		
-		Response::$viewOptions['title'] = isset(Response::$viewOptions['title']) ? \nitm\helpers\Form::getTitle($this->model, @Response::$viewOptions['title']) : '';
+		Response::viewOptions('title', Response::viewOptions('title') ? 
+\nitm\helpers\Form::getTitle($this->model, ArrayHelper::getValue(Response::viewOptions(), 'title', [])) : '');
+		
 		Response::$forceAjax = false;
-		return $this->renderResponse(null, Response::$viewOptions, (\Yii::$app->request->get('__contentOnly') ? true : \Yii::$app->request->isAjax));
+		
+		$this->log($this->model->properName()."[$id] was viewed from ".\Yii::$app->request->userIp, 3);
+		
+		return $this->renderResponse(null, Response::viewOptions(), (\Yii::$app->request->get('__contentOnly') ? true : \Yii::$app->request->isAjax));
     }
 	
     /**
@@ -215,6 +226,7 @@ class DefaultController extends BaseController
 		$this->action->id = 'create';
 		$ret_val = false;
 		$result = [];
+		$level = 1;
 		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
 		$post = \Yii::$app->request->post();
         $this->model =  new $modelClass(['scenario' => 'create']);
@@ -243,23 +255,30 @@ class DefaultController extends BaseController
 			switch($metadata && $this->model->addMetadata($metadata))
 			{
 				case true:
-				\Yii::$app->getSession()->setFlash(
-					'success',
-					"Added metadata"
-				);
+				\Yii::$app->getSession()->setFlash('success', "Added metadata");
 				break;
 			}
-			Response::$viewOptions["view"] = '/'.$this->model->isWhat().'/view';
+			Response::viewOptions("view", '/'.$this->model->isWhat().'/view');
         } else {
 			if(!empty($post)) {
 				$result['message'] = implode('<br>', array_map(function ($value) {
 					return array_shift($value);
 				}, $this->model->getErrors()));
+				
 				\Yii::$app->getSession()->setFlash('error', $result['message']);
 			}
-			Response::$viewOptions["view"] = '/'.$this->model->isWhat().'/create'; 
+			else
+				$this->shouldLog = false;
+				
+			/**
+			 * If the save failed, we're most likely going back to the form so get the form variables
+			 */
+			Response::viewOptions(null, array_merge($this->getVariables($this->model->isWhat()), [
+				"view" => '/'.$this->model->isWhat().'/create'
+			]), true);
         }
-		Response::$viewOptions["args"] = array_merge($viewOptions, ["model" => $this->model]);
+		
+		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]), true);
 		return $this->finalAction($ret_val, $result);
     }
 	
@@ -279,23 +298,17 @@ class DefaultController extends BaseController
         $this->model =  $this->findModel($modelClass, $id, $with);
 		$this->model->setScenario('update');
 		$this->model->load($post);
-		switch(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true) && !\Yii::$app->request->get('_pjax'))
-		{
-			case true:
+		
+		if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true) && !\Yii::$app->request->get('_pjax')) {
 			$this->setResponseFormat('json');
 			return \yii\widgets\ActiveForm::validate($this->model);
-			break;
 		}
-		switch(\Yii::$app->request->isAjax && !Response::formatSpecified())
-		{
-			case true:
+		 
+		if(\Yii::$app->request->isAjax && !Response::formatSpecified())
 			$this->setResponseFormat(\Yii::$app->request->get('_pjax') ? 'html' : 'json');
-			break;
-			
-			default:
+		else
 			$this->setResponseFormat('html');
-			break;
-		}
+		
         if (!empty($post) && $this->model->save()) {
 			$metadata = isset($post[$this->model->formName()]['contentMetadata']) ? $post[$this->model->formName()]['contentMetadata'] : null;
 			$ret_val = true;
@@ -308,8 +321,9 @@ class DefaultController extends BaseController
 				);
 				break;
 			}
-			$result['message'] = "Succesfully updated ".$this->model->isWhat();
-			Response::$viewOptions["view"] = '/'.$this->model->isWhat().'/view';
+			$result['message'] = "Succesfully updated ".$this->model->isWhat()." with id: ".$this->model->getId();
+			Response::viewOptions("view",  '/'.$this->model->isWhat().'/view');
+			
         } else {
 			if(!empty($post)) {
 				$result['message'] = implode('<br>', array_map(function ($value) {
@@ -317,9 +331,20 @@ class DefaultController extends BaseController
 				}, $this->model->geterrors()));
 				\Yii::$app->getSession()->setFlash('error', $result['message']);
 			}
-			Response::$viewOptions["view"] = '/'.$this->model->isWhat().'/update'; 
+			else
+				$this->shouldLog = false;
+			
+			/**
+			 * If the save failed, we're most likely going back to the form so get the form variables
+			 */
+			Response::viewOptions(null, array_merge($this->getVariables($this->model->isWhat(), $this->model->getId()), [
+				"view" => '/'.$this->model->isWhat().'/update'
+			]), true);
+			
         }
-		Response::$viewOptions["args"] = array_merge($viewOptions, ["model" => $this->model]);
+				
+		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]), true);
+		
 		return $this->finalAction($ret_val, $result);
     }
 
@@ -331,7 +356,6 @@ class DefaultController extends BaseController
      */
     public function actionDelete($id, $modelClass=null)
     {
-		$this->action->id = 'delete';
 		$deleted = false;
 		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
         $this->model =  $this->findModel($modelClass, $id);
@@ -349,20 +373,17 @@ class DefaultController extends BaseController
 					$this->model = new $modelClass($attributes);
 				}
 				$deleted = true;
+				$this->log(\Yii::$app->user->identity->username." deleted ".$this->model->isWhat()." with id $id", 1);
+				break;
+				
+				default:
+				$this->log(\Yii::$app->user->identity->username." failed to delete ".$this->model->isWhat()." with id $id", 3);
 				break;
 			}
 		}
-		switch(\Yii::$app->request->isAjax)
-		{
-			case true:
-			$this->setResponseFormat('json');
-			return $this->finalAction($deleted);
-			break;
-			
-			default:
-			return $this->redirect(\Yii::$app->request->getReferrer());
-			break;
-		}
+		
+		$this->setResponseFormat('json');
+		return $this->finalAction($deleted, ['redirect' => \Yii::$app->request->getReferrer(), 'level' => 6]);
     }
 	
 	public function actionClose($id)
@@ -482,7 +503,10 @@ class DefaultController extends BaseController
 			$this->setResponseFormat('json');
 			$saved = $this->model->save();
 		}
-		return $this->finalAction($saved);
+		
+		return $this->finalAction($saved, [
+			'actionName' => $title[$this->boolResult]
+		]);
 	}
 	
 	/**
@@ -494,6 +518,13 @@ class DefaultController extends BaseController
 			'success' => false,
 		];
         if ($saved) {
+		
+			/**
+			 * Perform logging if logging is enabled in the module and the controller enables it
+			 */
+			if(\Yii::$app->getModule('nitm')->enableLogger && $this->shouldLog)
+				call_user_func_array([$this, 'log'], $this->getLogParams($saved, $args));
+			
 			switch(\Yii::$app->request->isAjax)
 			{
 				case true:
@@ -535,7 +566,7 @@ class DefaultController extends BaseController
 						}
 						break;
 					}
-					$viewFile = 'view';
+					$viewFile = $this->model->isWhat().'/view';
 					$ret_val['success'] = true;
 					switch($this->getResponseFormat())
 					{
@@ -546,9 +577,9 @@ class DefaultController extends BaseController
 						
 						default:
 						if(file_exists($this->getViewPath() . DIRECTORY_SEPARATOR . ltrim($viewFile, '/')))
-							Response::$viewOptions['content'] = $this->renderAjax($viewFile, ["model" => $this->model]);
+							Response::viewOptions('content', $this->renderAjax($viewFile, ["model" => $this->model]));
 						else
-							Response::$viewOptions['content'] = true;
+							Response::viewOptions('content', true);
 						break;
 					}
 					break;
@@ -556,18 +587,16 @@ class DefaultController extends BaseController
 				break;
 					
 				default:
-				\Yii::$app->getSession()->setFlash(
-					@$ret_val['class'],
-					@$ret_val['message']
-				);
-				return $this->redirect(['index']);
+				\Yii::$app->getSession()->setFlash(@$ret_val['class'], @$ret_val['message']);
+				return $this->redirect(isset($args['redirect']) ? $args['redirect'] : ['index']);
 				break;
 			}
         }
-		$ret_val['message'] = ($this->model->validate() && !$saved) ? "No need to update. Everything is the same" : @$ret_val['message'];
+		$ret_val['message'] = (!$saved) ? "No need to update. Everything is the same" : @$ret_val['message'];
 		$ret_val['action'] = $this->action->id;
 		$ret_val['id'] = $this->model->getId();
-		return $this->renderResponse($ret_val, Response::$viewOptions, \Yii::$app->request->isAjax);
+			
+		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
 	
 	protected function getCreateButton($options=[], $text=null)
@@ -582,9 +611,9 @@ class DefaultController extends BaseController
 				'role' => 'dynamicAction createAction disabledOnClose',
 				'class' => 'btn btn-success btn-lg'
 			],
-			'dialogOptions' => [
-				"class" => "modal-full"
-			],
+			//'dialogOptions' => [
+			//	"class" => "modal-full"
+			//],
 			'containerOptions' => [
 				'class' => 'navbar-collapse navbar-collapse-content'
 			]
@@ -654,7 +683,7 @@ class DefaultController extends BaseController
 			],
 			'contentOnly' => true
 		], $options['modalOptions']);
-		
+				
 		unset($options['modalOptions']);
 		return $this->getFormVariables($this->model, $options, $modalOptions);
 	}

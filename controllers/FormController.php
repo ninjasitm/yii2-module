@@ -2,7 +2,7 @@
 
 namespace nitm\controllers;
 
-class FormController extends \nitm\module\controllers\DefaultController
+class FormController extends DefaultController
 {
     public function actionIndex()
     {

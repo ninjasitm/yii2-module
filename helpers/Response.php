@@ -3,24 +3,25 @@
 namespace nitm\helpers;
 
 use yii\base\Behavior;
+use nitm\helpers\ArrayHelper;
 
 //class that sets up and retrieves, deletes and handles modifying of contact data
 class Response extends Behavior
 {
 	public static $view;
 	public static $controller;
-	public static $viewOptions = [
+	public static $format;
+	public static $forceAjax = false;
+	public static $viewPath = '@nitm/views/response/index';
+	public static $viewModal = '@nitm/views/response/modal';
+	
+	protected static $viewOptions = [
 		'content' => '',
 		'view' => '@nitm/views/response/index', //The view file
 		'options' => [
 			'class' => ''
 		],
 	];
-	public static $format;
-	public static $forceAjax = false;
-	public static $viewPath = '@nitm/views/response/index';
-	public static $viewModal = '@nitm/views/response/modal';
-	
 	protected static $layouts = [
 		'column1' => '@nitm/views/layouts/column1'
 	];
@@ -40,6 +41,11 @@ class Response extends Behavior
 	{
 		static::$controller = !($controller) ? \Yii::$app->controller : $controller;
 		static::$view = !($view) ? static::$controller->getView() : $view;
+	}
+	
+	public static function viewOptions($name=null, $value=null, $append=false)
+	{
+		return ArrayHelper::getOrSetValue(static::$viewOptions, $name, $value, $append);
 	}
 	
 	/*
@@ -67,6 +73,8 @@ class Response extends Behavior
 		$params = is_null($params) ? static::$viewOptions : $params;
 		if(isset($params['js'])) $params['js'] = is_array($params['js']) ? implode(PHP_EOL, $params['js']) : $params['js'];
 		$format = (!\Yii::$app->request->isAjax && (static::getFormat() == 'modal')) ? 'html' : static::getFormat();
+		$params['view'] =  ArrayHelper::getValue((array)$params, 'view', static::$viewPath);
+		
 		switch($format)
 		{
 			case 'xml':
@@ -76,18 +84,15 @@ class Response extends Behavior
 			break;
 			
 			case 'html':
-			$params['view'] =  empty($params['view']) ? static::$viewPath :  $params['view'];
-			$params['options'] = isset(static::$viewOptions['options']) ? static::$viewOptions['options'] : [];
+			$params['options'] = ArrayHelper::getValue(static::$viewOptions, 'options', []);
 			if(isset($params['js'])) static::$view->registerJs($params['js']);
-			$ret_val = static::$controller->$render($params['view'], $params['args'], static::$controller);
+			$ret_val = static::$controller->$render($params['view'], ArrayHelper::getValue($params, 'args', []), static::$controller);
 			break;
 			
 			case 'modal':
-			$params['view'] =  empty($params['view']) ? static::$viewPath :  $params['view'];
-			$params['args']['options'] = isset(static::$viewOptions['options']) ? static::$viewOptions['options'] : [];
+			$params['args']['options'] = ArrayHelper::getValue(static::$viewOptions, 'options', []);
 			if(isset($params['js'])) static::$view->registerJs($params['js']);
-			$ret_val = static::$controller->$render(static::$viewModal, 
-				[
+			$ret_val = static::$controller->$render(static::$viewModal, [
 					'content' => static::$controller->$render($params['view'], $params['args'], static::$controller),
 					'footer' => @$params['footer'],
 					'title' => \Yii::$app->request->isAjax ? @$params['title'] : '',

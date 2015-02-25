@@ -4,15 +4,21 @@ namespace nitm\helpers;
 
 use yii\db\ActiveRecord;
 use yii\base\Model;
-use yii\helpers\ArrayHelper;
+use nitm\helpers\Helper;
 
 /*
  * Setup model based caching, as PHP doesn't support serialization of Closures
  */
 class Cache extends Model
 {
-	public static $cache;
+	protected static $cache;
 	private static $_cache = [];
+	
+	public function cacheKey($model, $idKey, $relation=null, $many=false)
+	{
+		$id = Helper::concatAttributes($model, $idKey);
+		return ($many == true ? 'many' : 'one').'-'.$relation.'-'.(!$id ? $idKey.'-'.$model->getId() : $id);
+	}
 	
 	/**
 	 * Cache function that returns caching object
@@ -44,12 +50,11 @@ class Cache extends Model
 	{
 		//static::$_cache[$key] = $model;
 		//echo "Setting model for: $key<br>";
-		static::$cache->set($key, $model, $duration);
 	}
 	
-	public static function setModelArray($key, $array)
+	public static function setModelArray($key, $array, $duration=5000)
 	{
-		static::setModel($key, $array);
+		static::setModel($key, $array, $duration);
 	}
 	
 	/**
@@ -94,6 +99,18 @@ class Cache extends Model
 		return static::setModel($key, [$model->className(), \yii\helpers\ArrayHelper::toArray($model)]);
 	}
 	
+	/**
+	 * Wrap setting the model to include th className
+	 * @param string $key
+	 * @param array $models
+	 * @param string $modelClass
+	 * @return boolean
+	 */
+	public static function setCachedModelArray($key, $models, $modelClass)
+	{
+		return static::setModel($key, [$modelClass, \yii\helpers\ArrayHelper::toArray($models)]);
+	}
+	
 	public static function deleteCachedModel($key)
 	{
 		return static::deleteModel($key);
@@ -125,7 +142,7 @@ class Cache extends Model
 			default:
 			switch(1)
 			{
-				case !is_null($property) && !is_null($modelClass):
+				case !is_null($property) && !is_null($modelClass) && ($sender instanceof \yii\base\Model):
 				switch($sender->hasProperty($property))
 				{
 					case true:
@@ -151,8 +168,6 @@ class Cache extends Model
 						break;
 						
 						default:
-						echo $modelClass;
-						exit;
 						$ret_val = new $modelClass($options);
 						break;
 					}
@@ -182,11 +197,22 @@ class Cache extends Model
 		{
 			case true:
 			$array = static::getModelArray($key);
-			if(class_exists($array[0]))
+			if((class_exists($array[0])) && (is_array($array[1]) && count(array_filter($array[1])) >= 1))
 			{
-				foreach($array[1] as $values)
-				{
-					$ret_val[] = new $array[0]($values);
+				$array[1] = is_array(current($array[1])) ? $array[1] : [$array[1]];
+				try {
+					foreach($array[1] as $attributes)
+					{
+						$ret_val[] = new $array[0]($attributes);
+					}
+				} catch (\Exception $e) {
+					/**
+					 * Most likely $array[1] is a single array with attributes
+					 */
+					 foreach($array[1] as $attributes)
+					 {
+					 	$ret_val[] = new $array[0]($attributes);
+					 }
 				}
 			}
 			else

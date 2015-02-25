@@ -5,8 +5,10 @@ namespace nitm\traits;
 use Yii;
 use yii\base\Model;
 use yii\base\Event;
+use yii\helpers\ArrayHelper;
 use nitm\models\User;
 use nitm\models\Category;
+use nitm\models\ParentMap;
 use nitm\helpers\Cache as CacheHelper;
 
 /**
@@ -18,21 +20,16 @@ trait Nitm
 {
 	public function url($attribute='id', $text=null, $url=null) 
 	{
-		switch(is_array($text))
-		{
-			case true:
-			$property = is_array($text) ? array_pop($text) : $text;
-			$property = !$property ? $attribute : $property;
-			$text = is_object($text[0]) ? $text[0]->getAttribute($property) : (is_array($text) ? @implode(' ', $text) : $text);
-			break;
+		if(is_array($text)){
+			$object = is_object(($text[0])) ? array_shift($text) : $this;
+			$property = empty($text) ? [$attribute] : (array)$text;
+			$text = \nitm\helpers\Helper::concatAttributes($object, $property, ' ');
 		}
+		else
+			$text = $this->hasAttribute($text) ? ArrayHelper::getValue($this, $text, $text) : $text;
+
 		$url = is_null($url) ? \Yii::$app->request->url : $url;
 		$urlOptions = array_merge([$url], [$this->formName()."[".$attribute."]" => $this->getAttribute($attribute)]);
-		if(is_array($urlOptions[0]))
-		{
-			print_r($this);
-			exit;
-		}
 		$htmlOptions = [
 			'href' => \Yii::$app->urlManager->createUrl($urlOptions), 
 			'role' => $this->formName().'Link', 
@@ -223,14 +220,13 @@ trait Nitm
      */
     public static function getCategoryList($type)
     {
+		
 		switch(CacheHelper::cache()->exists('category-list-'.$type))
 		{
 			case false:
 			$model = new Category([
 				'queryFilters' => [
-					'where' => [
-						'parent_ids' => new \yii\db\Expression("(SELECT id FROM ".Category::tableName()." WHERE slug='".$type."' LIMIT 1)")
-					],
+					'where' => 'id IN '.new \yii\db\Expression("(SELECT id FROM ".ParentMap::tableName()." WHERE (remote_id=id AND remote_type='$type' && remote_table='".Category::tableName()."'))"),
 					'orderBy' => ['name' => SORT_ASC]
 				]
 			]);

@@ -11,10 +11,10 @@ class Session extends Model
 
 	//setup protected data
 	protected static $session = null;
-	protected static $sess_name = "helper.";
-	protected static $no_q = array('settings','securer','helper','batch', 'fields', 'configer', 'comparer');
-	protected static $q = array('adder','deleter','updater','general');
-	protected static $b_q = array('batch','deleter');
+	protected static $sessionName = "helper.";
+	protected static $noQualifier = ['settings','securer','helper','batch', 'fields', 'configer', 'comparer'];
+	protected static $qualifier = ['adder','deleter','updater','general'];
+	protected static $batchQualifier = ['batch','deleter'];
 
 	//setup private data
 	private $id;
@@ -90,7 +90,7 @@ class Session extends Model
 	
 	public static function sessionName()
 	{
-		static::$session = (empty(static::$session)) ? static::$sess_name.$_SERVER['SERVER_NAME'] : static::$session;
+		static::$session = (empty(static::$session)) ? static::$sessionName.$_SERVER['SERVER_NAME'] : static::$session;
 		return static::$session;
 	}
 	
@@ -118,10 +118,10 @@ class Session extends Model
 	public static function set($cIdx, $data, $compare=false, $array=false)
 	{		
 		$ret_val = false;
+		
 		if(is_array($cIdx) && (sizeof($data) < sizeof($cIdx)))
-		{
 			return false;
-		}
+
 		$csdm = ($compare === true) ? self::comparer : @static::getCsdm();
 		$cIdx = (is_null($cIdx)) ? $csdm : $cIdx;
 		$cIdx = (is_array($cIdx)) ? $cIdx : array($cIdx);
@@ -131,7 +131,7 @@ class Session extends Model
 			$hier = explode('.', $dx);
 			switch($hier[0])
 			{
-				case in_array($hier[0], self::$no_q) === true:
+				case in_array($hier[0], self::$noQualifier) === true:
 				self::register($hier[0]);
 				break;
 				
@@ -145,12 +145,12 @@ class Session extends Model
 		}
 		foreach($hierarchy as $idx=>$member)
 		{
-			$member_str = $member;
+			$locator = $member;
 			$member = explode('.', $member);
 			switch($member[0])
 			{
-				case in_array($member[0], self::$q) === true:
-				case in_array($member[0], self::$no_q) === true:
+				case in_array($member[0], self::$qualifier) === true:
+				case in_array($member[0], self::$noQualifier) === true:
 				case null;
 				$csdm = $member[0];
 				break;
@@ -165,7 +165,7 @@ class Session extends Model
 				case true:
 				foreach($data[$idx] as $jdx=>$jvalue)
 				{
-					if(self::inSession($member_str, $jvalue) === false)
+					if(self::inSession($locator, $jvalue) === false)
 					{
 						if($array)
 							eval("\$_SESSION['".static::sessionName()."']['".Helper::splitf($member, "']['")."'][] = \$jvalue;");
@@ -176,7 +176,7 @@ class Session extends Model
 				break;
 				
 				default:
-				if(self::inSession($member_str, $data) === false)
+				if(self::inSession($locator, $data) === false)
 				{
 					if($array)
 						eval("\$_SESSION['".static::sessionName()."']['".Helper::splitf($member, "']['")."'][] = \$data;");
@@ -249,8 +249,8 @@ class Session extends Model
 	{
 		switch($cIdx)
 		{
-			case in_array($cIdx, self::$no_q) === true:
-			case in_array($cIdx, self::$q) === true:
+			case in_array($cIdx, self::$noQualifier) === true:
+			case in_array($cIdx, self::$qualifier) === true:
 			case null:
 			$_SESSION[static::sessionName()][$cIdx] = array();
 			break;
@@ -296,7 +296,7 @@ class Session extends Model
 			$hierarchy = explode('.', $item);
 			$access_str = "['".Helper::splitf($hierarchy, "']['")."']";
 			$csdm = @static::getCsdm();;
-			$access_str = ($csdm != null) ? (($csdm == $hierarchy[0]) ? $access_str : ((!in_array($hierarchy[0], self::$no_q)) ? $csdm.$access_str : $access_str)) : $access_str;
+			$access_str = ($csdm != null) ? (($csdm == $hierarchy[0]) ? $access_str : ((!in_array($hierarchy[0], self::$noQualifier)) ? $csdm.$access_str : $access_str)) : $access_str;
 			eval("\$size = sizeof(\$_SESSION['".static::sessionName()."']".$access_str.");");
 			if(!$size_only)
 				$ret_val = array('value' => self::getVal($item), 'size' => $size, 'idx' => $item);
@@ -314,8 +314,8 @@ class Session extends Model
 		$ret_val = false;
 		switch($cIdx)
 		{
-			case in_array($cIdx, self::$no_q) === true:
-			case in_array($cIdx, self::$q) === true:
+			case in_array($cIdx, self::$noQualifier) === true:
+			case in_array($cIdx, self::$qualifier) === true:
 			$ret_val = isset($_SESSION[static::sessionName()][$cIdx]);
 			break;
 			
@@ -323,8 +323,8 @@ class Session extends Model
 			$hierarchy = explode(".", $cIdx);
 			switch($hierarchy[0])
 			{	
-				case in_array($hierarchy[0], self::$q) === true:
-				case in_array($hierarchy[0], self::$no_q) === true:
+				case in_array($hierarchy[0], self::$qualifier) === true:
+				case in_array($hierarchy[0], self::$noQualifier) === true:
 				case ($hierarchy[0] == @static::getCsdm()):
 				break;
 				
@@ -364,16 +364,16 @@ class Session extends Model
 	protected static final function get($cIdx)
 	{
 		$val = "";
-		self::$q = array('adder','deleter','updater','general');
+		self::$qualifier = array('adder','deleter','updater','general');
 		switch($cIdx)
 		{
-			case in_array($cIdx, self::$q) === true:
+			case in_array($cIdx, self::$qualifier) === true:
 			case null;
 			$csdm = static::getCsdm();
 			$val = (self::isRegistered($csdm)) ? $_SESSION[static::sessionName()][$csdm] : null;
 			break;
 			
-			case in_array($cIdx, self::$no_q) === true:
+			case in_array($cIdx, self::$noQualifier) === true:
 			$val = (self::isRegistered($cIdx)) ? $_SESSION[static::sessionName()][$cIdx] : null;
 			break;
 		
@@ -382,7 +382,7 @@ class Session extends Model
 			$hierarchy = explode('.', $cIdx);
 			switch($hierarchy[0])
 			{
-				case in_array($hierarchy[0], self::$no_q) === true:
+				case in_array($hierarchy[0], self::$noQualifier) === true:
 				if(self::isRegistered($cIdx) !== false)
 					eval("\$val = \$_SESSION['".static::sessionName()."']['".Helper::splitf($hierarchy, "']['")."'];");
 				else
@@ -414,7 +414,7 @@ class Session extends Model
 		$ret_val = false;
 		switch($fields)
 		{
-			case in_array($fields, self::$b_q) === true:
+			case in_array($fields, self::$batchQualifier) === true:
 			foreach($_SESSION[static::sessionName()][$fields] as $idx=>$val)
 			{
 				if($data == $val)
@@ -468,9 +468,9 @@ class Session extends Model
 		{
 			switch($cIdx)
 			{
-				case in_array($cIdx, self::$no_q) === true:
-				case in_array($cIdx, self::$q) === true:
-				case in_array($cIdx, self::$b_q) === true:
+				case in_array($cIdx, self::$noQualifier) === true:
+				case in_array($cIdx, self::$qualifier) === true:
+				case in_array($cIdx, self::$batchQualifier) === true:
 				$_SESSION[static::sessionName()][$cIdx] = array();
 				break;
 				
@@ -478,7 +478,7 @@ class Session extends Model
 				$hierarchy = explode('.', $cIdx);
 				switch($hierarchy[0])
 				{
-					case in_array($hierarchy[0], self::$no_q) === true:
+					case in_array($hierarchy[0], self::$noQualifier) === true:
 					$csdm = array_shift($hierarchy);
 					break;
 					
@@ -512,7 +512,7 @@ class Session extends Model
 		{
 			switch($cIdx)
 			{
-				case in_array($cIdx, self::$q) === true:
+				case in_array($cIdx, self::$qualifier) === true:
 				if($cIdx == static::getCsdm())
 				{
 					unset($_SESSION[static::sessionName()][$cIdx]);
@@ -521,7 +521,7 @@ class Session extends Model
 				break;
 				
 				case self::batch:
-				case in_array($cIdx, self::$no_q) === true:
+				case in_array($cIdx, self::$noQualifier) === true:
 				unset($_SESSION[static::sessionName()][$cIdx]);
 				break;
 				
@@ -534,7 +534,7 @@ class Session extends Model
 				}
 				else
 				{
-					switch(in_array($hierarchy[0], self::$no_q))
+					switch(in_array($hierarchy[0], self::$noQualifier))
 					{
 						case true:
 						$csdm = $hierarchy[0];
@@ -568,13 +568,13 @@ class Session extends Model
 			switch($key)
 			{
 				
-				case in_array($key, self::$q) === true:
+				case in_array($key, self::$qualifier) === true:
 				case null:
 				$csdm = static::getCsdm();
 				$ret_val = $_SESSION[static::sessionName()][$csdm];
 				break;
 				
-				case in_array($key, self::$no_q) === true:
+				case in_array($key, self::$noQualifier) === true:
 				$csdm = $key;
 				$ret_val = $_SESSION[static::sessionName()][$key];
 				break; 
@@ -583,7 +583,7 @@ class Session extends Model
 				$hierarchy = explode(".", $key);
 				switch($hierarchy[0])
 				{
-					case in_array($hierarchy[0], self::$no_q) === true:
+					case in_array($hierarchy[0], self::$noQualifier) === true:
 					$csdm = $hierarchy[0];
 					array_shift($hierarchy);
 					break; 

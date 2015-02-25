@@ -1,3 +1,4 @@
+
 /*!
  * Nitm v1 (http://www.ninjasitm.com)
  * Copyright 2012-2014 NITM, Inc.
@@ -76,37 +77,42 @@ function Nitm ()
 	{
 		var $form = $nitm.getObj(form);
 		switch(true)
-		{				
-			case $form.find("[type='image']").get(0) != undefined:
-			var $button = $form.find("[type='image']");
-			break;
-			
-			case $form.find("[type='submit']").get(0) != undefined:
-			var $button = $form.find("[type='submit']");
-			break;
-			
-			case $('body').find("[type='submit'][form='"+$form.attr('id')+"']").get(0) != undefined:
-			var $button = $('body').find("[type='submit'][form='"+$form.attr('id')+"']");
-			break;
-				
-			default:
-			var $button = $form;
+		{
+			case $form.data('animation') != undefined && !$form.data('animation'):
+			return;
 			break;
 		}
+		var $button = [];
+		var $found = {};
+		if(($found['images'] = $form.find("[type='image']")).length >= 1)
+			var $button = $.merge($button, $found['images']);
+		
+		if(($found['submits'] = $form.find("[type='submit']")).length >= 1)
+			var $button = $.merge($button, $found['submits']);
+		
+		if(($found['globalSubmits'] = $('body').find("[type='submit'][form='"+$form.attr('id')+"']")).length >= 1)
+			var $button = $.merge($button, $found['globalSubmits']);
+		
+		if(($found['animationTargets'] = this.getObj($form.data('animation-target'))).length >= 1)
+			var $button = $.merge($button, $found['animationTargets']);
+		
+		if($button.length == 0)
+			var $button = $form;
+		
 		switch(after)
 		{
 			case true:
-			self.stopSpinner($button);
+			this.stopSpinner($button);
 			break
 				
 			default:
-			self.startSpinner($button);
+			this.startSpinner($button);
 			break;
 		}
 	}
 	
 	this.startSpinner = function (elements) {
-		elements.each(function (elem, key) {
+		$.each(elements, function (elem, key) {
 			var element = self.getObj(this);
 			var style = $(element).css(['font-size', 'line-height', 'width']);
 			element.data('old-contents', element.html());
@@ -118,9 +124,10 @@ function Nitm ()
 	}
 	
 	this.stopSpinner = function (elements) {
-		elements.each(function (elem, key) {
+		$.each(elements, function (elem, key) {
 			var element = self.getObj(this);
-			element.html(element.data('old-contents'));
+			if(!element.data('animation-start-only'))
+				element.html(element.data('old-contents'));
 			element.removeClass('has-spinner active');
 			element.data('old-contents', '');
 			element.removeAttr('disabled');
@@ -180,6 +187,7 @@ function Nitm ()
 		if(obj instanceof jQuery)
 		{
 			var id = 'alert'+Date.now();
+			var newClass = this.classes.hasOwnProperty(newClass) ? this.classes[newClass] : newClass;
 			var message = $('<div id="'+id+'" class="'+newClass+'">').html(newMessage.toString());
 			obj.append(message).fadeIn();
 			setTimeout(function () {$('#'+id).fadeOut();$('#'+id).remove()}, 10000);
@@ -271,17 +279,17 @@ function Nitm ()
 		{
 			case true:
 			this.getObj(e).each(function () {
+				if($(this).hasClass('hidden') && $(this).is(':hidden')) 
+					$(this).css('display', 'none').removeClass('hidden');
 				$(this).show('slow');
-				if($(this).hasClass('hidden')) 
-					$(this).removeClass('hidden');
 			});
 			break;
 			
 			default:
 			this.getObj(e).each(function () {
+				if($(this).hasClass('hidden') && $(this).is(':hidden')) 
+					$(this).css('display', 'none').removeClass('hidden');
 				$(this).slideToggle('slow');
-				if($(this).hasClass('hidden')) 
-					$(this).toggleClass('hidden');
 			});
 			break;
 		}
@@ -480,7 +488,7 @@ function Nitm ()
 		switch(typeof(newElem))
 		{
 			case 'object':
-			var addTo = self.getObj(addToElem);
+			var addTo = this.getObj(addToElem);
 			var scrollToPos = 0;
 			switch(format)
 			{
@@ -510,23 +518,23 @@ function Nitm ()
 					switch(1)
 					{
 						case 1:
-							switch(addTo.find(':first-child').attr('id'))
-							{
-								case 'noreplies':
-									addTo.find(':first-child').remove();
-									break;
-							}
-							newElement.appendTo(addTo);
-							addTo.hide().slideDown('fast').effect('pulsate', {times:1}, 150);
-							break;
+						switch(addTo.find(':first-child').attr('id'))
+						{
+							case 'noreplies':
+								addTo.find(':first-child').remove();
+								break;
+						}
+						newElement.appendTo(addTo);
+						newElement.hide();
+						break;
 					}
-					self.animateScroll(scrollToPos, addTo);
+					this.animateScroll(scrollToPos, addTo);
 				}catch(error){}
 			} else if(newElem.replace === true) {
 				try 
 				{
 					addTo.replaceWith(data).effect('pulsate', {times:1}, 150);
-					//self.animateScroll(scrollToPos, addTo);
+					//this.animateScroll(scrollToPos, addTo);
 				}catch(error){}
 			} else {
 				try 
@@ -534,35 +542,37 @@ function Nitm ()
 					switch(addTo.children().length)
 					{
 						case 0:
-							addTo.append(newElement).next().hide().slideDown('fast').effect('pulsate', {times:1}, 150);
-							break;
+						addTo.append(newElement).next().hide();
+						break;
 							
 						default:
 						switch(addTo.find(':first-child').attr('id'))
 						{
 							case 'noreplies':
-								addTo.find(':first-child').hide();
-								newElement.prependTo('#'+addTo).hide().slideDown('fast').effect('pulsate', {times:1}, 150);
-								break;
+							addTo.find(':first-child').hide();
+							newElement.prependTo('#'+addTo).hide();
+							break;
 								
 							default:
-								switch(newElem.index)
-								{
-									case -1:
-										newElement.prependTo(addTo).hide().slideDown('fast').effect('pulsate', {times:1}, 150);
-										break;
-										
-									default:
-										addTo.children().eq(newElem.index).after(newElement).next().hide().slideDown('fast').effect('pulsate', {times:2}, 150);
-										break;
-								}
+							switch(newElem.index)
+							{
+								case -1:
+								newElement.prependTo(addTo).hide();
 								break;
+									
+								default:
+								addTo.children().eq(newElem.index).after(newElement).next().hide();
+								break;
+							}
+							break;
 						}
 						break;
 					}
-					self.animateScroll(scrollToPos, addTo);
+					this.animateScroll(scrollToPos, addTo);
 				} catch(error){}
 			}
+			if(newElement != undefined)
+				newElement.slideDown('fast');
 			break;
 		}
 	}
@@ -582,13 +592,13 @@ function Nitm ()
 		var ns = namespace == undefined ? '' : '.'+namespace;
 		var event = 'nitm:'+module+ns;
 		$('body').queue(event, function () {
-			callback();
+			callback(self.module(module));
 			$(this).dequeue(event)
 		});
-		switch(self.hasModule(module, false))
+		switch(this.hasModule(module, false))
 		{
 			case true:
-			self.moduleLoaded(module, namespace);
+			this.moduleLoaded(module, namespace);
 			break;
 		}
 	}
@@ -596,6 +606,7 @@ function Nitm ()
 	this.moduleLoaded = function(module, namespace) {
 		var ns = namespace == undefined ? '' : '.'+namespace;
 		var event = 'nitm:'+module+ns;
+		console.log("Loaded "+module);
 		$('body').dequeue(event);
 	}
 	
@@ -621,14 +632,16 @@ function Nitm ()
 	}
 	
 	this.hasModule = function (name) {
-		var ret_val = self.module(name, false) === false ? false : true;
+		var ret_val = this.module(name, false) === false ? false : true;
 		return ret_val;
 	}
 	
-	this.setModule = function (name, module) {
+	this.setModule = function (module, name) {
+		var name = this.getModuleName(module, name);
 		var hierarchy = name.split(':');
 		var moduleName = hierarchy.pop();
-		var parent = (hierarchy.length == 0) ? self : self.module(hierarchy.join(':'));
+		var parent = (hierarchy.length == 0) ? self : this.module(hierarchy.join(':'));
+		parent = parent==undefined ? self.modules : parent;
 		if(!parent.hasOwnProperty('modules')) {
 			parent['modules'] = {};
 			Object.defineProperty(parent, 'modules', {
@@ -640,57 +653,72 @@ function Nitm ()
 			'value': module,
 			'enumerable': true
 		});
-		self.moduleLoaded(name);
+		this.moduleLoaded(name);
 	}
 	
 	this.setCurrent = function (index) {
 		if(index != undefined) {
-			self.current = index;
+			this.current = index;
 		}
 	}
 	
-	this.initModule = function (name, object) {
+	this.getModuleName = function (module, name) {
+		if(name == undefined && (typeof module == 'object'))
+			if(module.hasOwnProperty('id'))
+				var name = module.id
+			else
+				var name = Date.now();
+		return name;
+	}
+	
+	this.initModule = function (object, name, defaults) {
+		var name = this.getModuleName(object, name);
 		switch(typeof object == 'object') {
 			case true:
-			switch(self.hasModule(name, false))
+			switch(this.hasModule(name, false))
 			{
 				case false:
-				self.current = name;
-				self.setModule(name, object);
-				if(typeof object.init == 'function') {
-					switch(document.readyState)
-					{
-						case 'complete':
-						object.init();
-						break;
-						
-						default:
-						$(document).ready(function () {
-							object.init();
-						});							
-						break;
-					}
+				this.current = name;
+				this.setModule(object, name);
+				switch(document.readyState)
+				{
+					case 'complete':
+					self.initDefaults(name, object, defaults);
+					break;
+					
+					default:
+					$(document).ready(function () {
+						self.initDefaults(name, object, defaults);
+					});							
+					break;
 				}
 				break;
 				
 				default:
-				object.init();
+				try {
+					object.init();
+				} catch(error) {}
 				break;
 			}
 			break;
 		}
-		switch((typeof self.defaultInit == 'object') && (self.selfInit == false))
-		{
-			case true:
-			self.defaultInit.map(function (method, key) {
-				if(typeof self[method] == 'function'){
-					var container = (typeof object == 'object') ? object.views.container : '';
-					self[method](name, container);
-				}
+	}
+		
+	this.initDefaults = function (key, object, defaults, container) {
+		if (object == undefined)
+			object = this.module(key);
+		try {
+			object.init();
+		} catch (error) {}
+		try {
+			var defaults = (typeof defaults == 'object') ? defaults : object.defaultInit;
+			defaults.map(function (method) {
+				try {
+					var containerId = (container== undefined) ? ((typeof object == 'object') ? object.views.containerId : null) : container;
+					object[method](container, key);
+				} catch (error){}
 			});
-			self.selfInit = true;
-			break;
-		}
+		} catch (error) {}
 	}
 }
 

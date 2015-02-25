@@ -1,6 +1,7 @@
 <?php
 namespace nitm\traits;
 
+use yii\helpers\ArrayHelper;
 /**
  * Traits defined for expanding query scopes until yii2 resolves traits issue
  */
@@ -13,6 +14,7 @@ trait Data {
 	protected $is;
 	protected static $_is;
 	protected static $tableName;
+	protected static $_flags = [];
 	
 	/*
 	 * What does this claim to be?
@@ -20,7 +22,8 @@ trait Data {
 	public function isWhat()
 	{
 		$purify = function ($value) {
-			 return strtolower(implode('-', preg_split('/(?=[A-Z])/', array_pop(explode('\\', $value)), -1, PREG_SPLIT_NO_EMPTY)));
+			$stack = explode('\\', $value);
+			return strtolower(implode('-', preg_split('/(?=[A-Z])/', array_pop($stack), -1, PREG_SPLIT_NO_EMPTY)));
 		};
 		switch(debug_backtrace(false, 1)[0]['type'])
 		{
@@ -39,14 +42,6 @@ trait Data {
 		}
 	}
 	
-	public function beforeSaveEvent($event)
-	{
-	}
-	
-	public function afterSaveEvent($event)
-	{
-	}
-	
 	/**
 	 * Get the unique ID of this object
 	 * @return string|int
@@ -54,7 +49,7 @@ trait Data {
 	public function getId()
 	{
 		$key = $this->primaryKey();
-		return $this->$key[0];
+		return (int)(string)$this->$key[0];
 	}
 	
 	/*
@@ -62,9 +57,9 @@ trait Data {
 	 * @param string $name
 	 * @return string
 	 */
-	public static function properName($value)
+	public static function properName($value=null)
 	{
-		$ret_val = empty($value) ?  '' : preg_replace('/[\-\_]/', " ", $value);
+		$ret_val = is_null($value) ?  static::isWhat() : preg_replace('/[\-\_]/', " ", $value);
 		return implode(' ', array_map('ucfirst', explode(' ', $ret_val)));
 	}
 	
@@ -73,9 +68,41 @@ trait Data {
 	 * @param string $name
 	 * @return string
 	 */
-	public static function properClassName($value)
+	public static function properClassName($value=null)
 	{
-		return implode('', explode(' ', static::properName($value)));
+		$ret_val = is_null($value) ?  static::className() : preg_replace('/[\-\_]/', " ", $value);
+		return implode('', array_map('ucfirst', explode(' ', static::properName($ret_val))));
+	}
+	
+	public static function getNamespace()
+	{
+		return (new \ReflectionClass(static::className()))->getNamespaceName();
+	}
+	
+	public function flagId($flag)
+	{
+		if(isset($this) && $this instanceof \nitm\models\Data)
+			return self::getNamespace().'\\'.$this->getId();
+		else
+			return self::getNamespace().'\\';
+	}
+	
+	/**
+	 * Some support for setting custom flags at runtime
+	 */	
+	public function setFlag($flag, $value)
+	{
+		self::$_flags[self::flagId($flag)] = $value;
+	}
+	
+	public function getFlag($flag)
+	{
+		return ArrayHelper::getValue(self::$_flags, self::flagId($flag), null);
+	}
+	
+	public static function unsetFlag($flag)
+	{
+		return ArrayHelper::remove(self::$_flags, self::flagId($flag), null);
 	}
 	
 	public function addWith($with)

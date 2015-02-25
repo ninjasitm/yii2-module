@@ -3,17 +3,17 @@
 namespace nitm\controllers;
 
 use Yii;
+use yii\helpers\ArrayHelper;
 use nitm\helpers\Helper;
 use nitm\helpers\Session;
 use nitm\models\Configer;
 use nitm\helpers\Response;
 use nitm\interfaces\DefaultControllerInterface;
 
-class ConfigurationController extends DefaultController implements DefaultControllerInterface
+class ConfigurationController extends DefaultController
 {	
 	public function init()
 	{
-		$this->addJs('admin', true);
 		parent::init();
 		$this->model = new Configer();
 	}
@@ -48,7 +48,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 		return array_replace_recursive(parent::behaviors(), $behaviors);
 	}
 	
-	public static function has()
+	public static function assets()
 	{
 		return [
 			'configuration'
@@ -57,6 +57,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 	
 	function beforeAction($action)
 	{
+		$beforeAction = parent::beforeAction($action);
 		switch(isset($_GET['engine']))
 		{
 			case true:
@@ -81,22 +82,22 @@ class ConfigurationController extends DefaultController implements DefaultContro
 		$container = Session::getVal($dm.'.current.config');
 		$engine = Session::getVal($dm.'.current.engine');
 		//set the engine
-		$this->model->engine = empty($this->model->engine) ? (empty($engine) ? \Yii::$app->getModule('nitm')->configOptions['engine'] : $engine) : $this->model->engine;
+		$this->model->engine = !$this->model->engine ? (!$engine ? \Yii::$app->getModule('nitm')->config->engine : $engine) : $this->model->engine;
+		
 		$this->model->setEngine($this->model->engine);
 		
 		switch($this->model->engine)
 		{
 			case 'file':
-			$this->model->setDir(\Yii::$app->getModule('nitm')->configOptions['dir']);
+			$this->model->setDir(\Yii::$app->getModule('nitm')->config->dir);
 			break;
 		}
 		//determine the correct container
-		$this->model->container = empty($this->model->container) ? (empty($container) ? \Yii::$app->getModule('nitm')->configOptions['container'] : $container) : $this->model->container;
+		$this->model->container = empty($this->model->container) ? (empty($container) ? \Yii::$app->getModule('nitm')->config->container : $container) : $this->model->container;
 		
 		//if we're not requesting a specific section then only load the sections and no values
 		$this->model->prepareConfig($this->model->engine, $this->model->container, $this->model->getValues);
-		parent::beforeAction($action);
-		return true;
+		return $beforeAction;
 	}
 	
 	public function actionIndex()
@@ -159,12 +160,12 @@ class ConfigurationController extends DefaultController implements DefaultContro
 							$this->model->container,
 							null,
 							$this->model->engine);
-					$this->model->config['current']['config'] = Session::getVal($this->model->correctKey($this->model->config['current']['action']['key']));
+					$this->model->config('current.config', Session::getVal($this->model->uriOf($this->model->config('current.action.key'))));
 					$view = [
 						'view' => 'values/value',
 						'data' => [
 							"model" => $this->model,
-							"data" => $this->model->config['current']['action'],
+							"data" => $this->model->config('current.action'),
 							"parent" => $this->model->section
 						]
 					];
@@ -180,7 +181,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 						'view' => 'values/index',
 						'data' => [
 							"model" => $this->model,
-							"data" => $this->model->config['current']['config']
+							"data" => []
 						]
 					];
 					break;
@@ -189,10 +190,10 @@ class ConfigurationController extends DefaultController implements DefaultContro
 			}
 			break;
 		}
-		switch($this->model->config['current']['action']['success'] && \Yii::$app->request->isAjax && (Helper::boolval(@$_REQUEST['getHtml']) === true))
+		switch($this->model->config('current.action.success') && \Yii::$app->request->isAjax && (Helper::boolval(@$_REQUEST['getHtml']) === true))
 		{
 			case true:
-			$this->model->config['current']['action']['data'] = $this->renderAjax($view['view'], $view['data']);
+			$this->model->config('current.action.data', $this->renderAjax($view['view'], $view['data']));
 			break;
 		}
 		return $this->finalAction();
@@ -212,14 +213,14 @@ class ConfigurationController extends DefaultController implements DefaultContro
 			switch($this->model->what)
 			{
 				case 'section':
-				switch(isset($this->model->config['current']['config'][$this->model->section]))
+				switch($this->model->section && !is_null($section = $this->model->config(['current', 'config', $this->model->section])))
 				{
 					case true:
-					$this->model->config['current']['config'] = $this->model->config['current']['config'][$this->model->section];
+					$this->model->config('current.config', (array)$section);
 					break;
 					
 					default:
-					$this->model->config['current']['config'] = null;
+					$this->model->config('current.config', []);
 					break;
 				}
 				$ret_val["success"] = true;
@@ -229,23 +230,23 @@ class ConfigurationController extends DefaultController implements DefaultContro
 					case true:
 					$ret_val['data'] = $this->renderAjax('values/index', [
 						"model" => $this->model,
-						"values" => $this->model->config['current']['config'],
+						"values" => $this->model->config('current.config'),
 						"parent" => $this->model->section
 					]);
 					break;
 				
 					default:
-					$ret_val['data'] = $this->model->config['current']['config'];
+					$ret_val['data'] = $this->model->config('current.config');
 					break;
 				}
 				break;
 			}
 			break;
 		}
-		Response::$viewOptions['args'] = [
-			'content' => $ret_val['data']
-		];
-		$this->model->config['current']['action'] = $ret_val;
+		Response::viewOptions('args', [
+			'content' => ArrayHelper::getValue($ret_val, 'data', '')
+		]);
+		$this->model->config('current.action', $ret_val);
 		return $this->finalAction();
 	}
 	
@@ -276,7 +277,7 @@ class ConfigurationController extends DefaultController implements DefaultContro
 							$this->model->container,
 							null,
 							$this->model->engine);
-					$this->model->config['current']['config'] = Session::getVal($this->model->correctKey($this->model->config['current']['action']['key']));
+					$this->model->config('current.config', Session::getVal($this->model->uriOf($this->model->config('current.action.key'))));
 					break;
 					
 					case 'deleteSection':
@@ -347,19 +348,19 @@ class ConfigurationController extends DefaultController implements DefaultContro
 	protected function finalAction($params=null)
 	{
 		\Yii::$app->getSession()->setFlash(
-			@$this->model->config['current']['action']['class'],
-			$this->model->config['current']['action']['message']
+			@$this->model->config('current.action.class'),
+			$this->model->config('current.action.message')
 		);
 		switch(\Yii::$app->request->isAjax)
 		{
 			//if this is an ajax call then print the result
 			case true:
-			$this->model->config['current']['action']['flash'] = \Yii::$app->getSession()->getFlash(
-			$this->model->config['current']['action']['class'], null, true);
-			Response::$viewOptions['args']['content'] = $this->model->config['current']['action'];
+			$this->model->config('current.action.flash', \Yii::$app->getSession()->getFlash(
+			$this->model->config('current.action.class'), null, true));
+			Response::viewOptions('args.content', $this->model->config('current.action'));
 			$format = Response::formatSpecified() ? $this->getResponseFormat() : 'json';
 			$this->setResponseFormat($format);
-			return $this->renderResponse($this->model->config['current']['action'], null, true);
+			return $this->renderResponse($this->model->config('current.action'), null, true);
 			break;
 			
 			//otherwise we're going back to the index

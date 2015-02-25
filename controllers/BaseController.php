@@ -11,7 +11,7 @@ use nitm\models\Configer;
 
 class BaseController extends Controller
 {
-	use \nitm\traits\Configer, \nitm\traits\Controller;
+	use \nitm\traits\Configer, \nitm\traits\Controller, \nitm\traits\ControllerActions;
 	
 	public $model;
 	public $metaTags = array();
@@ -22,16 +22,28 @@ class BaseController extends Controller
 	const ELEM_TYPE_PARAM = '__elemType';
 	
 	public function behaviors()
-	{ 
-		$behaviors = array(
+	{
+		$behaviors = [
+			'access' => [
+				'class' => \yii\filters\AccessControl::className(),
+				'rules' => [
+					[
+						'actions' => [
+							'filter', 'add-parent', 'remove-parent'
+						],
+						'allow' => true,
+						'roles' => ['@'],
+					],
+				],
+			],
 			'verbs' => [
 				'class' => \yii\filters\VerbFilter::className(),
 				'actions' => [
-					'filter' => ['get', 'post'],
-				]
+					'filter' => ['get', 'post']
+				],
 			],
-		);
-		return $behaviors;
+		];
+		return array_merge(parent::behaviors(), $behaviors);
 	}
 
 	public function init()
@@ -52,7 +64,7 @@ class BaseController extends Controller
 		parent::init();
 	}
 	
-	public static function has()
+	public static function assets()
 	{
 		return [
 		];
@@ -68,18 +80,30 @@ class BaseController extends Controller
 			return;
 		$this->_cssFiles = is_array($this->_cssFiles) ? $this->_cssFiles : array($this->_cssFiles);
 		$this->_cssFiles[] = $this->id;
+		
 		switch(!empty($this->_cssFiles))
 		{
 			case true:
 			foreach($this->_cssFiles as $css)
 			{
-				$file = (is_array($css) ? $css['url'] : '/css/'.$css).'.css';
-				switch(file_exists(\Yii::getAlias(Yii::$app->basePath.'/web/'.$file)))
+				$file = (is_array($css) ? $css['url'] : $css).'.css';
+				$depends = isset($css['depends']) ? $css['depends'] : [];
+				$options = isset($css['options']) ? $css['options'] : [];
+				switch(1)
 				{
-					case true:
-					$depends = isset($css['depends']) ? $css['depends'] : [];
-					$options = isset($css['options']) ? $css['options'] : [];
-					$this->view->registerCssFile($file, $depends, $options);
+					case strpos($file, DIRECTORY_SEPARATOR) !== false:
+					case strpos($file, '@') !== false:
+					$this->publishFile(\Yii::getAlias($file), $options);
+					break;
+					
+					default:
+					$file = Yii::$app->basePath.'/web/css/'.$file;
+					switch(file_exists(\Yii::getAlias($file)))
+					{
+						case true:
+						$this->view->registerCssFile($file, $depends, $options);
+						break;
+					}
 					break;
 				}
 			}
@@ -103,6 +127,7 @@ class BaseController extends Controller
 			$this->_jsFiles[] = array('src' => $this->id, 'position' => \yii\web\View::POS_END);
 			break;
 		}
+		
 		switch(!empty($this->_jsFiles))
 		{
 			case true:
@@ -130,20 +155,26 @@ class BaseController extends Controller
 					break;
 					
 					case file_exists(\Yii::getAlias($js['src'])):
-					echo \Yii::getAlias("@web");
-					$f = pathinfo($js['src']);
-					$asset = new \yii\web\AssetBundle([
-						'sourcePath' => $f['dirname'],
-						'js' => [$f['basename']],
+					$this->publishFile(\Yii::getAlias($js['src']), [
 						'jsOptions' => ["position" => $js['position']]
-					]);
-					$asset->publish($this->view->getAssetManager());
-					$this->view->assetBundles[$f['basename']] = $asset;
+					], 'js');
 					break;
 				}
 			}
 			break;
 		}
+	}
+	
+	protected function publishFile($path, $options=[], $type='css')
+	{
+		$f = pathinfo($path);
+		$defaultOptions = [
+			'sourcePath' => $f['dirname'],
+		];
+		$defaultOptions[$type] = [$f['basename']];
+		$asset = new \yii\web\AssetBundle(array_merge($options, $defaultOptions));
+		$asset->publish($this->view->getAssetManager());
+		$this->view->assetBundles[$f['basename']] = $asset;
 	}
 
 	/*
@@ -186,6 +217,7 @@ class BaseController extends Controller
 				case true:
 				foreach($css as $file)
 				{
+					$file = is_array($file) ? $file : ['url' => $file];
 					$this->_cssFiles[] = $file;
 				}
 				break;

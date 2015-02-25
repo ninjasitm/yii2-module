@@ -78,7 +78,12 @@ class DB extends Query
 		'driver' => 'mysql'
 	];
 	
-	function init($db=NULL, $table=NULL, $db_host=NULL, $db_user=NULL, $db_pass=NULL, $db_driver=NULL)
+	function init()
+	{
+		$this->initParameters();
+	}
+	
+	public function initParameters($db=NULL, $table=NULL, $db_host=NULL, $db_user=NULL, $db_pass=NULL, $db_driver=NULL)
 	{
 		$this->stats['start'] = microtime();
 		//assign variables as needed
@@ -130,8 +135,8 @@ class DB extends Query
 			$this->host = static::getDefaultDbHost();
 			break;
 		}
-		$this->username = ($db_user != NULL) ? $db_user : \Yii::$app->params['components.db']['username'];
-		$this->_password = ($db_pass != NULL) ? $db_pass : \Yii::$app->params['components.db']['password'];
+		$this->username = ($db_user != NULL) ? $db_user : \Yii::$app->db->username;
+		$this->_password = ($db_pass != NULL) ? $db_pass : \Yii::$app->db->password;
 		return true;
 	}
 	
@@ -142,7 +147,7 @@ class DB extends Query
 	 */
 	public static function getDefaultDbHost()
 	{
-		preg_match("/(host=)(.+)([$;])/", \Yii::$app->params['components.db']['dsn'], $matches);
+		preg_match("/(host=)(.+)([$;])/", \Yii::$app->db->dsn, $matches);
 		return $matches[2];
 	}
 	
@@ -153,7 +158,7 @@ class DB extends Query
 	 */
 	public static function getDefaultDbName()
 	{
-		preg_match("/(dbname=)(.+)($|;)/", \Yii::$app->params['components.db']['dsn'], $matches);
+		preg_match("/(dbname=)(.+)($|;)/", \Yii::$app->db->dsn, $matches);
 		return $matches[2];
 	}
 	

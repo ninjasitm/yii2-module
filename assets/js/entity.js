@@ -2,12 +2,21 @@
 
 function NitmEntity () {
 	var self = this;
+	this.id = 'entity';
+	this._activity = {};
 	this.selfInit = false;
 	this.current = '';
+	this.classes = {
+		warning: 'bg-warning',
+		success: 'bg-success',
+		information: 'bg-info',
+		error: 'bg-danger',
+		hidden: 'hidden',
+	};
 	this.forms = {
 		roles: {
 			ajaxSearch: "filter",
-			ajaxForm: 'ajaxForm'
+			ajaxForm: 'ajaxForm',
 		}
 	};
 	
@@ -33,41 +42,19 @@ function NitmEntity () {
 	this.modules = {};
 	this.defaultInit = [
 	];
-	
-	this.init = function (name, object) {
-		$nitm.initModule(name, object);
-		self.setCurrent(name);
+		
+	this.initDefaults = function (container, key) {
+		$nitm.initDefaults((key == undefined ? this.id : key), undefined, undefined, container);
 	}
-	
-	this.initForms = function (containerId, currentIndex) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
-		self.setCurrent(currentIndex);
+		
+	this.initModule = function (object, name) {
 		try {
-			var roles = self.modules[self.current].forms.roles
-		} catch(error) {
-			var roles = self.forms.roles;
-		}
-		$.map(roles, function(role, key) {
-			$nitm.getObj(container).find("form[role~='"+role+"']").map(function() {
-				var $form = $(this);
-				$form.off('submit');
-				$form.on('submit', function (e) {
-					e.preventDefault();
-					try {
-						$data = $(this).data('yiiActiveForm');
-						switch($data.validated)
-						{
-							case true:
-							self.operation(this, null, currentIndex);
-							break;
-						}
-					} catch (error) {
-						self.operation(this, null, currentIndex);
-					}
-					return false;
-				});
-			});
-		});
+			self.setCurrent($nitm.getModuleName(object, name));
+			/**
+			 * Init the defaulfs for the object
+			 */
+			$nitm.initModule(object, name, object.defaultInit);	
+		} catch (error) {console.log(error);};
 	}
 	
 	this.initMetaActions = function (containerId, currentIndex) {
@@ -76,44 +63,23 @@ function NitmEntity () {
 			container.find("[role~='"+v+"']").map(function() {
 				//$(this).off('click');
 				$(this).on('click', function (e) {
+					var $elem = $(this);
 					e.preventDefault();
-					var elem = $(this);
-					switch(true)
-					{
-						case elem.attr('role').indexOf(self.actions.deleteAction) != -1:
-						if(confirm("Are you sure you want to delete this?"))
-							var proceed = true;
-						break;
-						
-						default:
-						var proceed = true;
-						break;
-					}
+					var proceed = true;
+					if($elem.attr('role').indexOf(self.actions.deleteAction) != -1)
+						if(!confirm("Are you sure you want to delete this?"))
+							proceed = false;
+					
 					if(proceed === true)
 					{
-						$nitm.startSpinner(elem);
-						$.post($(this).attr('href'), function (result) { 
-							$nitm.stopSpinner(elem);
-							switch(result.action)
-							{
-								case 'close':
-								case 'disable':
-								self.afterClose(result, currentIndex);
-								break;
-								
-								case 'resolve':
-								case 'complete':
-								self.afterResolve(result, currentIndex);
-								break;
-								
-								case 'duplicate':
-								self.afterDuplicate(result, currentIndex);
-								break;
-								
-								case'delete':
-								self.afterDelete(result, currentIndex, elem);
-								break;
-							}
+						$nitm.startSpinner($elem);
+						var method = $elem.data('method') == 'get' ? 'get' : 'post';
+						$[method]($elem.attr('href'), function (result) { 
+							$nitm.stopSpinner($elem);
+							try {
+								var func = 'after'+$nitm.safeFunctionName(result.action);
+								self[func](result, currentIndex, $elem.get(0));
+							} catch (error) {};
 						}, 'json');
 					}
 				});
@@ -127,17 +93,61 @@ function NitmEntity () {
 			var _form = this;
 			$(this).off('submit');
 			var submitFunction = function (e) {
+				if(self.hasActivity($(e.target).attr('id')))
+					return false;
+				self.updateActivity($(e.target).attr('id'));
 				e.preventDefault();
 				var request = self.operation(_form, function(result, form, xmlHttp) {
 					var replaceId = $(form).data('id');
 					$nitm.notify(result.message, $nitm.classes.info, form);
 					$nitm.getObj(replaceId).replaceWith(result.data);
-					$(form).find(':input').removeAttr('disabled');
 					//history.pushState({}, result.message, xmlHttp.url);
+					self.updateActivity($(e.target).attr('id'));
 				});
 			}
 			$(this).find(':input').on('change', function (e) {submitFunction(e)});
 			$(this).on('submit', function (e) {submitFunction(e)});
+		});
+	}
+	
+	this.updateActivity = function (id) {
+		if(id == undefined)
+			return;
+		if(this.hasActivity(id))
+			delete self._activity[this.activityId(id)];
+		else {
+			self._activity[this.activityId(id)] = true;
+		}
+	}
+	
+	this.hasActivity = function (id) {
+		return (id != undefined) ? self._activity.hasOwnProperty(this.activityId(id)) : false;
+	}
+	
+	this.activityId = function (id) {
+		var $elem = $nitm.getObj(id);
+		return $elem.prop('tagName')+'-'+id;
+	}
+	
+	this.initForms = function (containerId, currentIndex) {
+		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		try {
+			var roles = $nitm.module(currentIndex).forms.roles;
+		} catch(error) {
+			var roles = self.forms.roles;
+		}
+		$.map(roles, function(role, key) {
+			container.find("form[role~='"+role+"']").map(function() {
+				var $form = $(this);
+				$form.off('submit');
+				$form.on('submit', function (e) {
+					e.preventDefault();
+					if(self.hasActivity(this.id))
+						return false;
+					self.updateActivity(this.id);
+					return self.operation(this, null, currentIndex, e);
+				});
+			});
 		});
 	}
 	
@@ -146,7 +156,34 @@ function NitmEntity () {
 		try {
 			event.preventDefault();
 		} catch (error) {};
+		
 		var $form = $(form);
+		var proceed = false;
+		try {
+			var $data = $form.data('yiiActiveForm');
+			$form.yiiActiveForm().afterValidate = function (event, messages) {
+				console.log(messages);
+			}
+			proceed = true;
+			if($data.attributes.length >= 1)
+				if(($data.submitting || !$data.validated) && !$form.data('validated'))
+					$form.one('ajaxComplete.yiiActiveForm', function (ajaxEvent, xhr, settings) {
+						self.operation(form, callback, currentIndex, event);
+					});
+				else
+					proceed = $data.validated;
+			else
+				proceed = true;
+		} catch (error) {
+			proceed = true;
+		}
+	
+		console.log(proceed);
+		
+		if(!proceed)
+			return;
+		
+		$form.data('validated', true);
 		data = $form.serializeArray();
 		data.push({'name':'__format', 'value':'json'});
 		data.push({'name':'getHtml', 'value':true});
@@ -155,6 +192,7 @@ function NitmEntity () {
 		switch(!$(form).attr('action'))
 		{
 			case false:
+			self.toggleInputs(form);
 			$($nitm).trigger('nitm-animate-submit-start', [form]);
 			var request = $nitm.doRequest({
 				url: $(form).attr('action'), 
@@ -168,22 +206,16 @@ function NitmEntity () {
 						
 						default:
 						//if the module already has a method for this action
+						var func = 'after'+$nitm.safeFunctionName(result.action);
 						try {
-							self.modules[self.current]['after'+$nitm.safeFunctionName(result.action)](result, form, currentIndex);
+							$nitm.module(currentIndex)[func](result, currentIndex, form);
 						} catch(error) {
-							if(typeof self['after'+$nitm.safeFunctionName(result.action)] == 'function') {
-							self['after'+$nitm.safeFunctionName(result.action)](result, form, currentIndex);
+							if(typeof self[func] == 'function') {
+							self[func](result, form, currentIndex);
 							} else {
-								switch(result.action)
-								{							
-									case 'complete':
-									self.afterResolve(result, currentIndex);
-									break;
-									
-									case 'disable':
-									self.afterClose(result, currentIndex);
-									break;
-								}
+								try {
+									self[func](result, currentIndex, elem);
+								} catch (error) {};
 							}
 						}
 						break;
@@ -195,24 +227,45 @@ function NitmEntity () {
 				type: $form.attr('method'),
 			});
 			request.done(function () {
+				self.toggleInputs(form, true);
+				self.updateActivity($form.attr('id'));
 				$($nitm).trigger('nitm-animate-submit-stop', [form]);
 			});
 			break;
 		}
+		$form.data('validated', false);
 		return request;
 	}
 	
-	this.afterCreate = function (result, form, currentIndex) {
+	this.toggleInputs = function (form, activating) {
+		$(form).find(':input').each(function (key, elem) {
+			var $elem = $(elem);
+			if(activating === true) {
+				if($elem.data('wasDisabled')) {
+					$elem.removeAttr('disabled').removeClass('disabled').data('was-disabled', false);
+				}
+			}
+			else {
+				if(($elem.attr('disabled') == undefined) && (!$elem.hasClass('disabled'))) {
+					$elem.attr('disabled', true).addClass('disabled').data('wasDisabled', true);
+				}
+			}
+		});
+	}
+	
+	this.afterCreate = function (result, currentIndex, form) {
 		self.setCurrent(currentIndex);
 		if(result.success == true)
 		{
-			$(form).get(0).reset();
+			form.reset();
 			var message = !result.message ? "Success! You can add another or view the newly added one" : result.message;
 			$nitm.notify(message, $nitm.classes.success, form);
 			if(result.data)
 			{
-				$nitm.place({append:false, index:1}, result.data, self.modules[self.current].views.containerId);
-				self.initMetaActions('#'+self.modules[self.current].views.itemId+result.id);
+				var $module = $nitm.module(currentIndex);
+				$nitm.getObj($nitm.module(currentIndex).views.containerId).find('.empty').hide();
+				$nitm.place({append:false, index:0}, result.data, $nitm.module(currentIndex).views.containerId);
+				self.initMetaActions(self.getIds($module.views.itemId, result.id));
 			}
 		}
 		else
@@ -233,8 +286,9 @@ function NitmEntity () {
 				$("[role~='"+self.views.itemExtra+result.id+"']").map(function () {
 					$(this).remove();
 				});
-				//$nitm.getObj('#'+self.modules[self.current].views.itemId+result.id).replaceWith(result.data);
-				self.initMetaActions('#'+self.modules[self.current].views.itemId+result.id);
+				var $module = $nitm.module(currentIndex);
+				//$nitm.getObj(self.getIds($module.views.itemId, result.id)).replaceWith(result.data);
+				self.initMetaActions(self.getIds($module.views.itemId, result.id));
 			}
 		}
 		else
@@ -243,12 +297,14 @@ function NitmEntity () {
 		}
 	}
 	
-	this.afterClose = function (result, currentIndex) {
-		self.setCurrent(currentIndex);
+	this.afterClose= function (result, currentIndex, elem) {
+		return this.afterDisable (result, currentIndex, elem);
+	}
+	
+	this.afterDisable = function (result, currentIndex, elem) {
 		if(result.success)
 		{
-			var containers = $nitm.getObj("[id='"+self.modules[self.current].views.itemId+result.id+"']");
-			containers.each(function(index, element) {
+			self.getItem(elem, result.id).each(function(index, element) {
 				var container = $(element);
 				container.find("[role~='"+self.actions.disabledOnClose+"']").map(function () {
 					switch($(this).css('visbility') == undefined)
@@ -280,18 +336,22 @@ function NitmEntity () {
 			try {
 				$nitm.module('tools').removeParent(elem);
 			} catch (error) {
-				var container = $nitm.getObj(self.modules[self.current].views.itemId+result.id);
-				container.remove();
+				var container = self.getItem(elem, result.id);
+				if(conatiner.length >= 1)
+					container.remove();
 			}
 		}
+	}	
+	
+	this.afterComplete = function (result, currentIndex, elem) {
+		return this.afterResolve(result, currentIndex, elem);
 	}
 	
-	this.afterResolve = function (result, currentIndex) {
+	this.afterResolve = function (result, currentIndex, elem) {
 		self.setCurrent(currentIndex);
 		if(result.success)
 		{
-			var containers = $nitm.getObj("[id='"+self.modules[self.current].views.itemId+result.id+"']");
-			containers.each(function(index, element) {
+			self.getItem(elem, result.id).each(function(index, element) {
 				var container = $(element);
 				container.parent().find("[role~='"+self.views.statusIndicator+result.id+"']").removeClass().addClass(result.class);
 				container.find("[role~='"+self.actions.disabledOnResolve+"']").toggleClass($nitm.hidden, result.data);
@@ -302,12 +362,11 @@ function NitmEntity () {
 		}
 	}
 	
-	this.afterDuplicate = function (result, currentIndex) {
+	this.afterDuplicate = function (result, currentIndex, elem) {
 		self.setCurrent(currentIndex);
 		if(result.success)
 		{
-			var containers = $nitm.getObj("[id='"+self.modules[self.current].views.itemId+result.id+"']");
-			containers.each(function(index, element) {
+			self.getItem(elem, result.id).each(function(index, element) {
 				var container = $(element);
 				container.removeClass().addClass(result.class);
 				var actionElem = container.find("[role~='"+self.actions.duplicateAction+"']");
@@ -317,14 +376,56 @@ function NitmEntity () {
 		}
 	}
 	
+	this.getItem = function (elem, id) {
+		var $module = $nitm.module(self.current);
+		try {
+			var baseName = $module.views.itemId;
+		} catch (error) {
+			var baseName = null;
+		}
+		if(!baseName)
+			return $(elem).parents(".item").first();
+		else
+			return $nitm.getObj(self.getIds(baseName, id))
+	}
+	
+	this.getIds = function (from, ids) {
+		switch(typeof from) {
+			case 'string':
+			case 'number':
+			var from = (typeof from == "number") ? (new Number(from)).toString() : from;
+			var from = (from.indexOf(',') != -1) ? from.split : new Array(from);
+			break;
+		}
+		switch(typeof ids) {
+			case 'string':
+			case 'number':
+			var ids = (typeof ids == "number") ? (new Number(ids)).toString() : ids;
+			var ids = (ids.indexOf(',') != -1) ? ids.split(',') : new Array(ids);
+			break;
+		}
+		if(typeof ids == 'object') {
+			for (var i=0; i < from.length; i++) {
+				if(ids.hasOwnProperty(i))
+					from[i] += ids[i];
+			}
+		}
+		return '#'+from.join(', #');
+	}
+	
 	this.setCurrent = function (currentIndex) {
-		self.current = (currentIndex == undefined) ? self.current : currentIndex.split(':').pop();
+		try {
+			var currentIndex = (typeof currentIndex != 'string') ? this.id : currentIndex;
+			self.current = (currentIndex == undefined) ? self.current : currentIndex.split(':').pop();
+		} catch(error) {
+			console.log(error);
+		}
 	}
 }
 
 $nitm.addOnLoadEvent(function () {
-	$nitm.initModule('entity', new NitmEntity());
-	$nitm.module('entity').initSearch();
+	$nitm.initModule(new NitmEntity());
+	//$nitm.module('entity').initSearch();
 	$(document).on('pjax:send', function (xhr, options) {
 		$(xhr.target).fadeOut('slow');
 	});

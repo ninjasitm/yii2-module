@@ -2,7 +2,7 @@
 
 namespace nitm\controllers;
 
-class HttpResponseController extends \nitm\module\controllers\DefaultController
+class HttpResponseController extends DefaultController
 {
     public function actionIndex()
     {

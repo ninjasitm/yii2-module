@@ -10,9 +10,7 @@ $this->title = "Edit configration parameters";
         <?= \nitm\widgets\alert\Alert::widget(); ?>
 		<div id='configuration-alerts'></div>
         <?php
-            echo $this->render('containers/index',
-                       array("model" => $model)
-                       );
+            echo $this->render('containers/index', ["model" => $model]);
         ?>
         </div>
     </div>
@@ -20,19 +18,17 @@ $this->title = "Edit configration parameters";
 <div class="col-md-9 col-lg-9 col-sm-12 full-height">
 	<div class="configuration-container" id="configuration_container">
             <?php
-                switch(@$model->config['load']['sections'])
+                switch($model->config('load.sections'))
                 {
                     case true:
-                    echo $this->render('sections/index',  array("model" => $model));
+                    echo $this->render('sections/index',  ["model" => $model]);
                     break;
                     
                     default:
                     echo Html::tag('div',
-                            Html::tag('h2',  
-                                @$model->config['messges']['reason']
-                            ),
-                            ['class' => "alert alert-danger"]
-                        );
+						Html::tag('h2',  $model->config('messages.reason')), [
+						'class' => "alert alert-danger"
+					]);
                     break;
                 }
             ?>

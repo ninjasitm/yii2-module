@@ -1,19 +1,15 @@
 <?php
 
-namespace backend\controllers;
+namespace nitm\controllers;
 
-use common\models\User;
-use backend\models\search\User as UserSearch;
-use yii\web\Controller;
+use nitm\models\search\User as UserSearch;
 use yii\web\NotFoundHttpException;
 use yii\web\VerbFilter;
-use nitm\controllers\DefaultController;
 /**
  * UserController implements the CRUD actions for User model.
  */
 class UserController extends DefaultController
 {
-	use \nitm\traits\Widgets;
 
 	public $legend = [
 		'success' => 'Active User',

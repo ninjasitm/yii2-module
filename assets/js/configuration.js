@@ -1,7 +1,10 @@
 
 function Configuration()
-{	
+{
+	NitmEntity.call(this);
+	
 	var self = this;
+	this.id = 'configuration';
 	this.views = {
 		containers: {
 			section: 'sections_container',
@@ -48,15 +51,6 @@ function Configuration()
 	this.defaultInit = [
 		'initChanging',
 	];
-
-	this.init = function (container) {
-		this.defaultInit.map(function (method, key) {
-			if(typeof self[method] == 'function')
-			{
-				self[method](container);
-			}
-		});
-	}
 	
 	//functions
 	this.initChanging = function () {
@@ -159,60 +153,6 @@ function Configuration()
 		});
 	}
 	
-	
-	this.operation = function (form) {
-		/*
-		 * This is to support yii active form validation and prevent multiple submitssions
-		 */
-		/*try {
-			$data = $(form).data('yiiActiveForm');
-			if(!$data.validated)
-				return false;
-		} catch (error) {}*/
-		data = $(form).serializeArray();
-		data.push({'name':'__format', 'value':'json'});
-		data.push({'name':'getHtml', 'value':true});
-		data.push({'name':'do', 'value':true});
-		data.push({'name':'ajax', 'value':true});
-		switch(!$(form).attr('action'))
-		{
-			case false:
-			$($nitm).trigger('nitm-animate-submit-start', [form]);
-			var request = $nitm.doRequest($(form).attr('action'), 
-				data,
-				function (result) {
-					switch(result.action)
-					{
-						case 'get':
-						self.afterGet(result, form);
-						break;
-							
-						case 'update':
-						self.afterUpdate(result, form);
-						break;
-							
-						case 'delete':
-						self.afterDelete(result, form);
-						break;
-							
-						case 'create':
-						case 'undelete':
-						self.afterCreate(result, form);
-						break;
-					}
-				},
-				function () {
-					$nitm.notify('Error Could not perform configuration action. Please try again', $nitm.classes.error, self.views.alerts);
-					//try { self.restore(form);} catch(error) {}
-				}
-			);
-			request.done(function () {
-				$($nitm).trigger('nitm-animate-submit-stop', [form]);
-			});
-			break;
-		}
-	}
-	
 	this.afterGet = function(result) {
 		var newClass = $nitm.classes.warning;
 		if(result.data)
@@ -278,6 +218,7 @@ function Configuration()
 			break;
 			
 			default:
+			console.log(result);
 			$nitm.getObj('#'+self.views.containers.createValue).before($(result.data));
 			self.initDeleting('#'+'value_'+result.unique_id);
 			self.initUpdating('#'+'value_'+result.unique_id);
@@ -487,5 +428,5 @@ String.prototype.stripslashes = function () {
 }
 
 $nitm.addOnLoadEvent(function () {
-	$nitm.initModule('configuration', new Configuration());
+	$nitm.initModule(new Configuration());
 });

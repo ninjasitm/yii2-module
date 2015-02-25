@@ -40,7 +40,7 @@ class Section extends BaseConfiger
             [['name'], 'string'],
 			[['name'], 'filter', 'filter' => 'trim'],
             [['created_at', 'updated_at'], 'safe'],
-            [['name', 'containerid'], 'unique', 'targetAttribute' => ['name'], 'message' => 'This section already exists'],
+            [['name'], 'unique', 'targetAttribute' => ['name', 'containerid'], 'message' => 'This section already exists'],
         ];
     }
 	
@@ -86,10 +86,9 @@ class Section extends BaseConfiger
         return $this->hasMany(Value::className(), ['sectionid' => 'id'])
 		->select([
 			'*',
-			"`name` AS unique_id", 
-			"name AS unique_name", 
-			"(SELECT `name` AS 'section_name'", 
-			"(SELECT `name` FROM `".Container::tableName()."` WHERE id=containerid) AS 'container_name'"
+			"CONCAT((SELECT name FROM `".static::tableName()."` WHERE id=sectionid), '.', name) AS unique_id", 
+			"(SELECT name FROM `".static::tableName()."` WHERE id=sectionid) AS section_name", 
+			"(SELECT name FROM `".Container::tableName()."` WHERE id=containerid) AS container_name"
 		])
 		->orderBy(['name' => SORT_ASC]);
     }

@@ -11,21 +11,21 @@ use nitm\models\Configer;
 
 class DefaultApiController extends Controller
 {
-	use \nitm\traits\Configer, \nitm\traits\Controller;
+	use \nitm\traits\Configer, \nitm\traits\Controller, \nitm\traits\ControllerActions;
 	
 	public $model;
 	
 	public function behaviors()
 	{ 
 		$behaviors = array(
-			'verbs' => [
+			'verbFilter' => [
 				'class' => \yii\filters\VerbFilter::className(),
 				'actions' => [
 					'filter' => ['get', 'post'],
 				]
 			],
 		);
-		return $behaviors;
+		return array_merge(parent::behaviors(), $behaviors);
 	}
 
 	public function init()
@@ -95,7 +95,7 @@ class DefaultApiController extends Controller
 			}
 			break;
 		}
-		echo $this->renderResponse($ret_val, Response::$viewOptions, $partial);
+		return $this->renderResponse($ret_val, Response::$viewOptions, $partial);
 	}
 }
 

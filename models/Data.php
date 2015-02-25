@@ -6,6 +6,7 @@ use Yii;
 use yii\base\Event;
 use yii\db\ActiveRecord;
 use yii\db\ActiveQuery;
+use nitm\helpers\ArrayHelper;
 use ReflectionClass;
 
 /**
@@ -31,11 +32,11 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	\nitm\traits\Data;
 	
 	//public members
+	public $noDbInit = false;
 	public $initLocalConfig = true;
 	public $unique;
 	public $requestModel;
 	public static $initClassConfig = true;
-	public static $settings;
 	public static $active = [
 		'driver' => 'mysql',
 		'db' => [
@@ -61,7 +62,8 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 
 	public function init()
 	{
-		parent::init();
+		if(!$this->noDbInit)
+			parent::init();
 		if((bool)$this->initLocalConfig && (bool)static::$initClassConfig)
 			$this->initConfig(static::isWhat());
 	}
@@ -92,6 +94,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		$has = is_array(static::has()) ? static::has() : [];
 		foreach($has as $name=>$dataProvider)
 		{
+			$name = is_numeric($name) ? $dataProvider : $name;
 			switch($this->hasProperty($name) || $this->hasAttribute($name))
 			{
 				case true:
@@ -164,6 +167,26 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			}
 		}
 		return array_merge(parent::behaviors(), $behaviors);
+	}
+	
+	public function beforeSave($insert)
+	{
+		return parent::beforeSave($insert);
+	}
+	
+	public function afterSave($insert, $attributes)
+	{
+		/**
+		 * Commit the logs after this model is done saving
+		 */
+		$this->commitLog();
+		
+		/**
+		 * If this has parents specified then check and add them accordingly
+		 */
+		if(isset($attributes['parent_ids']))
+			$this->addParentMap();
+		return parent::afterSave($insert, $attributes);
 	}
 	
 	public static function tableName()
@@ -403,17 +426,96 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	
 	/**
 	 * Log a transaction to the logger
-	 * @param strign $table
 	 * @param string $action
-	 * @param strign $message
+	 * @param string $message
+	 * @param int $level
+	 * @param string|null $table
 	 * @param string|null $db
+	 * @param string $category
+	 * @param string $internalCategory
+	 * @param string $collectionName
+	 * @return boolean
 	 */
-	protected function log($table, $action, $message, $db=null)
+	protected static function log($action, $message, $level=1, $options=[])
 	{
-		preg_match("/dbname=([^;]*)/", \Yii::$app->db->connectionString, $matches);
-		$db = ($db == null) ? $matches[1] : $db;
-		$logger = new Logger(null, null, null, Logger::LT_DB, $matches[1], $table);
-		$logger->addTrans($db, $table, $action, $message);
+		if(\Yii::$app->getModule('nitm')->enableLogger) {
+			if(\Yii::$app->getModule('nitm')->canLog($level)) {
+				try {
+					$collectionName = ArrayHelper::remove($options, 'collection_name', 'nitm-log');
+					
+					$options = array_merge([
+						'internal_category' => 'user-activity',
+						'category' => 'Model Activity',
+						'db_name' => static::$active['db']['name'],
+						'table_name' => static::$active['table']['name'],
+						'message' => $message,
+						'level' => $level,
+						'timestamp' => time(), 
+						'action' => $action, 
+					], $options);
+					
+					return \Yii::$app->getModule('nitm')->logger->log($options, $collectionName);
+				} catch (\Exception $e) {}
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * Commit the logs to the database
+	 * @return boolean
+	 */
+	protected static function commitLog()
+	{
+		return \Yii::$app->getModule('nitm')->logger->flush(true);
+	}
+	
+	/**
+	 * Adds the parents for this model
+	 * ParentMap are specieid in the parent_ids attribute
+	 * Parent object belong to the same table
+	 */
+	public function addParentMap($parents=[])
+	{
+		if(count($parents) >= 1)
+		{
+			$attributes = [
+				'remote_type', 'remote_id', 'remote_class', 'remote_table', 
+				'parent_type', 'parent_id', 'parent_class', 'parent_table'
+			];
+			sort($attributes);
+			
+			/**
+			 * Go through the parents and make sure the id mapping is correct
+			 */
+			foreach($parents as $idx=>$parent)
+			{
+				if(!$parent['parent_type'] || !$parent['parent_id'] || !$parent['parent_class'] || !$parent['parent_table'])
+					continue;
+				$parents[$parent['parent_id']] = array_merge([
+					'remote_id' => $this->getId(),
+					'remote_type' => $this->isWhat(),
+					'remote_class' => $this->className(),
+					'remote_table' => $this->tableName(),
+				], $parent);
+				
+				ksort($parents[$parent['parent_id']]);
+				unset($parents[$idx]);
+			}
+			
+			
+			$query = ParentMap::find();
+			foreach($parents as $parent)
+				$query->orWhere($parent);
+				
+			$toAdd = array_diff_key($parents, $query->indexBy('parent_id')->asArray()->all());
+			
+			if(count($toAdd) >= 1)
+				\Yii::$app->db->createCommand()->batchInsert(ParentMap::tableName(), $attributes, $toAdd)->execute();
+		}
+		return isset($toAdd) ? array_map(function ($data) {
+			return $data['remote_id'];
+		}, $toAdd) : false;
 	}
 	
 	/**

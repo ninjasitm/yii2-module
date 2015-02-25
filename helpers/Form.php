@@ -6,11 +6,11 @@ use nitm\helpers\Response;
 use yii\helpers\Html;
 
 /**
- * Form trait which supports teh retrieval of form variables
+ * Form trait which supports the retrieval of form variables
  */
 class Form extends Behavior
 {
-	public static function getVariables($model, $options, $modalOptions=[])
+	public static function getVariables($model, $options=[], $modalOptions=[])
 	{
 		$ret_val = [
 			"success" => false, 
@@ -21,18 +21,18 @@ class Form extends Behavior
 			case true:
 			$attributes = [];
 			//$model->id = @$options['id'];
-			$options['modelOptions'] = (isset($options['modelOptions']) && is_array($options['modelOptions'])) ? $options['modelOptions'] : null;
-			$model->requestModel = new $options['modelClass']($options['modelOptions']);
-			$model->requestModel->id = @$options['id'];
 			switch($model->validate())
 			{
 				case true:
 				$model->setScenario($options['scenario']);
+				$options['modelOptions'] = (isset($options['modelOptions']) && is_array($options['modelOptions'])) ? $options['modelOptions'] : null;
+				$model->requestModel = new $options['modelClass']($options['modelOptions']);
+				$model->requestModel->id = @$options['id'];
 				//this means we found our object
 				switch($options['modelClass'])
 				{
 					case $model->className():
-					switch(isset($options['id']) && !$options['id'])
+					switch(is_null(ArrayHelper::getValue($options, 'id', null)))
 					{
 						/**
 						 * If there's no ID for the given model then use it as is
@@ -88,6 +88,13 @@ class Form extends Behavior
 					$model->setScenario($scenario);
 					$action = isset($options['action']) ? $options['action'] : ($model->getIsNewRecord() ? 'create' : 'update');
 					$formOptions = array_merge([
+						'container' => [
+							'id' => $model->isWhat()."-form".$model->getId().'-container',
+							'class' => implode(' ', [
+								$model->isWhat().'-'.$model->getScenario(),
+								\Yii::$app->request->isAjax ? '' : 'wrapper'
+							])
+						],
 						'action' => "/".$model->isWhat()."/$action".($action == 'create' ? '' : "/".$model->getId()),
 						'options' => [
 							'id' => $model->isWhat()."-form".$model->getId(),
@@ -103,12 +110,12 @@ class Form extends Behavior
 						'class' => $model->isNewRecord ? 'btn btn-success' : 'btn btn-primary',
 						'form' => $formOptions['options']['id'],
 					]);
-					Response::$viewOptions = [
+					Response::viewOptions(null, [
 						"view" => $options['view'],
 						'modalOptions' => static::getModalOptions($modalOptions, $model),
 						'title' => static::getTitle($model, $options['title']),
 						'footer' => $footer
-					];
+					]);
 					
 					/**
 					 * Get data provider information
@@ -120,20 +127,20 @@ class Form extends Behavior
 					]);
 					$ret_val['data'] = static::getDataProvider($model, $dataProviderOptions);
 					
-					Response::$viewOptions["args"] = array_merge([
+					Response::viewOptions("args", array_merge([
 						'scenario' => $scenario,
 						"formOptions" => $formOptions,
 						"model" => $model,
 						'dataProvider' => $ret_val['data'],
 						'action' => $action,
 						'type' => $model->isWhat(),
-					], $options['viewArgs']);
+					], $options['viewArgs']));
 					switch(\Yii::$app->request->isAjax)
 					{
 						case false:
-						Response::$viewOptions['options'] = [
+						Response::viewOptions('options', [
 							'class' => 'wrapper full-width full-height'
-						];
+						]);
 						break;
 					}
 					$ret_val['success'] = true;
@@ -169,9 +176,13 @@ class Form extends Behavior
 		{
 			case true:
 			$object = $model;
-			foreach($options['provider'] as $property)
+			foreach($options['provider'] as $func=>$property)
 			{
-				if($object->hasMethod($property))
+				if(is_callable($property))
+					$object = call_user_func($property, $object);
+				else if(is_object($property))
+					$object = call_user_func([$property, $func], $object);
+				else if(is_object($object) && $object->hasMethod($property))
 					$object = call_user_func_array([$object, $property], isset($options['args']) ? $options['args'] : []);
 				else if(is_object($object) && $object->hasAttribute($property))
 					$object = $object->$property;

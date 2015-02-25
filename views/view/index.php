@@ -1,5 +1,5 @@
 <div class="wrapper">
-	<div class="row">
+	<div class="">
 		<div class="col-lg-12 col-md-12">
 		<?php 
 			switch(isset($content))
@@ -8,7 +8,7 @@
 				throw new \yii\web\NotFoundHttpException('No Data Found', 404);
 				break;
 				
-				default: 
+				default:
 				echo $content;
 				break;
 			}
