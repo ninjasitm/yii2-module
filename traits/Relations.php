@@ -265,7 +265,7 @@ trait Relations {
 		 */
 		return $this->getRelationQuery(static::className(), ['id' => 'parent_id'])
 			->viaTable(ParentMap::tableName(), ['remote_id' => 'id'], function($query) {
-				$query->where(['remote_type' => $this->isWhat()]);
+				$query->where(['remote_class' => $this->className()]);
 				return $query;
 			});
     }
@@ -282,12 +282,12 @@ trait Relations {
     {
 		/**
 		 * parent_id represents the outter part of the query and will matcch to the static::className's id
-		 * This is the parent_id in the PartntMap table
+		 * This is the parent_id in the ParentMap table
 		 * remote_id maps to the current class's id
 		 */
 		return $this->getRelationQuery(static::className(), ['id' => 'parent_id'], ['where' => []], true)
 			->viaTable(ParentMap::tableName(), ['remote_id' => 'id'], function($query) {
-				$query->where(['remote_type' => $this->isWhat()]);
+				$query->where(['remote_class' => $this->className()]);
 				return $query;
 			});
     }

@@ -161,9 +161,6 @@ function NitmEntity () {
 		var proceed = false;
 		try {
 			var $data = $form.data('yiiActiveForm');
-			$form.yiiActiveForm().afterValidate = function (event, messages) {
-				console.log(messages);
-			}
 			proceed = true;
 			if($data.attributes.length >= 1)
 				if(($data.submitting || !$data.validated) && !$form.data('validated'))
@@ -177,8 +174,6 @@ function NitmEntity () {
 		} catch (error) {
 			proceed = true;
 		}
-	
-		console.log(proceed);
 		
 		if(!proceed)
 			return;

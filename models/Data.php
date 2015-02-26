@@ -513,9 +513,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			if(count($toAdd) >= 1)
 				\Yii::$app->db->createCommand()->batchInsert(ParentMap::tableName(), $attributes, $toAdd)->execute();
 		}
-		return isset($toAdd) ? array_map(function ($data) {
-			return $data['remote_id'];
-		}, $toAdd) : false;
+		return isset($toAdd) ? $toAdd : false;
 	}
 	
 	/**
