@@ -145,7 +145,15 @@ function NitmEntity () {
 					if(self.hasActivity(this.id))
 						return false;
 					self.updateActivity(this.id);
-					return self.operation(this, null, currentIndex, e);
+					
+					var $data = $form.data('yiiActiveForm');
+					if($data != undefined)
+						$form.one('ajaxComplete.yiiActiveForm', function (ajaxEvent, xhr, settings) {
+							if($data.validated)
+								self.operation($form.get(0), null, currentIndex, e);
+						});
+					else
+						self.operation($form.get(0), null, currentIndex, e);
 				});
 			});
 		});
@@ -158,27 +166,7 @@ function NitmEntity () {
 		} catch (error) {};
 		
 		var $form = $(form);
-		var proceed = false;
-		try {
-			var $data = $form.data('yiiActiveForm');
-			proceed = true;
-			if($data.attributes.length >= 1)
-				if(($data.submitting || !$data.validated) && !$form.data('validated'))
-					$form.one('ajaxComplete.yiiActiveForm', function (ajaxEvent, xhr, settings) {
-						self.operation(form, callback, currentIndex, event);
-					});
-				else
-					proceed = $data.validated;
-			else
-				proceed = true;
-		} catch (error) {
-			proceed = true;
-		}
 		
-		if(!proceed)
-			return;
-		
-		$form.data('validated', true);
 		data = $form.serializeArray();
 		data.push({'name':'__format', 'value':'json'});
 		data.push({'name':'getHtml', 'value':true});
@@ -206,10 +194,10 @@ function NitmEntity () {
 							$nitm.module(currentIndex)[func](result, currentIndex, form);
 						} catch(error) {
 							if(typeof self[func] == 'function') {
-							self[func](result, form, currentIndex);
+							self[func](result, currentIndex, form);
 							} else {
 								try {
-									self[func](result, currentIndex, elem);
+									self[func](result, currentIndex, form);
 								} catch (error) {};
 							}
 						}
@@ -318,7 +306,10 @@ function NitmEntity () {
 				var actionElem = container.find("[role~='"+self.actions[result.action+'Action']+"']");
 				actionElem.attr('title', result.title);
 				actionElem.find(':first-child').replaceWith(result.actionHtml);
-				var element = container.parent().find("[role~='"+self.views.statusIndicator+result.id+"']");
+				
+				var element = container.find("[role~='"+self.views.statusIndicator+result.id+"']");
+				if(element.get(0) == undefined)
+					var element = $("[role~='"+self.views.statusIndicator+result.id+"']");
 				element.removeClass().addClass(result.class);
 			});
 		}
@@ -348,8 +339,12 @@ function NitmEntity () {
 		{
 			self.getItem(elem, result.id).each(function(index, element) {
 				var container = $(element);
-				container.parent().find("[role~='"+self.views.statusIndicator+result.id+"']").removeClass().addClass(result.class);
 				container.find("[role~='"+self.actions.disabledOnResolve+"']").toggleClass($nitm.hidden, result.data);
+				var element = container.find("[role~='"+self.views.statusIndicator+result.id+"']");
+				if(element.get(0) == undefined)
+					var element = $("[role~='"+self.views.statusIndicator+result.id+"']");
+				element.removeClass().addClass(result.class);
+					
 				var actionElem = container.find("[role~='"+self.actions[result.action+'Action']+"']");
 				actionElem.attr('title', result.title);
 				actionElem.html(result.actionHtml);
@@ -373,15 +368,17 @@ function NitmEntity () {
 	
 	this.getItem = function (elem, id) {
 		var $module = $nitm.module(self.current);
+		var $elem = $(elem);
 		try {
 			var baseName = $module.views.itemId;
 		} catch (error) {
 			var baseName = null;
 		}
+		var parent = ($elem.data('parent') != undefined) ? $elem.data('parent') : '.item';
 		if(!baseName)
-			return $(elem).parents(".item").first();
+			return $(elem).parents(parent).first();
 		else
-			return $nitm.getObj(self.getIds(baseName, id))
+			return $nitm.getObj(self.getIds(baseName, id));
 	}
 	
 	this.getIds = function (from, ids) {

@@ -333,12 +333,12 @@ trait Relations {
 		return RelationsHelper::setCachedRelation($idKey, $many, $modelClass, $relation, $this);
 	}
 	
-	public static function setCachedRelationModel($model, $idKey='id', $relation=null, $many=false)
+	public static function setCachedRelationModel(&$model, $idKey='id', $relation=null, $many=false)
 	{
 		return Cache::setCachedModel(Cache::cacheKey($model, $idKey, $relation, $many), $model);
 	}
 	
-	public static function deleteCachedRelationModel($model, $idKey='id', $relation=null, $many=false)
+	public static function deleteCachedRelationModel(&$model, $idKey='id', $relation=null, $many=false)
 	{
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 		return Cache::deleteCachedModel(Cache::cacheKey($model, $idKey, $relation, $many));

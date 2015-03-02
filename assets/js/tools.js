@@ -68,9 +68,7 @@ function Tools ()
 					else
 						var _callback = function (e) {
 							e.preventDefault();
-							$($nitm).trigger('nitm-animate-submit-start', [_target]);
 							$.when(self.visibility(_target)).done(function () {
-								$($nitm).trigger('nitm-animate-submit-stop', [_target]);
 							});
 						}
 					if($(this).data('run-once'))
@@ -84,6 +82,9 @@ function Tools ()
 	}
 	
 	this.visibility = function (object, removeListener) {
+		
+		$($nitm).trigger('nitm-animate-submit-start', [_target]);
+		
 		var _visSelf = this;
 		var on = $(object).data('on');
 		var getUrl = true;
@@ -116,6 +117,9 @@ function Tools ()
 			});
 			$(object).data('got-remote', true);
 		}
+		
+		$($nitm).trigger('nitm-animate-submit-stop', [object]);
+		
 		$nitm.handleVis($(object).data('id'));
 		return ret_val;
 	}
@@ -193,9 +197,7 @@ function Tools ()
 						case 1:
 						$(_target).one(eventName, function (e) {
 							e.preventDefault();
-							$($nitm).trigger('nitm-animate-submit-start', [_target]);;
 							$.when(self.dynamicValue(_target)).done(function () {
-								$($nitm).trigger('nitm-animate-submit-stop', [_target]);;
 							});
 						});
 						break;
@@ -203,9 +205,7 @@ function Tools ()
 						default:
 						$(_target).on(eventName, function (e) {
 							e.preventDefault();
-							$($nitm).trigger('nitm-animate-submit-start', [_target]);;
 							$.when(self.dynamicValue(_target)).done(function () {
-								$($nitm).trigger('nitm-animate-submit-stop', [_target]);;
 							});
 						});
 						break;
@@ -217,6 +217,9 @@ function Tools ()
 	}
 	
 	this.dynamicValue = function (object) {
+		
+		$($nitm).trigger('nitm-animate-submit-start', [object]);
+		
 		var ret_val = null;
 		var element = !$(object).data('id') ? $nitm.getObj(object) : $nitm.getObj($(object).data('id'));
 		if(element.data('run-once') && (element.data('run-times') >= 1))
@@ -276,6 +279,7 @@ function Tools ()
 			break;
 		}
 		element.data('run-times', 1);
+		$($nitm).trigger('nitm-animate-submit-stop', [object]);;
 		return ret_val; 
 	}
 	

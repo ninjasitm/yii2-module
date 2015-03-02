@@ -17,7 +17,7 @@ class Relations
 	 * @param boolean $many Is this an array of models?
 	 * @param return array|object of class modelClass
 	 */
-	public static function getRelatedRecord($name, $model, $className=null, $options=[], $array=false)
+	public static function getRelatedRecord($name, &$model, $className=null, $options=[], $array=false)
 	{
 		switch(1)
 		{
@@ -36,15 +36,18 @@ class Relations
 			default:
 			if(isset($className) && class_exists((string)$className))
 			{
-				if($model->hasAttribute($name) || $model->hasProperty($name) && (sizeof($options) == 0))
+				if($model->hasAttribute($name) || $model->hasProperty($name) && (count($options) == 0))
 					$attributes = $model->$name;
 				else
 					$attributes = $options;
 				switch($array === true)
 				{
 					case true:
-					$ret_val = array_map(function ($attributes) use ($className) {
-						return new $className($attributes);
+					$ret_val = array_map(function ($properties) use ($className) {
+						$model = new $className();
+						if(is_array($properties))
+							$model->setAttributes($properties);
+						return $model;
 					}, (array)$attributes);
 					break;
 					
@@ -77,7 +80,7 @@ class Relations
 	 * @param return array|object of class modelClass
 	 */
 	
-	public function getCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, $options=[], $model=null)
+	public function getCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, $options=[], &$model=null)
 	{
 		if(isset($this) && is_null($model))
 			$model = $this;
@@ -112,7 +115,7 @@ class Relations
 	 * @param Object $model The model this relation is attached to
 	 * @param return array|object of class modelClass
 	 */
-	public function setCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, $model=null)
+	public function setCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, &$model=null)
 	{
 		if(isset($this) && is_null($model))
 			$model = $this;

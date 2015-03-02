@@ -38,6 +38,18 @@ class DispatcherData
 		return $ret_val;
 	}
 	
+	
+	/**
+	 * Return the value setup in the alerts module
+	 */
+	public static function supportedMethods()
+	{
+		return [
+			'any' => 'Any Method',
+			'email' => 'Email',
+			'mobile' => 'Mobile/SMS'
+		];
+	}
 	public static function filterMethods($value)
 	{
 		$ret_val = [];

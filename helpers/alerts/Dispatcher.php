@@ -46,15 +46,6 @@ class Dispatcher extends \yii\base\Component
 		$this->_data = new DispatcherData;
 	}
 	
-	public static function supportedMethods()
-	{
-		return [
-			'any' => 'Any Method',
-			'email' => 'Email',
-			'mobile' => 'Mobile/SMS'
-		];
-	}
-	
 	protected function initEvents()
 	{
 		$this->on(self::EVENT_PREPARE, [$this, 'prepareAlerts']);
@@ -103,8 +94,6 @@ class Dispatcher extends \yii\base\Component
 		if(!\Yii::$app->getModule('nitm')->enableAlerts)
 			return;
 		if($event->handled)
-			return;
-		if(!$this->_data->criteria('parent_type') || $this->_data->criteria('parent_type') == DispatcherData::UNDEFINED)
 			return;
 		
 		$this->_data->criteria('remote_id', $event->sender->getId());
@@ -189,6 +178,31 @@ class Dispatcher extends \yii\base\Component
 	}
 	
 	/**
+	 * If the user wants to recieve alerts that they send then do so
+	 * @param array $criteria
+	 * @return \yii\db\Query
+	 */
+	public static function findSelf($author_id, array $criteria)
+	{
+		$criteria['user_id'] = $author_id;
+		$criteria['action'] = 'my';
+		$criteria['remote_type'] = [$criteria['remote_type'], 'any'];
+		$criteria['remote_for'] = [$criteria['remote_for'], 'any'];
+		$criteria['priority'] = [$criteria['priority'], 'any'];
+		$remoteWhere = [];
+		if(isset($criteria['remote_id']))
+		{
+			$remoteWhere = ['or', 'remote_id='.$criteria['remote_id'], ' remote_id IS NULL'];
+			unset($criteria['remote_id']);
+		}
+		return Alerts::find()->select('*')
+			->where($criteria)
+			->andWhere($remoteWhere)
+			->indexBy('user_id')
+			->with('user');
+	}
+	
+	/**
 	 * Find alerts for the specific criteia originally provided
 	 * @param array $criteria
 	 * @return \yii\db\Query
@@ -203,7 +217,7 @@ class Dispatcher extends \yii\base\Component
 		$remoteWhere = [];
 		if(isset($criteria['remote_id']))
 		{
-			$remoteWhere = ['or', '`remote_id`='.$criteria['remote_id'], ' `remote_id` IS NULL'];
+			$remoteWhere = ['or', 'remote_id='.$criteria['remote_id'], ' remote_id IS NULL'];
 			unset($criteria['remote_id']);
 		}
 		return Alerts::find()->select('*')
@@ -229,7 +243,7 @@ class Dispatcher extends \yii\base\Component
 		$remoteWhere = [];
 		if(isset($criteria['remote_id']))
 		{
-			$remoteWhere = ['or', '`remote_id`='.$criteria['remote_id'], ' `remote_id` IS NULL'];
+			$remoteWhere = ['or', 'remote_id='.$criteria['remote_id'], ' remote_id IS NULL'];
 			unset($criteria['remote_id']);
 		}
 		return Alerts::find()->select('*')
