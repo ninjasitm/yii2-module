@@ -42,7 +42,8 @@ use nitm\helpers\Icon;
 						'url' => ['preview'], // your url, this is just for demo purposes,
 						'options' => [
 							'accept' => 'text/*',
-							'id' => 'source-import'
+							'id' => 'source-import',
+							'name' => 'raw_data[file]'
 						],
 						'clientOptions' => [
 							'limitMultipleFileUploads' => 2,
@@ -74,9 +75,7 @@ use nitm\helpers\Icon;
 									$activeForm.attr("action")
 								);
 								
-								
 								var validated = $activeForm.yiiActiveForm("data").validated;
-								$activeForm.yiiActiveForm("data").validated = false;
 								return validated && ($activeForm.data("id") != undefined);
 							}'
 						],

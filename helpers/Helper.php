@@ -335,10 +335,11 @@ class Helper extends Model
 			foreach($models as $model)
 			{
 				$ret_val[] = implode($glue, array_map(function ($attribute) use($model, $discardEmpty) {
-					if(is_object($model) && $model->hasMethod($attribute)) {
-						return call_user_func([$model, $attribute], $model);
-					} else if(is_callable($attribute)) {
+					if(is_callable($attribute)) {
 						return call_user_func($attribute, $model);
+					}
+					else if(is_object($model) && $model->hasMethod($attribute)) {
+						return call_user_func([$model, $attribute], $model);
 					} else {
 						return \yii\helpers\ArrayHelper::getValue($model, $attribute, ($discardEmpty ? null : $attribute));
 					}

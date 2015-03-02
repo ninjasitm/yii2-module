@@ -87,7 +87,7 @@ class Form extends Behavior
 					$scenario = isset($options['scenario']) ? $options['scenario'] : ($model->getIsNewRecord() ? 'create' : 'update');
 					$model->setScenario($scenario);
 					$action = isset($options['action']) ? $options['action'] : ($model->getIsNewRecord() ? 'create' : 'update');
-					$formOptions = array_merge([
+					$formOptions = array_replace_recursive([
 						'container' => [
 							'id' => $model->isWhat()."-form".$model->getId().'-container',
 							'class' => implode(' ', [

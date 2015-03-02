@@ -93,7 +93,7 @@ function Import()
 	}
 	
 	this.afterElementImport = function (result, elem) {
-		if(result.success) {
+		if(result.success || result.exists) {
 			var $elem = $(elem);
 			$elem.parents('tr').addClass(this.classes[result.class]);
 			$elem.addClass('disabled');
@@ -119,6 +119,35 @@ function Import()
 		$.post($elem.attr('href'), function(result) {
 			$nitm.stopSpinner($elem);
 			self.afterElementImport(result, $elem.get(0));
+		});
+	}
+	
+	this.importElements = function (e, form){
+		e.preventDefault();
+		var $form = $(form);
+		return self.operation(form, function(result) {
+			if(result.success) {
+				$nitm.notify(result.message, result.class, form);
+			}
+		});
+	}
+	
+	this.importAll = function (e) {
+		e.preventDefault();
+		$($nitm).trigger('nitm-animate-submit-start', [e.target]);
+		$.post($(e.target).data('url'), function (result) {
+			$($nitm).trigger('nitm-animate-submit-stop', [e.target]);
+			$nitm.notify(result.message, result.class, e.target);
+			if(result.percent)
+				if(result.percent < 100)
+					$(e.target).text(result.percent+'% done. Import Next Batch');
+				else {
+					$(e.target).text('Import Complete!').removeClass().addClass('btn btn-success');
+					$(e.target).on('click', function (e) {
+						e.preventDefault();
+						$nitm.notify("Import is already complete!!", "warning", e.target);
+					});
+				}
 		});
 	}
 }

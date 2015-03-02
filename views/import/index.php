@@ -59,7 +59,7 @@ use nitm\helpers\Icon;
 			'label' => '% Imported',
 			'format' => 'html',
 			'value' => function ($model) {
-				return Html::tag('h4', Html::tag('span', round(($model->count/$model->total)*100), ['role' => 'percentComplete'])."%"."<br>".Html::tag('small', $model->count."/".$model->total));
+				return Html::tag('h4', Html::tag('span', $model->percentComplete(), ['role' => 'percentComplete'])."%"."<br>".Html::tag('small', $model->count."/".$model->total));
 			}
 		],
 		'name',

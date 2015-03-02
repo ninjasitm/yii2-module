@@ -21,7 +21,7 @@ use yii\helpers\ArrayHelper;
  */
 class Source extends BaseImported
 {	
-	public $previewImport;
+	public $limit = 100;
 	
 	protected static $_is = 'import';
 	
@@ -93,7 +93,13 @@ class Source extends BaseImported
      */
     public function getElements()
     {
-        return $this->hasMany(Element::className(), ['imported_data_id' => 'id']);
+        return $this->hasMany(Element::className(), ['imported_data_id' => 'id'])
+			->groupBy([
+				'is_imported',
+				'id'
+			])->orderBy([
+				'id' => SORT_ASC,
+			]);
     }
 	
 	public function elements()
@@ -106,7 +112,17 @@ class Source extends BaseImported
      */
     public function getElementsArray()
     {
-        return $this->hasMany(Element::className(), ['imported_data_id' => 'id'])->asArray();
+        $query = $this->hasMany(Element::className(), ['imported_data_id' => 'id'])
+			->groupBy([
+				'is_imported',
+				'id'
+			])->orderBy([
+				'id' => SORT_ASC,
+			])
+			->asArray();
+		if(($where = $this->getFlag('source-where')) != null)
+			$query->where($where);
+		return $query;
     }
 	
 	public function elementsArray()
@@ -198,6 +214,19 @@ class Source extends BaseImported
 		return $asArray ? ArrayHelper::toArray($element) : $element;
 	}
 	
+	public function updateElements($attributes)
+	{		foreach($attributes as $element)
+		{
+			$model = @Element::find()->select('id')->where(['id' => $element['id']])->one();
+			if($model instanceof Element)
+			{
+				$model->setScenario('update');
+				$model->load($attributes);
+				$model->save();
+			}
+		}
+	}
+	
 	public function saveElements($attributes, $asArray=false, $fields=null)
 	{
 		$ret_val = [];
@@ -251,5 +280,13 @@ class Source extends BaseImported
 			}, $attributes)])->asArray()->all());
 		}
 		return $ret_val;
+	}
+	
+	public function percentComplete()
+	{
+		if($this->count <= 0)
+			return 0;
+		else
+			return round(($this->count/$this->total)*100, 2);
 	}
 }

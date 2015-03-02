@@ -38,6 +38,10 @@ class Icon extends \kartik\icons\Icon
 				$icon = ((bool)$value == true) ? 'check-circle' : 'circle';
 				break;
 				
+				case 'approve':
+				$icon = ((bool)$value == true) ? 'thumbs-down' : 'thumbs-up';
+				break;
+				
 				case 'duplicate':
 				$icon = ((bool)$value == true) ?  'flag' : 'flag-o';
 				break;

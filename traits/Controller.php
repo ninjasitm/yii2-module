@@ -70,9 +70,9 @@ use yii\helpers\ArrayHelper;
 			}
 		}
 	}
-	public function getFormVariables($options, $modalOptions=[], $model)
+	public function getFormVariables($model, $options, $modalOptions=[])
 	{
-		return \nitm\helpers\Form::getVariables($options, $modalOptions, $model);
+		return \nitm\helpers\Form::getVariables($model, $options, $modalOptions);
 	}
 	
 	public function getResponseFormat()

@@ -35,8 +35,9 @@ trait Data {
 			default:
 			//Otherwise get the instantiated class value
 			$class = static::className();
-			if(!isset($class::$_is))
+			if(!isset($class::$_is)) {
 				$class::$_is = $purify($class);
+			}
 			return $class::$_is;
 			break;
 		}

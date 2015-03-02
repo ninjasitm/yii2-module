@@ -7,25 +7,12 @@ use yii\helpers\ArrayHelper;
 use nitm\helpers\Icon;
 use nitm\models\imported\Element;
 
-$importSubmit = Html::tag('div', 
-	Html::tag('div', 
-		Html::submitButton('Import Page', ['class' => 'btn btn-primary pull-right'])
-		."&nbsp;&nbsp;".
-		Html::submitButton('Import All', ['role' => 'importAll', 'class' => 'btn btn-warning pull-right']), [
-		'class' => 'col-md-12 col-lg-12'
-	]),[
-		'class' => 'row'
-	]);
-?>
-<div id="elements_preview_form_container">
-
-<?php
 $form = ActiveForm::begin([
-	'action' => '/import/batch/'.$model->getId(),
+	'action' => '/import/elements/',
 	'type' => ActiveForm::TYPE_HORIZONTAL,
-	'enableAjaxValidation' => true,
-	'enableClientValidation' => true,
-	'validateOnSubmit' => true,
+	'enableAjaxValidation' => false,
+	'enableClientValidation' => false,
+	'validateOnSubmit' => false,
 	'options' => [
 		'id' => 'source-import-elements-form',
 		'role' => "importElements"
@@ -33,11 +20,34 @@ $form = ActiveForm::begin([
 
 ]);
 
+$importSubmit = Html::tag('div', 
+	Html::tag('div', 
+		Html::submitButton('Import Page', [
+			'class' => 'btn btn-primary',
+			'onclick' => '$nitm.module("entity:import").importElements(event, "'.$form->options['id'].'");',
+
+		])
+		."&nbsp;&nbsp;".
+		Html::a(($model->percentComplete() == 100 ? '100% complete!' : $model->percentComplete().'% done. Import Next Batch'), '#', [
+			'role' => 'importAll', 
+			'class' => 'btn '.(($model->percentComplete() == 100) ? 'btn-success' : 'btn-info'),
+			'onclick' => '$nitm.module("entity:import").importAll(event);',
+			'data-url' => '/import/import-batch/'.$model->getId()
+		]), [
+		'class' => 'col-md-12 col-lg-12'
+	]),[
+		'class' => 'row'
+	]);
+?>
+<div class="full-height">
+<div id="alert"></div>
+<?php
+
 //We're dealing with data pulled from the DB. Tansform it
 if($dataProvider instanceof \yii\data\ActiveDataProvider)
 	$dataProvider->setModels(array_map(function ($data) use($processor){
 		$rawData = ArrayHelper::remove($data, 'raw_data');
-		$data = $processor->transformFormAttributes(array_merge($data, Element::decode($rawData)));
+		$data = $processor->transformFormAttributes(array_merge(Element::decode($rawData), $data));
 		$data['_id'] = $data['id'];
 		return $data;
 	}, $dataProvider->getModels()));
@@ -61,12 +71,28 @@ echo TabularForm::widget([
     'attributes' => $this->context->getProcessor()->formAttributes(),
     // configure other gridview settings
     'gridSettings'=>[
+		'pjax' => true,
+		'floatHeader' => true,
+		'options' => [
+			'id' => 'elements-preview'
+		],
+		'tableOptions' => [
+			'id' => 'elements-preview-data'
+		],
+		/*'pager' => [
+			'class' => \nitm\widgets\ias\ScrollPager::className(),
+			'overflowContainer' => '#elements-preview-container',
+			'container' => '#elements-preview-data',
+			'item' => ".item",
+			'negativeMargin' => 150,
+			'delay' => 500,
+		],*/
         'panel'=>[
-            'heading'=>'<h3 class="header"></i> Preview Import Data</h3>',
             'type'=>GridView::TYPE_DEFAULT,
-            'before'=> $importSubmit,
-            'footer'=>false,            
-			'after'=>  $importSubmit
+			'after' => Html::tag('div', $importSubmit, [
+				'class' => 'text-right',
+				'style' => 'background-color: #222; padding: 6px; position:absolute; bottom: 0px; right: 20px; z-index: 1040']),
+			'before' => false
         ],
 		'rowOptions' => function ($model) {
 			return [
@@ -94,13 +120,13 @@ echo TabularForm::widget([
 		'urlCreator' => function($action, $array, $key, $index) use($model) {
 			$id = ArrayHelper::getValue($array, 'id', null);
 			$type = is_null($id) ? $model->getId() : 'element';
-			$id = is_null($id) ? $array['_id'] : $id;
+			$id = is_null($id) ? @$array['_id'] : $id;
 			return '/import/'.$action.'/'.$type.'/'.$id;
 		},
 		'options' => [
 			'rowspan' => 3,
 		]
-	],
+	]
 ]);
 
 ActiveForm::end();

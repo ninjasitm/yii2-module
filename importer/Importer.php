@@ -15,6 +15,9 @@ class Importer extends \yii\base\Object
 	
 	//public data
 	public $currentUser;
+	public $batchSize = 10;
+	public $offset = 0;
+	public $limit = 100;
 	
 	private $_types;
 	private $_parsers;

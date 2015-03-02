@@ -96,6 +96,7 @@ class DefaultController extends BaseController
      */
     public function actionIndex($className, $options=[])
     {
+		$view = ArrayHelper::getValue($options, 'view', 'index');
 		$options = array_merge([
 			'params' => \Yii::$app->request->get(),
 			'with' => [], 
@@ -152,7 +153,7 @@ class DefaultController extends BaseController
 		], (array)@$options['viewOptions']);
 		
 		//print_r($dataProvider->query->all());
-        return $this->render('index', array_merge([
+        return $this->render($view, array_merge([
             'dataProvider' => $dataProvider,
             'searchModel' => $searchModel,
 			'model' => $this->model

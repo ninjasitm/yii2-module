@@ -9,9 +9,17 @@ use nitm\models\imported\search\Element as ElementSearch;
 use nitm\helpers\Response;
 use nitm\helpers\Helper;
 use yii\web\UploadedFile;
+use yii\helpers\ArrayHelper;
 
 class ImportController extends \nitm\controllers\DefaultController
 {
+	protected $sourceSelectFields = [
+		'id', 'name', 'author_id', 'created_at', 
+		'type', 'data_type', 'count', 
+		'total', 'source', 'signature', 
+		'completed', 'completed_by', 'completed_at'
+	];
+	
 	private $_importer;
 	
 	public function behaviors()
@@ -21,7 +29,8 @@ class ImportController extends \nitm\controllers\DefaultController
 				'rules' => [
 					[
 						'actions' => [
-							'preview', 'element', 'batch'
+							'preview', 'element', 'elements',
+							'batch', 'import-all', 'import-batch'
 						],
 						'allow' => true,
 						'roles' => ['@'],
@@ -32,7 +41,10 @@ class ImportController extends \nitm\controllers\DefaultController
 				'actions' => [
 					'preview' => ['post'],
 					'element' => ['post'],
+					'elements' => ['post'],
 					'batch' => ['post'],
+					'import-all' => ['post', 'get'],
+					'import-batch' => ['post', 'get']
 				],
 			],
 		];
@@ -102,7 +114,7 @@ class ImportController extends \nitm\controllers\DefaultController
 			'success' => true
 		];
 		$post = \Yii::$app->request->post();
-		$this->model = $this->findModel(Source::className(), $id);
+		$this->model = $this->findModel(Source::className(), $id, [], ['select' => $this->sourceSelectFields]);
 		if(!$this->model)
 			return [
 				'success' => false,
@@ -132,5 +144,185 @@ class ImportController extends \nitm\controllers\DefaultController
 		return $ret_val;
 	}
 	
+	public function actionImportBatch($id)
+	{
+		$this->model = $this->findModel(Source::className(), $id, [], [
+			'select' => $this->sourceSelectFields
+		]);
+		
+		$this->getProcessor()->limit = \yii::$app->getModule('nitm')->importer->limit;
+		$this->getProcessor()->batchSize = \yii::$app->getModule('nitm')->importer->batchSize;
+			
+		return $this->actionImportAll($id, true);
+	}
+	
+	public function actionImportAll($id, $modelFound=false)
+	{
+		$ret_val = [
+			'count' => 0,
+			'processed' => 0,
+			'exists' => 0,
+			'percent' => 0,
+			'message' => "Didn't improt anything :-("
+		];
+		if(!$modelFound) {
+			$this->model = $this->findModel(Source::className(), $id, [], [
+				'select' => $this->sourceSelectFields
+			]);
+			$this->getProcessor()->limit = 1000;
+			$this->getProcessor()->batchSize = \yii::$app->getModule('nitm')->importer->batchSize;
+		}
+			
+		$this->getProcessor()->setJob($this->model);
+		$this->model = null;
+		if($this->getProcessor()->getJOb() instanceof Source)
+		{
+			$result = $this->getProcessor()->batchImport('data');
+			$imported = [];
+			foreach($result as $idx=>$jobElement)
+			{
+				if(ArrayHelper::getValue($jobElement, 'success', false))
+				{
+					$imported[] = ArrayHelper::getValue($jobElement, 'id', $idx);
+					$ret_val['processed']++;
+				}
+				else if(ArrayHelper::getValue($jobElement, 'exists', false)) {
+					$imported[] = ArrayHelper::getValue($jobElement, 'id', $idx);
+					$ret_val['exists']++;
+					$ret_val['processed']++;
+				}
 
+				$ret_val['count']++;
+			}
+			if(count($imported))
+				Element::updateAll(['is_imported' => true], ['id' => $imported]);
+			
+			$ret_val['message'] = "Imported <b>".$ret_val['processed']."</b> out of <b>".$ret_val['count']."</b> elements!";
+			$ret_val['percent'] = $this->getProcessor()->getJob()->percentComplete();
+			if($ret_val['exists'])
+				$ret_val['message'] .= " <b>".$ret_val['exists']."</b> out of <b>".$ret_val['count']."</b> the entires already exist!";
+			if($ret_val['exists'])
+				$ret_val['class'] = 'info';
+			else if($ret_val['processed'] == 0)
+				$ret_val['class'] = 'error';
+			else if($ret_val['processed'] < $ret_val['count'])
+				$ret_val['class'] = 'warning';
+			else
+				$ret_val['class'] = 'success';
+			
+		}
+		$this->setResponseFormat('json');
+		return $ret_val;
+	}
+	
+	protected function actionElements($id)
+	{
+		$elementIds = \Yii::$app->request($post);
+		$this->model = $this->findModel(Source::className(), $id, [], [
+			'select' => $this->sourceSelectFields
+		]);
+		$this->model->setFlag('source-where', ['ids' => $elementIds]);
+		
+		$this->getProcessor()->limit = \yii::$app->getModule('nitm')->importer->limit;
+		$this->getProcessor()->batchSize = \yii::$app->getModule('nitm')->importer->batchSize;
+		$this->getProcessor()->offset = $this->model->getElementsArray()
+			->where([
+				'is_imported' => true
+			])->count();
+			
+		return $this->actionImportAll($id);
+	}
+	
+	public function actionCreate()
+	{
+		/*$this->setResponseFormat('json');
+		$ret_val = [
+			'action' => 'create',
+			'id' => 13,
+			'success' => true,
+			'url' => \Yii::$app->urlManager->createUrl(['/import/preview/13'])
+		];
+		return $ret_val;*/
+		$ret_val = parent::actionCreate();
+		if(isset($ret_val['success']) && $ret_val['success'])
+		{
+			$ret_val['url'] = \Yii::$app->urlManager->createUrl(['/import/preview/'.$this->model->getId()]);
+			$this->getProcessor();
+		}
+		return $ret_val;
+	}
+	
+	public function actionElement($type, $id=null)
+	{
+		$ret_val = ['id' => $id, 'success' => false];
+		switch($type)
+		{
+			case 'element':
+			$model = $this->findModel(Element::className(), $id, ['source']);
+			break;
+			
+			default:
+			$model = array_shift(Element::findFromRaw($type, $id));
+			break;
+		}
+		if($model instanceof Element)
+		{
+			$this->model = $model->source;
+			$this->getProcessor()->setJob($model->source);
+			$this->getProcessor()->prepare([$model]);
+			$this->getProcessor()->import('data');
+			$ret_val = array_shift($this->getProcessor()->import('data'));
+			if($ret_val['success'] || @$ret_val['exists'])
+			{
+				$model->setScenario('import');
+				$model->is_imported = true;
+				$model->save();
+				Source::updateAllCounters(['count' => 1], ['id' => $this->model->getId()]);
+				$ret_val['class'] = 'success';
+				$ret_val['icon'] = \nitm\helpers\Icon::show('thumbs-up', ['class' => 'text-success']);
+			}
+		}
+		$this->setResponseFormat('json');
+		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
+	}
+	
+	public function actionForm($type, $id=null)
+	{
+		switch($type)
+		{
+			case 'update':
+			$this->model = $this->findModel($this->model->className(), $id, ['author'], ['select' => Source::selectFields()]);
+			/*$options = [
+				//'provider' => 'elementsArray'
+				'provider' => ['elementsArray', function ($objects) {
+					return array_map(function ($object) {
+						return $this->getProcessor()->transformFormAttributes($object);
+					}, $objects);
+				}]
+			];*/
+			$options = [];
+			$id = null;
+			break;
+			
+			default:
+			$options = [];
+			break;
+		}
+		$options['formOptions'] = [
+			'options' => [
+				'id' => 'source-import-form'
+			]
+		];
+		$data = parent::actionForm($type, $id, $options, true);
+		$data['args']['dataProvider'] = new \yii\data\ActiveDataProvider([
+			'query' => $data['args']['model']->getElementsArray(),
+			'pagination' => [
+				'defaultPageSize' => 50,
+				'pageSize' => 50
+			]
+		]);
+		$data['args']['processor'] = $this->getProcessor();
+		Response::viewOptions(null, $data);
+		return $this->renderResponse([], Response::viewOptions(), \Yii::$app->request->isAjax);
+	}
 }
