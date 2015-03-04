@@ -11,7 +11,7 @@ use nitm\helpers\Helper;
  */
 class Cache extends Model
 {
-	protected static $cache;
+	public static $cache;
 	private static $_cache = [];
 	
 	public function cacheKey($model, $idKey, $relation=null, $many=false)
@@ -50,6 +50,7 @@ class Cache extends Model
 	{
 		//static::$_cache[$key] = $model;
 		//echo "Setting model for: $key<br>";
+		static::$cache->set($key, $model, $duration);
 	}
 	
 	public static function setModelArray($key, $array, $duration=5000)
@@ -142,7 +143,7 @@ class Cache extends Model
 			default:
 			switch(1)
 			{
-				case !is_null($property) && !is_null($modelClass) && ($sender instanceof \yii\base\Model):
+				case !is_null($property) && !is_null($modelClass):
 				switch($sender->hasProperty($property))
 				{
 					case true:

@@ -110,25 +110,32 @@ class DispatcherData
 		];
 	}
 	
-	public function processEventData($event)
+	public function processEventData($data)
 	{
 		$runtimeModifiable = [
 			'variables',
 			'usersWhere',
 			'reportedAction',
+			'action',
 			'criteria'
 		];
+		
 		foreach($runtimeModifiable as $property)
 		{
 			switch($property)
 			{
 				case 'reportedAction':
-				$this->$property = ArrayHelper::remove($event->data, $property);
+				$this->$property = ArrayHelper::remove($data, $property);
+				break;
+				
+				case 'action':
+				if($this->reportedAction)
+					$this->reportedAction = $this->$property;
 				break;
 				
 				default:
-				$params = ArrayHelper::getValue($event, 'data.'.$property, null);
-				unset($event->data[$property]);
+				$params = ArrayHelper::getValue($data, $property, null);
+				unset($data[$property]);
 				switch($property)
 				{
 					case 'variables':
@@ -143,15 +150,20 @@ class DispatcherData
 		}
 	}
 	
-	public function variables($variables=null)
+	public function variables($key=null, $variables=null)
 	{
-		$key = is_string($variables) ? $variables : null;
-		if(is_string($variables))
-			$variables = null;
-		else if(is_array($variables))
-			$variables = is_array(current($variables)) ? array_pop($variables) : $variables;
+		if(is_string($key) && !is_null($variables))
+			$ret_val =ArrayHelper::setValue($this->_variables, $key, $variables);
+		if(is_string($key) && is_null($variables))
+			$ret_val = ArrayHelper::getValue($this->_variables, $key);
+		else if(is_array($key)) {
+			$this->_variables = array_merge($this->_variables, $key);
+			$ret_val = true;
+		}
+		else
+			$ret_val = $this->_variables;
+		return $ret_val;
 		
-		return ArrayHelper::getOrSetValue($this->_variables, $key, $variables);
 	}
 	
 	public function resetVariables()
@@ -281,14 +293,14 @@ class DispatcherData
 				$default[] = "%status%"; 
 			$default[] = "'%remoteType%'";
 			if($this->criteria('remote_id'))
-				$default[] = 'with id $id%';
+				$default[] = 'with id %id%';
 			$default[] = "was %action%";
 			break;
 		}
 		if(is_array($from))
 		{
 			$view = ArrayHelper::getValue($from, $path, null);
-			if(!is_null($view) && file_exists(\Yii::getAlias($view)))
+			if(!is_null($view) && file_exists(\Yii::getAlias($view).'.php'))
 				$ret_val = [\Yii::$app->mailer->render($view)];
 			else
 				$ret_val = $default;

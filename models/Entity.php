@@ -59,7 +59,8 @@ class Entity extends Data
 	{
 		if(\Yii::$app->hasModule('nitm'))
 		{
-			\Yii::$app->getModule('nitm')->alerts->processAlerts($event, $this->getAlertOptions($event));
+			$event->data = array_merge((array)$event->data, $this->getAlertOptions($event));
+			\Yii::$app->getModule('nitm')->alerts->processAlerts($event);
 		}
 		if(\Yii::$app->hasModule('nitm-search'))
 			\Yii::$app->getModule('nitm-search')->processRecord($event);

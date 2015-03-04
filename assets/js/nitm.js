@@ -714,7 +714,7 @@ function Nitm ()
 			var defaults = (typeof defaults == 'object') ? defaults : object.defaultInit;
 			defaults.map(function (method) {
 				try {
-					var containerId = (container== undefined) ? ((typeof object == 'object') ? object.views.containerId : null) : container;
+					var containerId = (container == undefined) ? ((typeof object == 'object') ? object.views.containerId : null) : container;
 					object[method](container, key);
 				} catch (error){}
 			});

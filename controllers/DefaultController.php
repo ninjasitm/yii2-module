@@ -96,7 +96,6 @@ class DefaultController extends BaseController
      */
     public function actionIndex($className, $options=[])
     {
-		$view = ArrayHelper::getValue($options, 'view', 'index');
 		$options = array_merge([
 			'params' => \Yii::$app->request->get(),
 			'with' => [], 
@@ -153,7 +152,7 @@ class DefaultController extends BaseController
 		], (array)@$options['viewOptions']);
 		
 		//print_r($dataProvider->query->all());
-        return $this->render($view, array_merge([
+        return $this->render('index', array_merge([
             'dataProvider' => $dataProvider,
             'searchModel' => $searchModel,
 			'model' => $this->model
@@ -502,6 +501,10 @@ class DefaultController extends BaseController
 			}
 			$this->model->setAttribute($attributes['attribute'], $this->boolResult);
 			$this->setResponseFormat('json');
+			
+			if(isset($afterAction) && is_callable($afterAction))
+				$afterAction($this->model);
+				
 			$saved = $this->model->save();
 		}
 		

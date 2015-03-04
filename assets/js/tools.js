@@ -83,7 +83,7 @@ function Tools ()
 	
 	this.visibility = function (object, removeListener) {
 		
-		$($nitm).trigger('nitm-animate-submit-start', [_target]);
+		$($nitm).trigger('nitm-animate-submit-start', [object]);
 		
 		var _visSelf = this;
 		var on = $(object).data('on');
@@ -120,8 +120,10 @@ function Tools ()
 		
 		$($nitm).trigger('nitm-animate-submit-stop', [object]);
 		
+		console.log(object);
+		console.log($(object).data('id'));
 		$nitm.handleVis($(object).data('id'));
-		return ret_val;
+		return false;
 	}
 	
 	this.replaceContents = function (result, object, visibility) {

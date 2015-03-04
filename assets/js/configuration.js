@@ -428,5 +428,5 @@ String.prototype.stripslashes = function () {
 }
 
 $nitm.addOnLoadEvent(function () {
-	$nitm.initModule(new Configuration());
+	$nitm.module('entity').initModule(new Configuration());
 });

@@ -16,6 +16,17 @@ class Dispatcher extends \yii\base\Component
 	public $mode;
 	public $useFullnames = true;
 	public $reportedAction;
+	public $defaultMessage = '%user% performed %action% on %id%';
+	public $defaultMobileMessage = '%user% performed %action% on %id%';
+	public $defaultSubject = '%user% performed %action% on %id%';
+	public $matchCriteria = [
+		'remote_for',
+		'remote_id',
+		'remote_type',
+		'action',
+		'priority',
+	];	
+	
 	public static $usersWhere = [];
 	
 	protected static $is = 'alerts';
@@ -68,7 +79,7 @@ class Dispatcher extends \yii\base\Component
 		if($event->handled)
 			return;
 			
-		$this->_data->processEventData($event);
+		$this->_data->processEventData($event->data);
 		$this->_alertStack[$this->_data->getKey($event->sender)] = [
 			'remote_type' => $event->sender->isWhat(),
 			'remote_for' => $for,
@@ -89,7 +100,7 @@ class Dispatcher extends \yii\base\Component
 	 *		]
 	 * ]
 	 */
-	public function processAlerts($event, $options=[])
+	public function processAlerts($event)
 	{
 		if(!\Yii::$app->getModule('nitm')->enableAlerts)
 			return;
@@ -105,8 +116,8 @@ class Dispatcher extends \yii\base\Component
 			{
 				case true:
 				//First check to see if this specific alert exits
-				if(count($options))
-					$this->sendAlerts($options, ArrayHelper::getValue($options, 'owner_id', null));
+				if(count($event->data))
+					$this->sendAlerts($event->data, ArrayHelper::getValue($event->data, 'owner_id', null));
 				$event->handled = true;
 				break;
 				
@@ -124,7 +135,7 @@ class Dispatcher extends \yii\base\Component
 	
 	public function prepare($event)
 	{
-		$this->_data->processEventData($event);
+		$this->_data->processEventData($event->data);
 		$basedOn = array_merge(
 			(array)ArrayHelper::remove($this->_alertStack, $this->_data->getKey($event->sender)), 
 			(array)$event->data
@@ -132,9 +143,10 @@ class Dispatcher extends \yii\base\Component
 		
 		if(is_array($basedOn))
 		{
-			$basedOn['action'] = $event->sender->isNewRecord === true ? 'create' : 'update';
+			$basedOn['action'] = ArrayHelper::getValue($basedOn, 'action', ($event->sender->isNewRecord === true ? 'create' : 'update'));
 			$this->reportedAction = $basedOn['action'].'d';
-			$this->_data->criteria($basedOn);
+			$this->_data->criteria(array_intersect_key($basedOn, array_flip($this->matchCriteria)));
+			$event->data = array_diff_key($basedOn, array_flip($this->matchCriteria));
 			$this->_prepared = true;
 		}
 	}
@@ -152,6 +164,7 @@ class Dispatcher extends \yii\base\Component
 	public function findAlerts($originUserId)
 	{
 		$this->_originUserId = $originUserId;
+		
 		return $this->findSpecific($this->_data->criteria())
 			->union($this->findOwner($this->_originUserId, $this->_data->criteria()))
 			->union($this->findListeners($this->_data->criteria()))
@@ -186,9 +199,9 @@ class Dispatcher extends \yii\base\Component
 	{
 		$criteria['user_id'] = $author_id;
 		$criteria['action'] = 'my';
-		$criteria['remote_type'] = [$criteria['remote_type'], 'any'];
-		$criteria['remote_for'] = [$criteria['remote_for'], 'any'];
-		$criteria['priority'] = [$criteria['priority'], 'any'];
+		$criteria['remote_type'] = array_unique([$criteria['remote_type'], 'any']);
+		$criteria['remote_for'] = array_unique([$criteria['remote_for'], 'any']);
+		$criteria['priority'] = array_unique([$criteria['priority'], 'any']);
 		$remoteWhere = [];
 		if(isset($criteria['remote_id']))
 		{
@@ -211,9 +224,9 @@ class Dispatcher extends \yii\base\Component
 	{
 		$criteria['user_id'] = $author_id;
 		$criteria['action'] .= '_my';
-		$criteria['remote_type'] = [$criteria['remote_type'], 'any'];
-		$criteria['remote_for'] = [$criteria['remote_for'], 'any'];
-		$criteria['priority'] = [$criteria['priority'], 'any'];
+		$criteria['remote_type'] = array_unique([$criteria['remote_type'], 'any']);
+		$criteria['remote_for'] = array_unique([$criteria['remote_for'], 'any']);
+		$criteria['priority'] = array_unique([$criteria['priority'], 'any']);
 		$remoteWhere = [];
 		if(isset($criteria['remote_id']))
 		{
@@ -236,10 +249,10 @@ class Dispatcher extends \yii\base\Component
 	public static function findListeners(array $criteria)
 	{
 		unset($criteria['user_id']);
-		$criteria['remote_type'] = [$criteria['remote_type'], 'any'];
-		$criteria['remote_for'] = [$criteria['remote_for'], 'any'];
-		$criteria['action'] = [$criteria['action'], 'any'];
-		$criteria['priority'] = [$criteria['priority'], 'any'];
+		$criteria['remote_type'] = array_unique([$criteria['remote_type'], 'any']);
+		$criteria['remote_for'] = array_unique([$criteria['remote_for'], 'any']);
+		$criteria['action'] = array_unique([$criteria['action'], 'any']);
+		$criteria['priority'] = array_unique([$criteria['priority'], 'any']);
 		$remoteWhere = [];
 		if(isset($criteria['remote_id']))
 		{
@@ -278,6 +291,7 @@ class Dispatcher extends \yii\base\Component
 	public function sendAlerts($compose, $ownerId)
 	{
 		$alerts = $this->findAlerts($ownerId);
+		
 		$to = [
 			'global' => [],
 			'individual'=> [],
@@ -380,7 +394,7 @@ class Dispatcher extends \yii\base\Component
 			//Send the emails/mobile alerts
 			
 			//Get the subject
-			static::$_subject = $this->_data->extractParam('view', $compose['subject']);
+			static::$_subject = $this->_data->extractParam('view', ArrayHelper::getValue($compose, 'subject', $this->defaultSubject));
 			
 			foreach($types as $type=>$unmappedAddresses)
 			{
@@ -391,17 +405,17 @@ class Dispatcher extends \yii\base\Component
 					foreach($addresses as $name=>$email)
 					{
 						$address = [$name => $email];
-						$this->formatMessage($type, $scope, $compose['message'][$type], $address, current($unmappedAddresses)['user']);
+						$this->formatMessage($type, $scope, ArrayHelper::getValue($compose, 'message.'.$type, $this->defaultMessage), $address, current($unmappedAddresses)['user']);
 						$this->send();
 					}
 					break;
 						
 					default:
-					$this->formatMessage($type, $scope, $compose['message'][$type], array_slice($addresses, 0, 1));
+					$this->formatMessage($type, $scope, ArrayHelper::getValue($compose, 'message.'.$type, $this->defaultMessage), array_slice($addresses, 0, 1));
 					$this->send();
 					break;
 				}
-				$this->addNotification($this->getMobileMessage($compose['message']['mobile']), $unmappedAddresses);
+				$this->addNotification($this->getMobileMessage(ArrayHelper::getValue($compose, 'message.mobile', $this->defaultMobileMessage)), $unmappedAddresses);
 			}
 			break;
 		}
@@ -516,12 +530,12 @@ class Dispatcher extends \yii\base\Component
 		switch(is_array($original))
 		{
 			case true:
-			$original = $this->_data->extractParam('view', $original);
+			$original = $this->_data->extractParam('view', $original, 'mobile');
 			break;
 		}
 		$original = $this->_data->replaceCommon($original);
 		//140 characters to be able to send a single SMS
-		return strip_tags(strlen($original) <= 140 ? $original : substr($original, 0, 136).'...');
+		return strip_tags(strlen($original) <= 140 ? $original : substr($original, 0, 140).'...');
 	}
 	
 	protected function getEmailMessage($original, $user, $scope)

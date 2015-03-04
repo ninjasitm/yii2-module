@@ -53,7 +53,14 @@ function NitmEntity () {
 			/**
 			 * Init the defaulfs for the object
 			 */
-			$nitm.initModule(object, name, object.defaultInit);	
+			['views', 'actions', 'buttons', 'forms'].map(function (property) {
+				try {
+					$.extend(object[property], self[property]);
+				} catch(error) {
+					object[property] = self[property];
+				}
+			});
+			$nitm.initModule(object, name, object.defaultInit);
 		} catch (error) {console.log(error);};
 	}
 	
@@ -76,10 +83,7 @@ function NitmEntity () {
 						var method = $elem.data('method') == 'get' ? 'get' : 'post';
 						$[method]($elem.attr('href'), function (result) { 
 							$nitm.stopSpinner($elem);
-							try {
-								var func = 'after'+$nitm.safeFunctionName(result.action);
-								self[func](result, currentIndex, $elem.get(0));
-							} catch (error) {};
+							self.afterAction(result.action, result, currentIndex, $elem.get(0));
 						}, 'json');
 					}
 				});
@@ -159,6 +163,21 @@ function NitmEntity () {
 		});
 	}
 	
+	this.afterAction = function (action, result, currentIndex, elem) {
+		var func = 'after'+$nitm.safeFunctionName(action);
+		try {
+			$nitm.module(currentIndex)[func](result, currentIndex, elem);
+		} catch(error) {
+			if(typeof self[func] == 'function') {
+			self[func](result, currentIndex, elem);
+			} else {
+				try {
+					self[func](result, currentIndex, elem);
+				} catch (error) {};
+			}
+		}
+	}
+	
 	this.operation = function (form, callback, currentIndex, event) {
 		self.setCurrent(currentIndex);
 		try {
@@ -189,18 +208,7 @@ function NitmEntity () {
 						
 						default:
 						//if the module already has a method for this action
-						var func = 'after'+$nitm.safeFunctionName(result.action);
-						try {
-							$nitm.module(currentIndex)[func](result, currentIndex, form);
-						} catch(error) {
-							if(typeof self[func] == 'function') {
-							self[func](result, currentIndex, form);
-							} else {
-								try {
-									self[func](result, currentIndex, form);
-								} catch (error) {};
-							}
-						}
+						self.afterAction(result.action, result, currentIndex, elem);
 						break;
 					}
 				},
@@ -307,9 +315,7 @@ function NitmEntity () {
 				actionElem.attr('title', result.title);
 				actionElem.find(':first-child').replaceWith(result.actionHtml);
 				
-				var element = container.find("[role~='"+self.views.statusIndicator+result.id+"']");
-				if(element.get(0) == undefined)
-					var element = $("[role~='"+self.views.statusIndicator+result.id+"']");
+				var element = $("[role~='"+self.views.statusIndicator+result.id+"']");
 				element.removeClass().addClass(result.class);
 			});
 		}
@@ -340,9 +346,8 @@ function NitmEntity () {
 			self.getItem(elem, result.id).each(function(index, element) {
 				var container = $(element);
 				container.find("[role~='"+self.actions.disabledOnResolve+"']").toggleClass($nitm.hidden, result.data);
-				var element = container.find("[role~='"+self.views.statusIndicator+result.id+"']");
-				if(element.get(0) == undefined)
-					var element = $("[role~='"+self.views.statusIndicator+result.id+"']");
+				var element = $("[role~='"+self.views.statusIndicator+result.id+"']");
+				console.log(element);
 				element.removeClass().addClass(result.class);
 					
 				var actionElem = container.find("[role~='"+self.actions[result.action+'Action']+"']");
