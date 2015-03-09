@@ -503,15 +503,13 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 				unset($parents[$idx]);
 			}
 			
-			
 			$query = ParentMap::find();
 			foreach($parents as $parent)
 				$query->orWhere($parent);
-				
-			$toAdd = array_diff_key($parents, $query->indexBy('parent_id')->asArray()->all());
 			
+			$toAdd = array_diff_key($parents, $query->indexBy('parent_id')->asArray()->all());
 			if(count($toAdd) >= 1)
-				\Yii::$app->db->createCommand()->batchInsert(ParentMap::tableName(), $attributes, $toAdd)->execute();
+				\Yii::$app->db->createCommand()->batchInsert(ParentMap::tableName(), $attributes, array_map('array_values', $toAdd))->execute();
 		}
 		return isset($toAdd) ? $toAdd : false;
 	}

@@ -220,7 +220,6 @@ class Cache extends Model
 				$ret_val = [];
 			break;
 			
-			default:
 			if(!is_null($property))
 			{
 				switch(1)

@@ -11,6 +11,7 @@ function Configuration()
 			configuration: 'configuration_container',
 			showSection: 'show_section',
 			createValue: 'create_value_container',
+			valueList: 'value-list',
 		},
 		alerts: 'configuration-alerts'
 	};
@@ -75,7 +76,7 @@ function Configuration()
 	this.initDeleting = function (containerId, result) {
 		var containerId = (containerId == undefined) ? 'body' : containerId;
 		var container = $nitm.getObj(containerId);
-		this.forms.confirmThese.map(function (v) {
+		self.forms.confirmThese.map(function (v) {
 			var form = container.find("form[role='"+v+"']");
 			form.off('submit');
 			switch(v)
@@ -122,7 +123,7 @@ function Configuration()
 	this.initUpdating = function (containerId) {
 		var containerId = (containerId == undefined) ? 'body' : containerId;
 		var container = $nitm.getObj(containerId);
-		this.buttons.allowUpdate.map(function (v) {
+		self.buttons.allowUpdate.map(function (v) {
 			var button = container.find("[role='"+v+"']");
 			button.on('click', function (e) {
 				e.preventDefault();
@@ -130,7 +131,7 @@ function Configuration()
 			});
 		});
 		
-		this.blocks.allowUpdate.map(function (v) {
+		self.blocks.allowUpdate.map(function (v) {
 			var block = container.find("[role='"+v+"']");
 			var fn = function (e) {
 				self.update(this);
@@ -143,7 +144,7 @@ function Configuration()
 	this.initCreating = function (containerId) {
 		var containerId = (containerId == undefined) ? 'body' : containerId;
 		var container = $nitm.getObj(containerId);
-		this.forms.allowCreate.map(function (v) {
+		self.forms.allowCreate.map(function (v) {
 			var form = container.find("form[role='"+v+"']");
 			form.off('submit');
 			form.on('submit', function (e) {
@@ -218,8 +219,7 @@ function Configuration()
 			break;
 			
 			default:
-			console.log(result);
-			$nitm.getObj('#'+self.views.containers.createValue).before($(result.data));
+			$nitm.getObj('#'+self.views.containers.valueList).append(result.data[2]);
 			self.initDeleting('#'+'value_'+result.unique_id);
 			self.initUpdating('#'+'value_'+result.unique_id);
 			break;

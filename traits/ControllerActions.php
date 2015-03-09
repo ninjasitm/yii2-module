@@ -26,8 +26,9 @@ trait ControllerActions {
 		$ret_val = false;
 		$model = $this->model->findOne($type);
 		if(is_a($model, $this->model->className())) {
-			$result = $model->addParentMap();
-			if(array_key_exists($id, $result)) {
+			$model->parent_ids = [$id];
+			$result = $model->addParentMap([$id]);
+			if(array_key_exists($id, (array)$result)) {
 				$parent = $result[$id];
 				$model = $parent['parent_class']::findOne($id);
 				if($model->hasAttribute('name'))

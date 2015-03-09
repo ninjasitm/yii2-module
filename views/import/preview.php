@@ -29,10 +29,18 @@ $importSubmit = Html::tag('div',
 		])
 		."&nbsp;&nbsp;".
 		Html::a(($model->percentComplete() == 100 ? '100% complete!' : $model->percentComplete().'% done. Import Next Batch'), '#', [
-			'role' => 'importAll', 
+			'role' => 'importBatch', 
 			'class' => 'btn '.(($model->percentComplete() == 100) ? 'btn-success' : 'btn-info'),
-			'onclick' => '$nitm.module("entity:import").importAll(event);',
+			'onclick' => '$nitm.module("entity:import").importBatch(event);',
 			'data-url' => '/import/import-batch/'.$model->getId()
+		])
+		."&nbsp;&nbsp;".
+		Html::a(($model->percentComplete() == 100 ? '100% complete!' : $model->percentComplete().'% done. Import Remaining'), '#', [
+			'role' => 'importAll', 
+			'class' => 'btn '.(($model->percentComplete() == 100) ? 'btn-success' : 'btn-warning'),
+			'onclick' => '$nitm.module("entity:import").importAll(event);',
+			'data-url' => '/import/import-batch/'.$model->getId(),
+			'data-tooltip' => 'THis is an intensit process. Please wiat for everything to complete'
 		]), [
 		'class' => 'col-md-12 col-lg-12'
 	]),[

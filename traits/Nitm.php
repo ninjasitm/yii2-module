@@ -29,7 +29,10 @@ trait Nitm
 			$text = $this->hasAttribute($text) ? ArrayHelper::getValue($this, $text, $text) : $text;
 
 		$url = is_null($url) ? \Yii::$app->request->url : $url;
-		$urlOptions = array_merge([$url], [$this->formName()."[".$attribute."]" => $this->getAttribute($attribute)]);
+		$urlOptions = array_merge(\Yii::$app->request->queryParams, [
+			$this->formName()."[".$attribute."]" => $this->getAttribute($attribute)
+		]);
+		array_unshift($urlOptions, $url);
 		$htmlOptions = [
 			'href' => \Yii::$app->urlManager->createUrl($urlOptions), 
 			'role' => $this->formName().'Link', 

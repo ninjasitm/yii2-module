@@ -25,11 +25,11 @@ trait Data {
 			$stack = explode('\\', $value);
 			return strtolower(implode('-', preg_split('/(?=[A-Z])/', array_pop($stack), -1, PREG_SPLIT_NO_EMPTY)));
 		};
-		switch(debug_backtrace(false, 1)[0]['type'])
+		switch(ArrayHelper::getValue(current(debug_backtrace(false, 1)), 'type', null))
 		{
 			case '->':
 			//If it's a model then get the instantiated $is value
-			return isset($this->is) ? $this->is : $purify(static::className());
+			return $purify(isset($this->is) ? $this->is : static::className());
 			break;
 			
 			default:
@@ -60,7 +60,7 @@ trait Data {
 	 */
 	public static function properName($value=null)
 	{
-		$ret_val = is_null($value) ?  static::isWhat() : preg_replace('/[\-\_]/', " ", $value);
+		$ret_val = preg_replace('/[\-\_]/', " ", is_null($value) ?  static::isWhat() : $value);
 		return implode(' ', array_map('ucfirst', explode(' ', $ret_val)));
 	}
 	
@@ -118,7 +118,7 @@ trait Data {
      */
     public function getCount($link)
     {
-		$primaryKey = $this->primaryKey()[0];
+		$primaryKey = current($this->primaryKey());
 		$link = is_array($link) ? $link : [$primaryKey => $primaryKey];
 		$tableName = static::tableName();
 		$tableNameAlias = $tableName.'_alias';
@@ -152,22 +152,37 @@ trait Data {
 	 * @param mixed $separator
 	 * @return array
 	 */
-	public function getList($label='name', $separator=' ')
+	public function getList($label='name', $separator=' ', $queryFilters=[])
 	{
 		$ret_val = [];
 		$label = empty($label) ? 'name' : $label;
-		$items = $this->getModels();
+		if(isset($this) && get_class($this) == static::className())
+		{
+			$this->queryFilters = array_merge($this->queryFilters, $queryFilters);
+			$this->queryFilters['limit'] = 100;
+			$items = $this->getModels();
+			$class = static::className();
+		}
+		else {
+			$class = ArrayHelper::remove($queryFilters, 'class', __CLASS__);
+			$query = $class::find()->limit(100);
+			foreach($queryFilters as $option=>$parameters)
+			{
+				call_user_func([$query, $option], $parameters);
+			}
+			$items = $query->all();
+		}
 		switch(empty($items))
 		{
 			case false:
 			foreach($items as $item)
 			{
-				$ret_val[$item->getId()] = static::getLabel($item, $label, $separator);
+				$ret_val[$item['id']] = $class::getLabel($item, $label, $separator);
 			}
 			break;
 			
 			default:
-			$ret_val[] = ["No ".static::isWhat()." found"];
+			$ret_val[] = ["No ".$class::isWhat()." found"];
 			break;
 		}
 		return $ret_val;
@@ -292,5 +307,18 @@ trait Data {
 			break;
 		}
 		return $ret_val;
+	}
+	
+	
+	/**
+	 * Get the parent list
+	 * @param boolean $url Get the url?
+	 * @return string
+	 */	
+	public function getParentList($url=true, $titleAttr='name')
+	{
+		return \nitm\helpers\Helper::concatAttributes($this->parents(), function ($model) use($url, $titleAttr){
+			return \yii\helpers\Html::tag('strong', ($url ? $model->url('id', $titleAttr) : $model->$titleAttr));
+		}, ', ', true);
 	}
 }

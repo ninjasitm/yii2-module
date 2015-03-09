@@ -68,7 +68,7 @@ class BaseImporter extends \yii\base\Model
 		return $this->job;
 	}
 	
-	protected function getImporter()
+	public function getImporter()
 	{
 		return \Yii::$app->getModule('nitm')->importer->getParser($this->job->type);
 	}
@@ -406,7 +406,7 @@ class BaseImporter extends \yii\base\Model
 		}
 	}
 	
-	protected static function saveModel($className, $attributes, $title)
+	protected static function saveModel($className, $attributes, $title=null)
 	{
 		$model = new $className(['scenario' => 'create']);
 		$model->setScenario('create');

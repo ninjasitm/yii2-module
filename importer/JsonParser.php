@@ -16,4 +16,8 @@ use yii\helpers\FileHelper;
  */
 class JsonParser extends BaseParser
 {
+	public function parse($data, $offset = 0, $limit = 150)
+	{
+		return array_slice(json_decode($data, true), $offset, $limit);
+	}
 }

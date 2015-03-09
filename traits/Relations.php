@@ -165,6 +165,7 @@ trait Relations {
 		$className = is_null($className) ? \nitm\widgets\models\Category::className() : $className;
 		$options['select'] = isset($options['select']) ? $options['select'] : ['id', 'parent_ids', 'name', 'slug'];
 		$options['with'] = isset($options['with']) ? $options['select'] : [];
+		$options['orderBy'] = isset($options['orderBy']) ? $options['orderBy'] : ['name' => SORT_DESC];
 		return $this->getRelationQuery($className, $link, $options, $many);
 	}	
 	

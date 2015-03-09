@@ -152,7 +152,7 @@ class DefaultController extends BaseController
 		], (array)@$options['viewOptions']);
 		
 		//print_r($dataProvider->query->all());
-        return $this->render('index', array_merge([
+        return $this->render(ArrayHelper::getValue($options, 'view', 'index'), array_merge([
             'dataProvider' => $dataProvider,
             'searchModel' => $searchModel,
 			'model' => $this->model
@@ -195,9 +195,9 @@ class DefaultController extends BaseController
 		 * Some default values we would like
 		 */
 		Response::viewOptions("view", '@nitm/views/view/index');
-		Response::viewOptions('args', [
+		Response::viewOptions('args', array_merge([
 			'content' => $this->renderAjax($view, array_merge(["model" => $this->model], $args)),
-		]);
+		], ArrayHelper::getValue($options, 'args', [])));
 			
 		if(Response::viewOptions('assets')) {
 			$this->initAssets(Response::viewOptions('assets'), true);
@@ -205,7 +205,7 @@ class DefaultController extends BaseController
 			
 		if(!Response::viewOptions('scripts'))	
 			Response::viewOptions('scripts', new \yii\web\JsExpression("\$nitm.onModuleLoad('entity', function (){\$nitm.module('entity').initForms(null, '".$this->model->isWhat()."').initMetaActions(null, '".$this->model->isWhat()."');})"));
-		
+				
 		Response::viewOptions('title', Response::viewOptions('title') ? 
 \nitm\helpers\Form::getTitle($this->model, ArrayHelper::getValue(Response::viewOptions(), 'title', [])) : '');
 		

@@ -37,14 +37,23 @@ function NitmEntity () {
 	};
 	this.views = {
 		statusIndicator: 'statusIndicator',
-		itemExtra: 'itemExtra'
+		itemExtra: 'itemExtra',
 	};
 	this.modules = {};
 	this.defaultInit = [
 	];
-		
+	
+	this.init = function (container, key) {
+		this.initDefaults(container, key);
+	}
+	
 	this.initDefaults = function (container, key) {
-		$nitm.initDefaults((key == undefined ? this.id : key), undefined, undefined, container);
+		self.defaultInit.map(function (method) {
+			try {
+				var containerId = (container == undefined) ? self.views.containerId : container;
+				self[method](container, key);
+			} catch (error){}
+		});
 	}
 		
 	this.initModule = function (object, name) {
@@ -55,7 +64,7 @@ function NitmEntity () {
 			 */
 			['views', 'actions', 'buttons', 'forms'].map(function (property) {
 				try {
-					$.extend(object[property], self[property]);
+					$.extend(true, object[property], self[property]);
 				} catch(error) {
 					object[property] = self[property];
 				}
@@ -143,20 +152,19 @@ function NitmEntity () {
 		$.map(roles, function(role, key) {
 			container.find("form[role~='"+role+"']").map(function() {
 				var $form = $(this);
-				$form.off('submit');
+				console.log($form.data('yiiActiveForm'));
 				$form.on('submit', function (e) {
-					e.preventDefault();
-					if(self.hasActivity(this.id))
-						return false;
-					self.updateActivity(this.id);
-					
-					var $data = $form.data('yiiActiveForm');
-					if($data != undefined)
-						$form.one('ajaxComplete.yiiActiveForm', function (ajaxEvent, xhr, settings) {
-							if($data.validated)
+					if($form.data('yiiActiveForm') != undefined)
+						$form.on('beforeSubmit', function (event) {
+							evvent.preventDefault();
+							if($form.data('yiiActiveForm').validated)
 								self.operation($form.get(0), null, currentIndex, e);
 						});
 					else
+						e.preventDefault();
+						if(self.hasActivity(this.id))
+							return false;
+						self.updateActivity(this.id);
 						self.operation($form.get(0), null, currentIndex, e);
 				});
 			});
@@ -208,7 +216,7 @@ function NitmEntity () {
 						
 						default:
 						//if the module already has a method for this action
-						self.afterAction(result.action, result, currentIndex, elem);
+						self.afterAction(result.action, result, currentIndex, form);
 						break;
 					}
 				},

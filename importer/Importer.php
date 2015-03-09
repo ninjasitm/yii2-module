@@ -48,21 +48,22 @@ class Importer extends \yii\base\Object
 	{
 		if(isset($this->_parser[$type]))
 			return $this->_parser[$type];
-			
+		
 		switch($type)
 		{
-			case in_array($type, $this->getTypes()):
-			$class = ArrayHelper::getValue($this->getParsers(), $type.'.class', null);
+			case array_key_exists($type, $this->getTypes()):
+			$options = ArrayHelper::getValue($this->getParsers(), $type, []);
+			unset($options['name']);
 			break;
 			
 			default:
-			$class = CsvParser::className();
+			$options = ['class' => CsvParser::className()];
 			break;
 		}
-		if(!class_exists($class))
-			throw new \yii\base\ErrorExcetpion("Couldn't find parser for '$type'");
+		if(!class_exists($options['class']))
+			throw new \yii\base\UnknownClassException("Couldn't find parser ($parser) for '$type'");
 		
-		$this->_parser[$type] = \Yii::createObject(['class' => $class]);
+		$this->_parser[$type] = \Yii::createObject($options);
 		return $this->_parser[$type];
 	}
 	

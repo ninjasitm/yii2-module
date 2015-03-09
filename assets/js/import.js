@@ -132,7 +132,7 @@ function Import()
 		});
 	}
 	
-	this.importAll = function (e) {
+	this.importBatch = function (e) {
 		e.preventDefault();
 		$($nitm).trigger('nitm-animate-submit-start', [e.target]);
 		$.post($(e.target).data('url'), function (result) {
@@ -148,6 +148,25 @@ function Import()
 						$nitm.notify("Import is already complete!!", "warning", e.target);
 					});
 				}
+		});
+	}
+	
+	this.importAll = function (e) {
+		e.preventDefault();
+		$.post($(e.target).data('url'), function (result) {
+			$nitm.notify(result.message, result.class, e.target);
+			if(result.percent && result.percent < 100)
+			{
+				$(e.target).text(result.percent+'% done. Working..');
+				self.importAll(e);
+			}
+			else {
+				$(e.target).text('Import Complete!').removeClass().addClass('btn btn-success');
+				$(e.target).on('click', function (e) {
+					e.preventDefault();
+					$nitm.notify("Import is already complete!!", "warning", e.target);
+				});
+			}
 		});
 	}
 }

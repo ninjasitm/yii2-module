@@ -135,8 +135,36 @@ use nitm\helpers\Icon;
 					'data-source' => 'url'
 				]
 			],
+			[
+				'label' => 'Import From API',
+				'content' => Html::tag('div', "<br>".$form->field($model, 'raw_data[api]')->textarea([
+					'placeholder' => "Enter options for the API"
+				])->label("Options"), [
+					'id' => 'import-from-api',
+					'class' => 'col-md-12 col-lg-12'
+				]),
+				'options' => [
+					'id' => 'import-from-api-container',
+				],
+				'headerOptions' => [
+					'id' => 'import-from-api-tab'
+				],
+				'linkOptions' => [
+					'id' => 'import-from-api-link',
+					'role' => 'importSource',
+					'data-source' => 'api'
+				]
+			],
 		]
 	]);
 ?>
 <div role="previewImport" class="col-lg-12 col-md-12 col-sm-12">
 </div>
+
+<?php if(\Yii::$app->request->isAjax): ?>
+<script type="text/javascript">
+$nitm.onModuleLoad('entity:import', function(module) {
+	module.initDefaults();
+});
+</script>
+<?php endif; ?>

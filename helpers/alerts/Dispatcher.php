@@ -199,9 +199,9 @@ class Dispatcher extends \yii\base\Component
 	{
 		$criteria['user_id'] = $author_id;
 		$criteria['action'] = 'my';
-		$criteria['remote_type'] = array_unique([$criteria['remote_type'], 'any']);
-		$criteria['remote_for'] = array_unique([$criteria['remote_for'], 'any']);
-		$criteria['priority'] = array_unique([$criteria['priority'], 'any']);
+		$criteria['remote_type'] = array_unique([ArrayHelper::getValue($criteria, 'remote_type', 'any'), 'any']);
+		$criteria['remote_for'] = array_unique([ArrayHelper::getValue($criteria, 'remote_for', 'any'), 'any']);
+		$criteria['priority'] = array_unique([ArrayHelper::getValue($criteria, 'priority', 'any'), 'any']);
 		$remoteWhere = [];
 		if(isset($criteria['remote_id']))
 		{
@@ -224,9 +224,9 @@ class Dispatcher extends \yii\base\Component
 	{
 		$criteria['user_id'] = $author_id;
 		$criteria['action'] .= '_my';
-		$criteria['remote_type'] = array_unique([$criteria['remote_type'], 'any']);
-		$criteria['remote_for'] = array_unique([$criteria['remote_for'], 'any']);
-		$criteria['priority'] = array_unique([$criteria['priority'], 'any']);
+		$criteria['remote_type'] = array_unique([ArrayHelper::getValue($criteria, 'remote_type', 'any'), 'any']);
+		$criteria['remote_for'] = array_unique([ArrayHelper::getValue($criteria, 'remote_for', 'any'), 'any']);
+		$criteria['priority'] = array_unique([ArrayHelper::getValue($criteria, 'priority', 'any'), 'any']);
 		$remoteWhere = [];
 		if(isset($criteria['remote_id']))
 		{
@@ -249,10 +249,10 @@ class Dispatcher extends \yii\base\Component
 	public static function findListeners(array $criteria)
 	{
 		unset($criteria['user_id']);
-		$criteria['remote_type'] = array_unique([$criteria['remote_type'], 'any']);
-		$criteria['remote_for'] = array_unique([$criteria['remote_for'], 'any']);
-		$criteria['action'] = array_unique([$criteria['action'], 'any']);
-		$criteria['priority'] = array_unique([$criteria['priority'], 'any']);
+		$criteria['remote_type'] = array_unique([ArrayHelper::getValue($criteria, 'remote_type', 'any'), 'any']);
+		$criteria['remote_for'] = array_unique([ArrayHelper::getValue($criteria, 'remote_for', 'any'), 'any']);
+		$criteria['action'] = array_unique([ArrayHelper::getValue($criteria, 'action', 'any'), 'any']);
+		$criteria['priority'] = array_unique([ArrayHelper::getValue($criteria, 'priority', 'any'), 'any']);
 		$remoteWhere = [];
 		if(isset($criteria['remote_id']))
 		{
@@ -276,11 +276,11 @@ class Dispatcher extends \yii\base\Component
 	 */
 	public static function findGlobal(array $criteria)
 	{
-		$criteria['global'] = 1;
+		$criteria['global'] = true;
 		$criteria['user_id'] = null;
-		$criteria['remote_type'] = [$criteria['remote_type'], 'any'];
-		$criteria['action'] = [$criteria['action'], 'any'];
-		$criteria['priority'] = [$criteria['priority'], 'any'];
+		$criteria['remote_type'] = [ArrayHelper::getValue($criteria, 'remote_type', 'any'), 'any'];
+		$criteria['action'] = [ArrayHelper::getValue($criteria, 'action', 'any'), 'any'];
+		$criteria['priority'] = [ArrayHelper::getValue($criteria, 'priority', 'any'), 'any'];
 		unset($criteria['remote_id']);
 		return Alerts::find()->select('*')
 			->orWhere($criteria)
@@ -307,7 +307,7 @@ class Dispatcher extends \yii\base\Component
 			{
 				switch(1)
 				{
-					case $alert->global == 1:
+					case $alert->global == true:
 					/**
 					 * Only send global emails based on what the user preferrs in their profile. 
 					 * For specific alerts those are based ont he alert settings
@@ -585,19 +585,19 @@ class Dispatcher extends \yii\base\Component
 		switch($event->sender->getScenario())
 		{
 			case 'resolve':
-			$this->reportedAction = $event->sender->resolved == 1 ? 'resolved' : 'un-resolved';
+			$this->reportedAction = $event->sender->resolved == true ? 'resolved' : 'un-resolved';
 			break;
 			
 			case 'complete':
-			$this->reportedAction = $event->sender->completed == 1 ? 'completed' : 'in-completed';
+			$this->reportedAction = $event->sender->completed == true ? 'completed' : 'in-completed';
 			break;
 			
 			case 'close':
-			$this->reportedAction = $event->sender->closed == 1 ? 'closed' : 're-opened';
+			$this->reportedAction = $event->sender->closed == true ? 'closed' : 're-opened';
 			break;
 			
 			case 'disable':
-			$this->reportedAction = $event->sender->disabled == 1 ? 'disabled' : 'enabled';
+			$this->reportedAction = $event->sender->disabled == true ? 'disabled' : 'enabled';
 			break;
 		}
 	}

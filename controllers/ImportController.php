@@ -20,7 +20,7 @@ class ImportController extends \nitm\controllers\DefaultController
 		'completed', 'completed_by', 'completed_at'
 	];
 	
-	private $_importer;
+	protected $_importer;
 	
 	public function behaviors()
 	{
@@ -78,18 +78,7 @@ class ImportController extends \nitm\controllers\DefaultController
 	
 	public function getProcessor() 
 	{
-		if(isset($this->_importer))
-			return $this->_importer;
-		switch($this->model->data_type)
-		{
-			case 'drinks':
-			$this->_importer = new \app\helpers\import\DrinkImporter([
-				'name' => $this->model->name,
-				'job' => $this->model
-			]);
-			break;
-		}
-		return $this->_importer;
+		throw new \yii\base\ErrorException("You need to define procesors for this data");
 	}
 	
 	public static function assets()
@@ -131,6 +120,14 @@ class ImportController extends \nitm\controllers\DefaultController
 			$ret_val['files'] = [
 				array_filter(array_intersect_key(\yii\helpers\ArrayHelper::toArray($file), array_flip(['name', 'size', 'error'])))
 			];
+			break;
+			
+			case 'url':
+			$ret_val['data'] = $this->model->raw_data['url'];
+			break;
+			
+			case 'api':
+			$ret_val['data'] = $this->model->raw_data['api'];
 			break;
 			
 			default:

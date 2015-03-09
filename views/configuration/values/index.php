@@ -5,7 +5,7 @@ use yii\helpers\Html;
 	case true: ?>
 	<?php switch(is_array($values)) :
 		case true: ?>
-		<div class="list-group">
+		<div class="list-group" id='value-list'>
 		<?php
 			foreach($values as $section=>$value)
 			{

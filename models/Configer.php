@@ -617,7 +617,7 @@ class Configer extends Model
 				case 'db':
 				/*
 				 * We ned to use activity states here to determine when to load form the database
-				 */;
+				 */
 				if($force || self::hasNew()) {
 					if($this->section)
 						$ret_val = \yii\helpers\ArrayHelper::getValue($this->section($this->section), 'values');

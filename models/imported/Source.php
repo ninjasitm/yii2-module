@@ -50,8 +50,32 @@ class Source extends BaseImported
             [['name', 'type', 'data_type'], 'required', 'on' => ['create', 'update']],
             [['name', 'type', 'data_type'], 'string'],
 			[['name'], 'unique', 'targetAttribute' => ['name', 'type', 'data_type']],
+			['raw_data', 'validateJson', 'on' => ['create']]
         ]);
     }
+	
+	public function validateJson($attribute, $params)
+	{
+		if($this->type == 'json')
+			if(json_decode($this->$attribute, true) == null)
+				$this->addError($attribute, "You chose a json source but the data isn't valid json");
+				
+		if($this->source == 'api') {
+			if(json_decode($this->$attribute, true) == null)
+				$this->addError($attribute, "You chose an API but the config provided is not valid json");
+		}
+	}
+	
+	public function encode($data=null)
+	{
+		if(!is_null($data))
+			if(!($decoded = json_decode(ArrayHelper::getValue($data, $this->source, '{{}'))) == null)
+				return json_encode($decoded);
+			else
+				return is_string($data) ? $data : $data[$this->source];
+		else
+			return parent::encode($data);
+	}
 	
 	public static function has()
 	{
@@ -189,13 +213,6 @@ class Source extends BaseImported
 			'signature', 'completed', 'completed_by', 
 			'completed_at', 'created_at', 'id'
 		];
-	}
-	
-	public function encode($data=null)
-	{
-		$data = is_null($data) ? $this->raw_data : $data;
-		$this->total = count($data);
-		return parent::encode($data);
 	}
 	
 	public function saveElement($attributes, $asArray=false)
