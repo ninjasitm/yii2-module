@@ -149,6 +149,7 @@ function NitmEntity () {
 		} catch(error) {
 			var roles = self.forms.roles;
 		}
+		console.log(roles);
 		$.map(roles, function(role, key) {
 			container.find("form[role~='"+role+"']").map(function() {
 				var $form = $(this);
@@ -156,7 +157,7 @@ function NitmEntity () {
 				$form.on('submit', function (e) {
 					if($form.data('yiiActiveForm') != undefined)
 						$form.on('beforeSubmit', function (event) {
-							evvent.preventDefault();
+							event.preventDefault();
 							if($form.data('yiiActiveForm').validated)
 								self.operation($form.get(0), null, currentIndex, e);
 						});
