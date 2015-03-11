@@ -231,19 +231,19 @@ class Helper extends Model
 		{
 			case (true === $val):
 			case (1 === $val) || ('1' === $val):
-			case ($val && (strtolower($val) === 'true')):
-			case ($val && (strtolower($val) === 'on')):
-			case ($val && (strtolower($val) === 'yes')):
-			case ($val && (strtolower($val) === 'y')):
+			case (is_string($val) && (strtolower($val) === 'true')):
+			case (is_string($val) && (strtolower($val) === 'on')):
+			case (is_string($val) && (strtolower($val) === 'yes')):
+			case (is_string($val) && (strtolower($val) === 'y')):
 			$ret_val = true;
 			break;
 			
 			case (false === $val):
 			case (0 === $val) || ('0' === $val):
-			case ($val && (strtolower($val) === 'false')):
-			case ($val && (strtolower($val) === 'off')):
-			case ($val && (strtolower($val) === 'no')):
-			case ($val && (strtolower($val) === 'n')):
+			case (is_string($val) && (strtolower($val) === 'false')):
+			case (is_string($val) && (strtolower($val) === 'off')):
+			case (is_string($val) && (strtolower($val) === 'no')):
+			case (is_string($val) && (strtolower($val) === 'n')):
 			$ret_val = false;
 			break;
 		}

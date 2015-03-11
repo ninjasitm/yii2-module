@@ -1,3 +1,4 @@
+
 // JavaScript Document
 
 function NitmEntity () {
@@ -106,16 +107,13 @@ function NitmEntity () {
 			var _form = this;
 			$(this).off('submit');
 			var submitFunction = function (e) {
-				if(self.hasActivity($(e.target).attr('id')))
-					return false;
-				self.updateActivity($(e.target).attr('id'));
 				e.preventDefault();
+				$(_form).data('yiiActiveForm').validated = true;
 				var request = self.operation(_form, function(result, form, xmlHttp) {
 					var replaceId = $(form).data('id');
 					$nitm.notify(result.message, $nitm.classes.info, form);
 					$nitm.getObj(replaceId).replaceWith(result.data);
 					//history.pushState({}, result.message, xmlHttp.url);
-					self.updateActivity($(e.target).attr('id'));
 				});
 			}
 			$(this).find(':input').on('change', function (e) {submitFunction(e)});
@@ -149,24 +147,21 @@ function NitmEntity () {
 		} catch(error) {
 			var roles = self.forms.roles;
 		}
-		console.log(roles);
 		$.map(roles, function(role, key) {
 			container.find("form[role~='"+role+"']").map(function() {
+				console.log(this);
 				var $form = $(this);
-				console.log($form.data('yiiActiveForm'));
 				$form.on('submit', function (e) {
-					if($form.data('yiiActiveForm') != undefined)
-						$form.on('beforeSubmit', function (event) {
-							event.preventDefault();
+					e.preventDefault();
+					if($form.data('yiiActiveForm') != undefined) {
+						$form.one('beforeSubmit', function (event) {
 							if($form.data('yiiActiveForm').validated)
 								self.operation($form.get(0), null, currentIndex, e);
 						});
-					else
-						e.preventDefault();
-						if(self.hasActivity(this.id))
-							return false;
-						self.updateActivity(this.id);
+					}
+					else {
 						self.operation($form.get(0), null, currentIndex, e);
+					}
 				});
 			});
 		});
@@ -188,14 +183,21 @@ function NitmEntity () {
 	}
 	
 	this.operation = function (form, callback, currentIndex, event) {
+		
+		if(self.hasActivity(form.id))
+			return false;
+			
+		self.updateActivity(form.id);
+		
 		self.setCurrent(currentIndex);
+		
 		try {
 			event.preventDefault();
 		} catch (error) {};
 		
 		var $form = $(form);
 		
-		data = $form.serializeArray();
+		var data = $form.serializeArray();
 		data.push({'name':'__format', 'value':'json'});
 		data.push({'name':'getHtml', 'value':true});
 		data.push({'name':'do', 'value':true});

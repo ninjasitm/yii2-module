@@ -227,7 +227,6 @@ trait Relations {
     {
 		$options = [
 			'where' => ['remote_type' => $this->isWhat()],
-			'select' => '*'
 		];
 		return $this->getRelationQuery(ParentMap::className(), ['remote_id' => 'id'], $options);
     }
@@ -244,7 +243,6 @@ trait Relations {
     {
 		$options = [
 			'where' => ['remote_type' => $this->isWhat()],
-			'select' => '*'
 		];
 		return $this->getRelationQuery(ParentMap::className(), ['remote_id' => 'id'], $options, true);
     }
@@ -303,7 +301,7 @@ trait Relations {
 		$className = $this->getRelationClass($className, get_called_class());
 		$callers = debug_backtrace(null, 3);
 		$relation = $callers[2]['function'];
-		$options['select'] = isset($options['select']) ? $options['select'] : '*';
+		$options['select'] = isset($options['select']) ? $options['select'] : null;
 		//Disabled due to Yii framework inability to return statistical relations
 		//if(static::className() != $className)
 			//$ret_val->with(['count', 'newCount']);
