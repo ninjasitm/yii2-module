@@ -1,5 +1,9 @@
 <?php
+
 namespace nitm\traits\relations;
+
+use dektrium\user\models\Profile;
+use nitm\helpers\Cache;
 
 /**
  * Traits defined for expanding active relation scopes until yii2 resolves traits issue
@@ -67,6 +71,88 @@ trait User {
 			'id' => 'user'.uniqid()
 		];
 		return \yii\helpers\Html::tag('a', $text, $htmlOptions);
+	}
+	
+	public function avatarImg($options=[])
+	{
+		return \yii\helpers\Html::img($this->avatar(), $options);
+	}
+	
+	/**
+	 * Get the avatar
+	 * @param mixed $options
+	 * @return string
+	 */
+	public function avatar() 
+	{
+		switch(Cache::cache()->exists('user-avatar'.$this->getId()))
+		{
+			case false:
+			switch($this->hasAttribute('avatar') && !empty($this->avatar))
+			{
+				case true:
+				//Support for old NITM avatar/local avatar
+				$url = $this->avatar;
+				break;
+				
+				//Fallback to dektriuk\User gravatar info
+				default:
+				$profile = $this->profile instanceof Profile ? $this->profile : Profile::find()->where(['user_id' => $this->getId()])->one();
+				switch(!is_null($profile))
+				{
+					case true:
+					switch(1)
+					{
+						case !empty($profile->gravatar_id):
+						$key = $profile->gravatar_id;
+						break;
+						
+						case !empty($profile->gravatar_email):
+						$key = $profile->gravatar_email;
+						break;
+						
+						default:
+						$key = $profile->public_email;
+						break;
+					}
+					break;
+					
+					default:
+					$key = \Yii::$app->user->identity->email;
+					break;
+				}
+				$url = "https://gravatar.com/avatar/$key";
+				break;
+			}
+			Cache::cache()->set('user-avatar'.$this->getId(), urlencode($url), 3600);
+			break;
+			
+			default:
+			$url = urldecode(Cache::cache()->get('user-avatar'.$this->getId()));
+			break;
+		}
+		return $url;
+	}
+
+	
+	/**
+	 * Get the fullname of a user
+	 * @param boolean $withUsername
+	 * @return string
+	 */
+	public function fullName($withUsername=false)
+	{
+		switch(is_object(\yii\helpers\ArrayHelper::getValue($this->getRelatedRecords(), 'profile', null)))
+		{
+			case true:
+			$ret_val = $this->profile->name.($withUsername ? '('.$this->username.')' : '');
+			break;
+			
+			default:
+			$ret_val = '';
+			break;
+		}
+		return $ret_val;
 	}
 }
 ?>

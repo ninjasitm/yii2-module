@@ -577,6 +577,25 @@ function Nitm ()
 		}
 	}
 	
+	this.updateActivity = function (id) {
+		if(id == undefined)
+			return;
+		if(this.hasActivity(id))
+			self.getObj(id).removeData('_nitmToolsActivity');
+		else {
+			self.getObj(id).data('_nitmToolsActivity', true);
+		}
+	}
+	
+	this.hasActivity = function (id) {
+		return (id != undefined) ?( self.getObj(id).data('_nitmToolsActivity') === true) : false;
+	}
+	
+	this.activityId = function (id) {
+		var $elem = self.getObj(id);
+		return $elem.prop('tagName')+'-'+id;
+	}
+	
 	this.safeFunctionName = function (input) {
 		var array = new String(input).split('-');
 		var string = $.map(array, function (value, index) {
@@ -709,6 +728,13 @@ function Nitm ()
 			object = this.module(key);
 		try {
 			object.init();
+		} catch (error) {}
+		try {
+			$.each(defaults, function () {
+				try {
+					object[this](container);
+				} catch (error) {}
+			});
 		} catch (error) {}
 	}
 }

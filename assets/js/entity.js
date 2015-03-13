@@ -4,7 +4,6 @@
 function NitmEntity () {
 	var self = this;
 	this.id = 'entity';
-	this._activity = {};
 	this.selfInit = false;
 	this.current = '';
 	this.classes = {
@@ -44,12 +43,13 @@ function NitmEntity () {
 	this.defaultInit = [
 	];
 	
-	this.init = function (container, key) {
-		this.initDefaults(container, key);
+	this.init = function (container, key, defaults) {
+		this.initDefaults(container, key, defaults);
 	}
 	
-	this.initDefaults = function (container, key) {
-		self.defaultInit.map(function (method) {
+	this.initDefaults = function (container, key, defaults) {
+		var defaults = defaults !== undefined ? defaults: self.defaultInit;
+		defaults.map(function (method) {
 			try {
 				var containerId = (container == undefined) ? self.views.containerId : container;
 				self[method](container, key);
@@ -63,7 +63,7 @@ function NitmEntity () {
 			/**
 			 * Init the defaulfs for the object
 			 */
-			['views', 'actions', 'buttons', 'forms'].map(function (property) {
+			['views'].map(function (property) {
 				try {
 					$.extend(true, object[property], self[property]);
 				} catch(error) {
@@ -122,22 +122,11 @@ function NitmEntity () {
 	}
 	
 	this.updateActivity = function (id) {
-		if(id == undefined)
-			return;
-		if(this.hasActivity(id))
-			delete self._activity[this.activityId(id)];
-		else {
-			self._activity[this.activityId(id)] = true;
-		}
+		$nitm.updateActivity(id);
 	}
 	
 	this.hasActivity = function (id) {
-		return (id != undefined) ? self._activity.hasOwnProperty(this.activityId(id)) : false;
-	}
-	
-	this.activityId = function (id) {
-		var $elem = $nitm.getObj(id);
-		return $elem.prop('tagName')+'-'+id;
+		return $nitm.hasActivity(id);
 	}
 	
 	this.initForms = function (containerId, currentIndex) {
@@ -149,7 +138,6 @@ function NitmEntity () {
 		}
 		$.map(roles, function(role, key) {
 			container.find("form[role~='"+role+"']").map(function() {
-				console.log(this);
 				var $form = $(this);
 				$form.on('submit', function (e) {
 					e.preventDefault();
@@ -167,19 +155,32 @@ function NitmEntity () {
 		});
 	}
 	
-	this.afterAction = function (action, result, currentIndex, elem) {
+	this.indicateResult = function (message, elem) {
+		var $elem = $nitm.getObj(elem);
+		try {
+			$elem.tooltip('destroy');
+			$elem.tooltip({
+				html: true,
+				title: "<h3>"+message+"</h3>"
+			});
+			$elem.tooltip('show');
+		} catch (error) {}
+	}
+	
+	this.afterAction = function (action, result, currentIndex, elem, realElem) {
 		var func = 'after'+$nitm.safeFunctionName(action);
 		try {
 			$nitm.module(currentIndex)[func](result, currentIndex, elem);
 		} catch(error) {
 			if(typeof self[func] == 'function') {
-			self[func](result, currentIndex, elem);
+				self[func](result, currentIndex, elem);
 			} else {
 				try {
 					self[func](result, currentIndex, elem);
 				} catch (error) {};
 			}
 		}
+		self.indicateResult(result.message, (realElem == undefined ? elem : realElem));
 	}
 	
 	this.operation = function (form, callback, currentIndex, event) {
@@ -219,7 +220,7 @@ function NitmEntity () {
 						
 						default:
 						//if the module already has a method for this action
-						self.afterAction(result.action, result, currentIndex, form);
+						self.afterAction(result.action, result, currentIndex, form, event.originalEvent.explicitOriginalTarget);
 						break;
 					}
 				},

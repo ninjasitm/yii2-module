@@ -21,6 +21,7 @@ function Tools ()
 		'initSubmitSelect',
 		'initToolTips',
 	];
+	this._activity = {};
 	
 	this.init = function (containerId) {
 		this.coreInit(containerId);
@@ -120,8 +121,6 @@ function Tools ()
 		
 		$($nitm).trigger('nitm-animate-submit-stop', [object]);
 		
-		console.log(object);
-		console.log($(object).data('id'));
 		$nitm.handleVis($(object).data('id'));
 		return false;
 	}
@@ -159,19 +158,19 @@ function Tools ()
 					switch((url != '#') && (url.length >= 2))
 					{
 						case true:
-							element.removeAttr('disabled');
-							element.empty();	
-							var ret_val = $.get(url+$(this).find(':selected').val()).done( function (result) {
-								var result = $.parseJSON(result);
-								element.append( $('<option></option>').val('').html('Select value...') );
-								if(typeof result == 'object')
-								{
-									$.each(result, function(val, text) {
-										element.append( $('<option></option>').val(text.value).html(text.label) );
-									});
-								}
-							}, 'json');
-							break;
+						element.removeAttr('disabled');
+						element.empty();	
+						var ret_val = $.get(url+$(this).find(':selected').val()).done( function (result) {
+							var result = $.parseJSON(result);
+							element.append( $('<option></option>').val('').html('Select value...') );
+							if(typeof result == 'object')
+							{
+								$.each(result, function(val, text) {
+									element.append( $('<option></option>').val(text.value).html(text.label) );
+								});
+							}
+						}, 'json');
+						break;
 					}
 					return ret_val;
 				});
@@ -220,6 +219,12 @@ function Tools ()
 	
 	this.dynamicValue = function (object) {
 		
+		var id = $nitm.getObj(object).prop('id');
+		if($nitm.hasActivity(id))
+			return;
+		
+		$nitm.updateActivity(id);
+		
 		$($nitm).trigger('nitm-animate-submit-start', [object]);
 		
 		var ret_val = null;
@@ -249,7 +254,7 @@ function Tools ()
 					dataType: 'html',
 					complete: function (result) {
 						self.evalScripts(result.responseText, function (responseText) {
-							element.html(responseText);
+							element.html(responseText)
 						});
 					}
 				});
@@ -281,6 +286,7 @@ function Tools ()
 			break;
 		}
 		element.data('run-times', 1);
+		$nitm.updateActivity(id);
 		$($nitm).trigger('nitm-animate-submit-stop', [object]);;
 		return ret_val; 
 	}

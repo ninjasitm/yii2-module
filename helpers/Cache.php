@@ -46,14 +46,14 @@ class Cache extends Model
 		return false;
 	}
 	
-	public static function setModel($key, $model, $duration=5000)
+	public static function setModel($key, $model, $duration=500)
 	{
 		//static::$_cache[$key] = $model;
 		//echo "Setting model for: $key<br>";
 		static::$cache->set($key, $model, $duration);
 	}
 	
-	public static function setModelArray($key, $array, $duration=5000)
+	public static function setModelArray($key, $array, $duration=500)
 	{
 		static::setModel($key, $array, $duration);
 	}
@@ -95,9 +95,9 @@ class Cache extends Model
 	 * @param object $model
 	 * @return boolean
 	 */
-	public static function setCachedModel($key, $model)
+	public static function setCachedModel($key, $model, $duration=500)
 	{
-		return static::setModel($key, [$model->className(), \yii\helpers\ArrayHelper::toArray($model)]);
+		return static::setModel($key, [$model->className(), \yii\helpers\ArrayHelper::toArray($model)], $duration);
 	}
 	
 	/**
@@ -107,9 +107,9 @@ class Cache extends Model
 	 * @param string $modelClass
 	 * @return boolean
 	 */
-	public static function setCachedModelArray($key, $models, $modelClass)
+	public static function setCachedModelArray($key, $models, $modelClass, $duration=500)
 	{
-		return static::setModel($key, [$modelClass, \yii\helpers\ArrayHelper::toArray($models)]);
+		return static::setModel($key, [$modelClass, \yii\helpers\ArrayHelper::toArray($models)], $duration);
 	}
 	
 	public static function deleteCachedModel($key)

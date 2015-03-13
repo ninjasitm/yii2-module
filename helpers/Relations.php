@@ -80,7 +80,7 @@ class Relations
 	 * @param return array|object of class modelClass
 	 */
 	
-	public function getCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, $options=[], &$model=null)
+	public function getCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, $options=[], &$model=null, $duration=500)
 	{
 		if(isset($this) && is_null($model))
 			$model = $this;
@@ -101,7 +101,7 @@ class Relations
 		else
 		{
 			$ret_val = self::getRelatedRecord($relation, $model, $modelClass, $options, $many);
-			self::setCachedRelation($idKey, $many, $modelClass, [$relation, $ret_val], $model);
+			self::setCachedRelation($idKey, $many, $modelClass, [$relation, $ret_val], $model, $duration);
 		}
 		return $ret_val;
 	}
@@ -115,7 +115,7 @@ class Relations
 	 * @param Object $model The model this relation is attached to
 	 * @param return array|object of class modelClass
 	 */
-	public function setCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, &$model=null)
+	public function setCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, &$model=null, $duration=500)
 	{
 		if(isset($this) && is_null($model))
 			$model = $this;
@@ -131,7 +131,7 @@ class Relations
 		$modelClass = is_null($modelClass) ? $model->getRelation($relation)->modelClass : $modelClass;
 		$cacheFunction = $many === true ? 'setCachedModelArray' : 'setCachedModel';
 		
-		return Cache::$cacheFunction(Cache::cacheKey($model, $idKey, $relation, $many), $related, $modelClass);
+		return Cache::$cacheFunction(Cache::cacheKey($model, $idKey, $relation, $many), $related, $modelClass, $duration);
 	}
 }
 
