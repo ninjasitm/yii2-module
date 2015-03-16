@@ -220,7 +220,12 @@ function NitmEntity () {
 						
 						default:
 						//if the module already has a method for this action
-						self.afterAction(result.action, result, currentIndex, form, event.originalEvent.explicitOriginalTarget);
+						try {
+							var originalEventTarget = event.originalEvent.explicitOriginalTarget;
+						} catch (error) {
+							var originalEventTarget = undefined;
+						}
+						self.afterAction(result.action, result, currentIndex, form, originalEventTarget);
 						break;
 					}
 				},

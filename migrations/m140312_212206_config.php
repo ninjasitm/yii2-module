@@ -54,7 +54,7 @@ class m140312_212206_config extends \yii\db\Migration
 			],
 			'index' => [
 				'unique_name' => [
-					'fields' => 'name',
+					'fields' => ['name', 'containerid'],
 					'unique' => true
 				]
 			],
@@ -92,7 +92,7 @@ class m140312_212206_config extends \yii\db\Migration
 			],
 			'index' => [
 				'unique_name' => [
-					'fields' => 'name',
+					'fields' => ['name', 'sectionid', 'containerid'],
 					'unique' => true
 				]
 			],
