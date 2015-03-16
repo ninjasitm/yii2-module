@@ -6,7 +6,6 @@ class m140312_212217_user extends \yii\db\Migration
 {
 	public function up()
 	{
-		return true;
 	}
 
 	public function down()

@@ -47,6 +47,7 @@ class Element extends BaseImported
 		return [
 			'import' => ['is_imported'],
 			'create' => ['imported_data_id', 'raw_data', 'signature'],
+			'update' => ['is_imported'],
 			'default' => []
 		];
 	}

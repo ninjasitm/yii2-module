@@ -38,6 +38,7 @@ class User extends \dektrium\user\models\User
 	public function init()
 	{
 		if($this->updateActivity) $this->updateActivity();
+		parent::init();
 	}
 
 	/**

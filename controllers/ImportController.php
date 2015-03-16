@@ -267,7 +267,6 @@ class ImportController extends \nitm\controllers\DefaultController
 			$this->model = $model->source;
 			$this->getProcessor()->setJob($model->source);
 			$this->getProcessor()->prepare([$model]);
-			$this->getProcessor()->import('data');
 			$ret_val = array_shift($this->getProcessor()->import('data'));
 			if($ret_val['success'] || @$ret_val['exists'])
 			{

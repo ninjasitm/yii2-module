@@ -7,6 +7,10 @@ class m150127_192025_create_model_parent_map extends Migration
 {
     public function up()
     {
+		$tableSchema = \Yii::$app->db->getTableSchema('model_parent_map');
+		if($tableSchema)
+			return true;
+			
 		$this->createTable('model_parent_map', [
             'id' => 'pk',
             'remote_type' => Schema::TYPE_STRING . '(32) NOT NULL',

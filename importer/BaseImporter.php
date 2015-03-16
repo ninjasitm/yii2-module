@@ -144,7 +144,7 @@ class BaseImporter extends \yii\base\Model
 			if($this->jobType == 'elements')
 				$this->importElements();
 			else
-				$this->saveImportedElements();
+				$this->saveModelsFromElements();
 				
 		}
 		unset($raw_data, $chunk);
@@ -173,20 +173,22 @@ class BaseImporter extends \yii\base\Model
 		return true;
 	}
 	
-	public function saveImportedElements()
+	public function saveModelsFromElements()
 	{	
 		$ret_val = [];
 		for($i = 0; $i<$this->chunks; $i++)
 		{
 			$preparedData = $this->getPreparedData($i);
-			if(!count($preparedData) >= 1)
+			if(!is_array($preparedData) || !count($preparedData) >= 1)
 				continue;
+			
 			$preparedData = $this->prepareModels($preparedData);
 			//Get the save result
 			$ret_val = array_merge($ret_val, array_shift($preparedData));
-			if(count($preparedData))
-				$this->job->updateElements($preparedData);
 			unset($preparedData);
+			
+			if(count($ret_val))
+				$this->job->updateElements($ret_val);
 		}
 		return $ret_val;
 	}
@@ -199,7 +201,7 @@ class BaseImporter extends \yii\base\Model
 			$preparedData = $this->getPreparedData($i);
 			if(!count($preparedData) >= 1)
 				continue;
-				
+			
 			$this->setRawData($preparedData, true);
 			
 			foreach($preparedData as $idx=>$data)
@@ -275,12 +277,13 @@ class BaseImporter extends \yii\base\Model
 				$this->prepare($chunk);
 				if(!$this->_isPrepared)
 					continue;
-				$ret_val = array_merge($ret_val, $this->saveImportedElements());
+				$ret_val = array_merge($ret_val, $this->saveModelsFromElements());
 			}
 			break;
 			
 			default:
-			while(is_array($chunk = $this->getImporter()->parse($this->getSource(), $this->offset, $this->batchSize)->parsedData))
+			$this->getImporter()->setData($this->getSource());
+			while(is_array($chunk = ArrayHelper::getValue($this->getImporter()->parse($this->getSource(), $this->offset, $this->batchSize), 'parsedData', null)))
 			{
 				$this->prepare([$chunk]);
 				if(!$this->_isPrepared)
@@ -313,7 +316,7 @@ class BaseImporter extends \yii\base\Model
 			break;
 			
 			default:
-			$ret_val = $this->saveImportedElements();
+			$ret_val = $this->saveModelsFromElements();
 			break;
 		}
 		$this->end();
@@ -391,17 +394,22 @@ class BaseImporter extends \yii\base\Model
 			$query = $search->search($condition)->query;
 			
 			if(ArrayHelper::getValue($queryOptions, 'asArray', false) === true)
-				$existing = $query->asArray()->one();
+				$existing = $many ? $query->asArray()->all() : $query->asArray()->one();
 			else
-				$existing = $query->one();
+				$existing = $many ? $query->all() : $query->one();
 			
 			if(is_a($existing, $class)) {
-				Cache::setCachedModel($key, $existing);
+				$cacheFunc = $many ? 'setCachedModelArray' : 'setCachedModel';
+				Cache::$cacheFunc($key, $existing);
 				return $existing;
 			}
 			else {
 				$class = $search->primaryModelClass;
-				return (ArrayHelper::getValue($queryOptions, 'asArray', false) === true) ? $condition : new $class($condition);
+				$condition = $many ? $condition : [$condition];
+				$ret_val = array_map(function ($attributes) use($class, $queryOptions) {
+					return (ArrayHelper::getValue($queryOptions, 'asArray', false) === true) ? $condition : new $class($attributes);
+				});
+				return $many ? $ret_val : array_pop($ret_val);
 			}
 		}
 	}

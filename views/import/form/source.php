@@ -98,7 +98,8 @@ use nitm\helpers\Icon;
 			[
 				'label' => 'Import From Text',
 				'content' => Html::tag('div', "<br>".$form->field($model, 'raw_data[text]')->textarea([
-					'placeholder' => "Paste raw data here in the form you chose above"
+					'placeholder' => "Paste raw data here in the form you chose above",
+					'id' => 'source-raw_data_text'
 				])->label("Text"), [
 					'id' => 'import-from-csv',
 					'class' => 'col-md-12 col-lg-12'
@@ -118,7 +119,8 @@ use nitm\helpers\Icon;
 			[
 				'label' => 'Import From URL',
 				'content' => Html::tag('div', "<br>".$form->field($model, 'raw_data[url]')->textarea([
-					'placeholder' => "Paste url to acquire data from"
+					'placeholder' => "Paste url to acquire data from",
+					'id' => 'source-raw_data_url'
 				])->label("Url"), [
 					'id' => 'import-from-url',
 					'class' => 'col-md-12 col-lg-12'
@@ -138,7 +140,8 @@ use nitm\helpers\Icon;
 			[
 				'label' => 'Import From API',
 				'content' => Html::tag('div', "<br>".$form->field($model, 'raw_data[api]')->textarea([
-					'placeholder' => "Enter options for the API"
+					'placeholder' => "Enter options for the API",
+					'id' => 'source-raw_data_api'
 				])->label("Options"), [
 					'id' => 'import-from-api',
 					'class' => 'col-md-12 col-lg-12'

@@ -596,7 +596,7 @@ class DefaultController extends BaseController
 				break;
 			}
         }
-		$ret_val['message'] = (!$saved) ? "No need to update. Everything is the same" : @$ret_val['message'];
+		$ret_val['message'] = (!$saved) ? array_map('implode', $this->model->getErrors(), ['. ']) : @$ret_val['message'];
 		$ret_val['action'] = $this->action->id;
 		$ret_val['id'] = $this->model->getId();
 			

@@ -50,27 +50,42 @@ class Source extends BaseImported
             [['name', 'type', 'data_type'], 'required', 'on' => ['create', 'update']],
             [['name', 'type', 'data_type'], 'string'],
 			[['name'], 'unique', 'targetAttribute' => ['name', 'type', 'data_type']],
-			['raw_data', 'validateJson', 'on' => ['create']]
+			[['raw_data'], 'validateSource', 'on' => ['create']],
+			[['raw_data'], 'required', 'on' => ['create'], "message" => 'You did not provide data for the chosen data source']
         ]);
     }
 	
-	public function validateJson($attribute, $params)
+	public function validateSource($attribute, $params) 
 	{
-		if($this->type == 'json')
+		if($this->type == 'json') {
 			if(json_decode($this->$attribute, true) == null)
-				$this->addError($attribute, "You chose a json source but the data isn't valid json");
+				$this->addError($attribute."_".$this->source, "You chose a json source but the data isn't valid json");
+		}
 				
 		if($this->source == 'api') {
 			if(json_decode($this->$attribute, true) == null)
-				$this->addError($attribute, "You chose an API but the config provided is not valid json");
+				$this->addError($attribute."_".$this->source, "You chose an API but the config provided is not valid json");
 		}
+	}
+	
+	public function getParams()
+	{
+		return $this->raw_data;
+	}
+	
+	public function setParams()
+	{
+		if(($decoded = json_decode(ArrayHelper::getValue($this->raw_data, $this->source, '{{}'), true)) !== null)
+			$this->raw_data = $decoded;
+		else
+			$this->raw_data = ArrayHelper::getValue($this->raw_data, $this->source, $this->raw_data);
 	}
 	
 	public function encode($data=null)
 	{
 		if(!is_null($data))
 			if(!($decoded = json_decode(ArrayHelper::getValue($data, $this->source, '{{}'))) == null)
-				return json_encode($decoded);
+				return json_encode((array)$decoded);
 			else
 				return is_string($data) ? $data : $data[$this->source];
 		else
@@ -232,9 +247,10 @@ class Source extends BaseImported
 	}
 	
 	public function updateElements($attributes)
-	{		foreach($attributes as $element)
+	{
+		foreach($attributes as $element)
 		{
-			$model = @Element::find()->select('id')->where(['id' => $element['id']])->one();
+			$model = Element::find()->select('id')->where(['id' => $element['id']])->one();
 			if($model instanceof Element)
 			{
 				$model->setScenario('update');

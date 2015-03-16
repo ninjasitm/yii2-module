@@ -58,14 +58,16 @@ $formOptions = array_replace_recursive($formOptions, [
                 ]
             ])->dropDownList(\Yii::$app->getModule('nitm')->importer->getParsers('name'))->label("Data Format"); 
         ?>
+		<?php 
+            echo Html::activeHiddenInput($model, 'source', [
+                'role' => 'sourceNameInput'
+            ]);
+        ?>
         <?php if(!\Yii::$app->request->isAjax): ?>
         <div class="row">
             <div class="col-md-12 col-lg-12">
                 <div class="pull-right">
                 <?php 
-                    echo Html::activeHiddenInput($model, 'source', [
-                        'role' => 'sourceNameInput'
-                    ]);
                     echo Html::submitButton($model->isNewRecord ? 'Preview' : 'Update', ['class' => 'btn btn-primary']);
                     echo Html::resetButton('Reset', ['class' => 'btn btn-default']);
                 ?>

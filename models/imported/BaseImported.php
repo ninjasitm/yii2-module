@@ -42,7 +42,7 @@ class BaseImported extends \nitm\models\Entity
 	public function getSignature($data=null)
 	{
 		$data = is_null($data) ? (is_array($this->raw_data) ? json_encode($this->raw_data) : $this->raw_data) : $data;
-		return md5($data);
+		return md5(serialize($data));
 	}
 	
 	public static function has()

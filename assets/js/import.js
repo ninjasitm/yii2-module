@@ -103,7 +103,7 @@ function Import()
 	}
 	
 	this.initElementImport = function (containerId){
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj(self.views.preview);
 		container.find(self.views.element).map(function() {
 			var $elem = $(this);
 			$elem.on('click', function (e) {

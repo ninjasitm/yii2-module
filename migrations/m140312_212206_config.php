@@ -1,6 +1,7 @@
 <?php
 
 use yii\db\Schema;
+use yii\helpers\ArrayHelper;
 
 class m140312_212206_config extends \yii\db\Migration
 {
@@ -124,7 +125,7 @@ class m140312_212206_config extends \yii\db\Migration
 	{
 		foreach($this->_tables as $table=>$schema)
 		{
-			$tableSchema = \Yii::$app->db->getTableSchema("$table");
+			$tableSchema = \Yii::$app->db->getTableSchema($table);
 			switch($tableSchema)
 			{
 				case false:
@@ -133,13 +134,13 @@ class m140312_212206_config extends \yii\db\Migration
 					$name = explode(':', $field);
 					$fields[$name[0]] = constant('\yii\db\Schema::TYPE_'.$name[1]); 
 				}
-				$this->createTable("$table", $fields, $this->tableOptions);
+				$this->createTable($table, $fields, $this->tableOptions);
 				switch(isset($schema['index']))
 				{
 					case true:
 					foreach($schema['index'] as $name=>$index)
 					{
-						$this->createIndex($name, "$table", $index['fields'], @$index['unique']);
+						$this->createIndex($name, $table, $index['fields'], @$index['unique']);
 					}
 					break;
 				}
@@ -158,7 +159,10 @@ class m140312_212206_config extends \yii\db\Migration
 							$key['options'] = $this->_foreignOptions;
 							break;
 						}
-						$this->addForeignKey($table.$name, "$table", $key['localKey'], $key['remote'], $key['remoteKey'], $key['options']['onDelete'], $key['options']['onUpdate']);
+						try {
+							$this->dropIndex($table.$name, $table);
+						} catch (\Exception $e) {}
+						$this->addForeignKey($table.$name, $table, $key['localKey'], $key['remote'], $key['remoteKey'], $key['options']['onDelete'], $key['options']['onUpdate']);
 					}
 					break;
 				}
@@ -177,11 +181,14 @@ class m140312_212206_config extends \yii\db\Migration
 							break;
 							
 							default:
-							$column = \Yii::$app->db->createCommand()->setSql("SHOW INDEX FROM ".$table." WHERE Key_name='$name'")->queryAll();
-							switch(empty($column))
+							$column = ArrayHelper::getValue($tableSchema->columns, $name, null);
+							switch($column instanceof \yii\db\ColumnSchema)
 							{
-								case true:
-								$this->createIndex($name, "$table", $index['fields'], @$index['unique']);
+								case false:
+								try {
+									$this->dropIndex($name, $table);
+								} catch (\Exception $e) {}
+								$this->createIndex($name, $table, $index['fields'], @$index['unique']);
 								break;
 							}
 							break;
@@ -208,7 +215,7 @@ class m140312_212206_config extends \yii\db\Migration
 									echo "Dropping $idx";
 									exit;
 									$tableName = array_shift($val);
-									$this->dropForeignKey($tableName.implode($val), "$table");
+									$this->dropForeignKey($tableName.implode($val), $table);
 									break;
 								}
 							}
@@ -228,7 +235,7 @@ class m140312_212206_config extends \yii\db\Migration
 							$key['options'] = $this->_foreignOptions;
 							break;
 						}
-						$this->addForeignKey($table.$name, "$table", $key['localKey'], $key['remote'], $key['remoteKey'], $key['options']['onDelete'], $key['options']['onUpdate']);
+						$this->addForeignKey($table.$name, $table, $key['localKey'], $key['remote'], $key['remoteKey'], $key['options']['onDelete'], $key['options']['onUpdate']);
 					}*/
 					break;
 				}
@@ -245,10 +252,10 @@ class m140312_212206_config extends \yii\db\Migration
 		 */
 		foreach(array_keys($this->_tables) as $table)
 		{
-			switch(!$this->getTableSchema("$table")->count())
+			switch(!$this->getTableSchema($table)->count())
 			{
 				case true:
-				$this->dropTable("$table");
+				$this->dropTable($table);
 				break;
 				
 				default:
