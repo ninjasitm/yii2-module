@@ -392,7 +392,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	/**
 	 * Overriding default find function
 	 */
-	public static function find($model=null, $options=null)
+	public static function find(&$model=null, $options=null)
 	{
 		$query = parent::find($options);
 		static::aliasColumns($query);

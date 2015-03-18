@@ -15,7 +15,6 @@ class Dispatcher extends \yii\base\Component
 {
 	public $mode;
 	public $useFullnames = true;
-	public $reportedAction;
 	public $defaultMessage = '%user% performed %action% on %id%';
 	public $defaultMobileMessage = '%user% performed %action% on %id%';
 	public $defaultSubject = '%user% performed %action% on %id%';
@@ -27,8 +26,6 @@ class Dispatcher extends \yii\base\Component
 		'priority',
 	];	
 	
-	public static $usersWhere = [];
-	
 	protected static $is = 'alerts';
 	protected static $_subject;
 	protected static $_body;
@@ -39,6 +36,7 @@ class Dispatcher extends \yii\base\Component
 	protected $_notifications = [];
 	protected $_sendCount = 0;
 	
+	private $_event;
 	private $_prepared = false;
 	private $_alerts;
 	private $_alertStack = [];
@@ -66,7 +64,6 @@ class Dispatcher extends \yii\base\Component
 	public function reset()
 	{
 		$this->_data = new DispatcherData;
-		$this->reportedAction = '';
 		$this->_prepared = false;
 		$this->resetMailerLayout();
 		$this->_message = null;
@@ -74,17 +71,19 @@ class Dispatcher extends \yii\base\Component
 	
 	public function prepareAlerts($event, $for='any', $priority='any')
 	{
+		$this->_event = $event;
 		if(!\Yii::$app->getModule('nitm')->enableAlerts)
 			return;
-		if($event->handled)
+		if($this->_event->handled)
 			return;
-			
-		$this->_data->processEventData($event->data);
-		$this->_alertStack[$this->_data->getKey($event->sender)] = [
-			'remote_type' => $event->sender->isWhat(),
+
+		$this->_data->processEventData($this->_event->data, $this);
+		
+		$this->_alertStack[$this->_data->getKey($this->_event->sender)] = [
+			'remote_type' => $this->_event->sender->isWhat(),
 			'remote_for' => $for,
 			'priority' => $priority,
-			'action' => $event->sender->getScenario()
+			'action' => $this->_event->sender->getScenario()
 		];
 	}
 	
@@ -102,12 +101,14 @@ class Dispatcher extends \yii\base\Component
 	 */
 	public function processAlerts($event)
 	{
+		$this->_event = $event;
+		
 		if(!\Yii::$app->getModule('nitm')->enableAlerts)
 			return;
-		if($event->handled)
+		if($this->_event->handled)
 			return;
 		
-		$this->_data->criteria('remote_id', $event->sender->getId());
+		$this->_data->criteria('remote_id', $this->_event->sender->getId());
 		switch(!$this->_data->criteria('action'))
 		{
 			case false:
@@ -116,9 +117,9 @@ class Dispatcher extends \yii\base\Component
 			{
 				case true:
 				//First check to see if this specific alert exits
-				if(count($event->data))
-					$this->sendAlerts($event->data, ArrayHelper::getValue($event->data, 'owner_id', null));
-				$event->handled = true;
+				if(count($this->_event->data))
+					$this->sendAlerts($this->_event->data, ArrayHelper::getValue($this->_event->data, 'owner_id', null));
+				$this->_event->handled = true;
 				break;
 				
 				default:
@@ -135,18 +136,20 @@ class Dispatcher extends \yii\base\Component
 	
 	public function prepare($event)
 	{
-		$this->_data->processEventData($event->data);
+		$this->_data->processEventData($this->_event->data, $this);
 		$basedOn = array_merge(
-			(array)ArrayHelper::remove($this->_alertStack, $this->_data->getKey($event->sender)), 
-			(array)$event->data
+			(array)ArrayHelper::remove($this->_alertStack, $this->_data->getKey($this->_event->sender)), 
+			(array)$this->_event->data
 		);
 		
 		if(is_array($basedOn))
 		{
-			$basedOn['action'] = ArrayHelper::getValue($basedOn, 'action', ($event->sender->isNewRecord === true ? 'create' : 'update'));
-			$this->reportedAction = $basedOn['action'].'d';
-			$this->_data->criteria(array_intersect_key($basedOn, array_flip($this->matchCriteria)));
-			$event->data = array_diff_key($basedOn, array_flip($this->matchCriteria));
+			$basedOn['action'] = ArrayHelper::getValue($basedOn, 'action', ($this->_event->sender->isNewRecord === true ? 'create' : 'update'));
+			$this->_data->reportedAction = $basedOn['action'].'d';
+			
+			$this->_data->criteria(array_intersect_key(ArrayHelper::getValue($basedOn, 'criteria', []), array_flip($this->matchCriteria)));
+			
+			$this->_event->data = array_diff_key($basedOn, array_flip($this->matchCriteria));
 			$this->_prepared = true;
 		}
 	}
@@ -259,6 +262,7 @@ class Dispatcher extends \yii\base\Component
 			$remoteWhere = ['or', 'remote_id='.$criteria['remote_id'], ' remote_id IS NULL'];
 			unset($criteria['remote_id']);
 		}
+		
 		return Alerts::find()->select('*')
 			->orWhere($criteria)
 			->andWhere($remoteWhere)
@@ -312,7 +316,7 @@ class Dispatcher extends \yii\base\Component
 					 * Only send global emails based on what the user preferrs in their profile. 
 					 * For specific alerts those are based ont he alert settings
 					 */
-					$to['global'] = array_merge_recursive($to['global'], $this->_data->getAddresses($alert->methods, $this->getUsers(), true));
+					$to['global'] = array_merge_recursive($to['global'], $this->_data->getAddresses($alert->methods, $this->_data->getUsers(), true));
 					break;
 					
 					case $alert->user->getId() == $this->_originUserId:
@@ -572,33 +576,11 @@ class Dispatcher extends \yii\base\Component
 		$footer .= "Id: <b>".$alert['remote_id']."</b>, ";
 		if(isset($alert['remote_for']) && !is_null($alert['remote_for']))
 		$footer .= "For: <b>".ucfirst($alert['remote_for'])."</b>, ";
-		if(isset($alert['action']) || !empty($this->reportedAction))
-		$footer .= "and Action <b>".Alerts::properName($this->reportedAction)."</b>";
+		if(isset($alert['action']) || !empty($this->_data->getReportedAction($this->_event)))
+		$footer .= "and Action <b>".Alerts::properName($this->_data->getReportedAction($this->_event))."</b>";
 		$footer .= ". Go ".Html::a("here", \Yii::$app->urlManager->createAbsoluteUrl("/user/settings/alerts"))." to change your alerts";
 		$footer .= "\n\nSite: ".Html::a(\Yii::$app->urlManager->createAbsoluteUrl('/'), \Yii::$app->homeUrl);
 			
 		return Html::tag('small', $footer);
-	}
-	
-	protected function getReportedAction($event)
-	{
-		switch($event->sender->getScenario())
-		{
-			case 'resolve':
-			$this->reportedAction = $event->sender->resolved == true ? 'resolved' : 'un-resolved';
-			break;
-			
-			case 'complete':
-			$this->reportedAction = $event->sender->completed == true ? 'completed' : 'in-completed';
-			break;
-			
-			case 'close':
-			$this->reportedAction = $event->sender->closed == true ? 'closed' : 're-opened';
-			break;
-			
-			case 'disable':
-			$this->reportedAction = $event->sender->disabled == true ? 'disabled' : 'enabled';
-			break;
-		}
 	}
 }

@@ -194,7 +194,7 @@ function Configuration()
 		$nitm.notify(message, newClass, self.views.alerts);
 	}
 	
-	this.afterCreate = function(result, form) {
+	this.afterCreate = function(result, currentIndex, form) {
 		var newClass = $nitm.classes.warning;
 		if(result.success)
 		{
@@ -243,7 +243,7 @@ function Configuration()
 		$nitm.notify(result.message, newClass, self.views.alerts);
 	}
 	
-	this.afterDelete = function(result, form) {
+	this.afterDelete = function(result, currentIndex, form) {
 		var newClass = $nitm.classes.warning;
 		if(result.success)
 		{

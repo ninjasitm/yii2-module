@@ -3,6 +3,7 @@
 namespace nitm\helpers\alerts;
 
 use nitm\helpers\ArrayHelper;
+use nitm\helpers\Cache;
 
 /**
  * Functions relating to parsing data for alerts dispatcher
@@ -10,6 +11,9 @@ use nitm\helpers\ArrayHelper;
 
 class DispatcherData 
 {
+	public $reportedAction;
+	public static $usersWhere = [];
+	
 	protected $_criteria = [];
 	protected $_variables = [];
 	
@@ -110,7 +114,7 @@ class DispatcherData
 		];
 	}
 	
-	public function processEventData($data)
+	public function processEventData($data, $handler)
 	{
 		$runtimeModifiable = [
 			'variables',
@@ -125,12 +129,11 @@ class DispatcherData
 			switch($property)
 			{
 				case 'reportedAction':
-				$this->$property = ArrayHelper::remove($data, $property);
+				if(!$this->$property)
+					$this->$property = ArrayHelper::remove($data, $property);
 				break;
 				
 				case 'action':
-				if($this->reportedAction)
-					$this->reportedAction = $this->$property;
 				break;
 				
 				default:
@@ -143,6 +146,10 @@ class DispatcherData
 					$params = [$params];
 					break;
 				}
+				if(!is_array($params))
+					$params = [$params];
+				else
+					$params = is_array(current($params)) ? $params : [$params];
 				if(count($params))
 					call_user_func_array([$this, $property], $params);
 				break;
@@ -213,7 +220,7 @@ class DispatcherData
 		switch($global)
 		{
 			case true:
-			$users = $this->getUsers();
+			$users = static::getUsers();
 			break;
 		}
 		$methods = ($method == 'any' || is_null($method)) ? array_keys(static::supportedMethods()) : explode(',', $method);
@@ -264,12 +271,12 @@ class DispatcherData
         switch(Cache::exists($key))
 		{
 			case true:
-			$ret_val = Cache::getModelArray($key, $options);
+			$ret_val = Cache::getCachedModelArray($key, $options);
 			break;
 			
 			default:
 			$ret_val = $userClass::find()->with('profile')->where(static::$usersWhere)->all();
-			Cache::setModelArray($key, $ret_val);
+			Cache::setCachedModelArray($key, $ret_val, $userClass);
 			break;
 		}
 		return $ret_val;
@@ -318,6 +325,39 @@ class DispatcherData
 			$model->isWhat(), 
 			$model->getId()
 		]);
+	}
+	
+	public function getReportedAction($event=null)
+	{
+		$ret_val = !is_string($this->reportedAction) || empty($this->reportedAction) ? $this->_data->criteria('action') : $this->reportedAction;
+		
+		if($event instanceof \yii\base\Event)
+		{
+			switch($event->sender->getScenario())
+			{
+				case 'resolve':
+				$ret_val = $event->sender->resolved == true ? 'resolved' : 'un-resolved';
+				break;
+				
+				case 'complete':
+				$ret_val = $event->sender->completed == true ? 'completed' : 'in-completed';
+				break;
+				
+				case 'close':
+				$ret_val = $event->sender->closed == true ? 'closed' : 're-opened';
+				break;
+				
+				case 'disable':
+				$ret_val = $event->sender->disabled == true ? 'disabled' : 'enabled';
+				break;
+				
+				default:
+				$ret_val = !is_string($this->reportedAction) || empty($this->reportedAction) ? $this->_data->criteria('action') : $this->reportedAction;
+				break;
+			}
+		}
+			
+		return $ret_val;
 	}	
 }
 

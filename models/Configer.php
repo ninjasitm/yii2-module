@@ -162,7 +162,7 @@ class Configer extends Model
 			$this->config('current.section', $this->_event['data']['section']);
 			if($this->container == \Yii::$app->getModule('nitm')->config->container) {
 				$value = (is_null($decoded = json_decode(trim($this->_event['data']['value']), true)) ? $this->_event['data']['value'] : $decoded);
-				Session::set($this->_event['data']['key'], $value);
+				Session::set($this->container.'.'.$this->_event['data']['key'], $value);
 			}
 			Session::set($this->uriOf($this->_event['data']['key'], true), $this->_event['data']['value']);
 			\Yii::$app->getModule('nitm')->logger->log($this->getEventData());
@@ -171,7 +171,7 @@ class Configer extends Model
 		$this->on("afterUpdate", function($e) {
 			if($this->container == \Yii::$app->getModule('nitm')->config->container) {
 				$value = (is_null($decoded = json_decode(trim($this->_event['data']['value']), true)) ? $this->_event['data']['value'] : $decoded);
-				Session::set($this->_event['data']['key'], $value);
+				Session::set($this->container.'.'.$this->_event['data']['key'], $value);
 			}
 			Session::set($this->uriOf($this->_event['data']['key'], true).'.value', $this->_event['data']['value']);
 			\Yii::$app->getModule('nitm')->logger->log($this->getEventData());
@@ -189,7 +189,7 @@ class Configer extends Model
 			switch($this->container == \Yii::$app->getModule('nitm')->config->container)
 			{
 				case true:
-				Session::del($this->_event['data']['key']);
+				Session::del($this->container.'.'.$this->_event['data']['key']);
 				break;
 			}
 			\Yii::$app->getModule('nitm')->logger->log($this->getEventData());
@@ -401,6 +401,8 @@ class Configer extends Model
 			else
 				if($this->container == Yii::$app->getModule('nitm')->config->container)
 					array_unshift($key, Session::settings);
+				else
+					array_unshift($key, $this->container);
 			break;
 		}
 		return implode('.', $key);
@@ -617,7 +619,7 @@ class Configer extends Model
 				case 'db':
 				/*
 				 * We ned to use activity states here to determine when to load form the database
-				 */
+				 */;
 				if($force || self::hasNew()) {
 					if($this->section)
 						$ret_val = \yii\helpers\ArrayHelper::getValue($this->section($this->section), 'values');
@@ -1153,7 +1155,7 @@ class Configer extends Model
 				break;
 				
 				default:
-				$result['message'] = implode('<br>', array_map(function ($value) {
+				$ret_val['message'] = implode('<br>', array_map(function ($value) {
 					return array_shift($value);
 				}, $model->getErrors()));
 				break;
@@ -1255,7 +1257,7 @@ class Configer extends Model
 					break;
 					
 					default:
-					$result['message'] = implode('<br>', array_map(function ($value) {
+					$ret_val['message'] = implode('<br>', array_map(function ($value) {
 						return array_shift($value);
 					}, $model->getErrors()));
 					break;

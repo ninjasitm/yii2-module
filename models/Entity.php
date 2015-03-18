@@ -59,7 +59,7 @@ class Entity extends Data
 	{
 		if(\Yii::$app->hasModule('nitm'))
 		{
-			$event->data = array_merge((array)$event->data, $this->getAlertOptions($event));
+			$event->data = array_replace_recursive($this->getAlertOptions($event), (array)$event->data);
 			\Yii::$app->getModule('nitm')->alerts->processAlerts($event);
 		}
 		if(\Yii::$app->hasModule('nitm-search'))
@@ -69,11 +69,14 @@ class Entity extends Data
 	protected function getAlertOptions($event)
 	{
 		$options = [	
-			'parent_type' => $event->sender->isWhat(),
-			'action' => $event->sender->getScenario(),
-			'priority' => 'normal',
-			'remote_for' => 'any'
+			'criteria' => [
+				'action' => $event->sender->getScenario(),
+				'priority' => 'normal',
+				'remote_type' => $event->sender->isWhat(),
+				'remote_for' => 'any'
+			]
 		];
+			
 		switch($event->sender->getScenario())
 		{
 			case 'create':

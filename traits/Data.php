@@ -2,6 +2,8 @@
 namespace nitm\traits;
 
 use yii\helpers\ArrayHelper;
+use nitm\helpers\Cache;
+
 /**
  * Traits defined for expanding query scopes until yii2 resolves traits issue
  */
@@ -146,45 +148,72 @@ trait Data {
 		return $ret_val;
 	}
 	
+	private function locateClassForItems($options)
+	{
+		if(isset($this) && get_class($this) == static::className())
+			return static::className();
+		else
+			return ArrayHelper::remove($options, 'class', __CLASS__);
+	}
+	
+	/**
+	 * Function to get items for the List methods
+	 * @return array
+	 */
+	private function locateItems($options)
+	{
+		$class = $this->locateClassForItems($options);
+			
+		$items = [];
+		if(isset($this)) {
+			$this->queryFilters['limit'] = ArrayHelper::getValue($options, 'limit', 100);
+			$items = $this->getModels();
+		}
+		else {
+			$query = $class::find()
+				->limit(ArrayHelper::getValue($queryFilters, 'limit', 100))
+				->select(ArrayHelper::getValue($queryFilters, 'select', '*'));
+			if(!is_null($sort = ArrayHelper::getValue($queryFilters, 'orderBy', null)))
+				$query->orderBy($sort);
+			$items = $query->all();
+		}
+		return $items;
+	}
+	
 	/**
 	 * Get a one dimensional associative array
 	 * @param mixed $label
 	 * @param mixed $separator
 	 * @return array
 	 */
-	public function getList($label='name', $separator=' ', $queryFilters=[])
+	public function getList($label='name', $separator=null, $queryFilters=[])
 	{
+		$class = $this->locateClassForItems($queryFilters);
+		
 		$ret_val = [];
-		$label = empty($label) ? 'name' : $label;
-		if(isset($this) && get_class($this) == static::className())
-
-		{
-			$this->queryFilters = array_merge($this->queryFilters, $queryFilters);
-			$this->queryFilters['limit'] = 100;
-			$items = $this->getModels();
-			$class = static::className();
-		}
+		$separator = is_null($separator) ? ' ' : $separator;
+		$label = is_null($label) ? 'name' : $label;
+		
+		$cacheKey = Cache::getKey($class::formName(), null, 'list', true);
+		
+		if(Cache::cache()->exists($cacheKey))
+			$ret_val = Cache::cache()->get($cacheKey);
 		else {
-			$class = ArrayHelper::remove($queryFilters, 'class', __CLASS__);
-			$query = $class::find()->limit(100);
-			foreach($queryFilters as $option=>$parameters)
+			$items = self::locateItems($queryFilters);
+			switch(count($items) >= 1)
 			{
-				call_user_func([$query, $option], $parameters);
+				case true:
+				foreach($items as $item)
+				{
+					$ret_val[$item['id']] = $class::getLabel($item, $label, $separator);
+				}
+				break;
+				
+				default:
+				$ret_val[] = ["No ".$class::isWhat()." found"];
+				break;
 			}
-			$items = $query->all();
-		}
-		switch(empty($items))
-		{
-			case false:
-			foreach($items as $item)
-			{
-				$ret_val[$item['id']] = $class::getLabel($item, $label, $separator);
-			}
-			break;
-			
-			default:
-			$ret_val[] = ["No ".$class::isWhat()." found"];
-			break;
+			Cache::cache()->set($cacheKey, $ret_val, 120);
 		}
 		return $ret_val;
 	}
@@ -195,43 +224,54 @@ trait Data {
 	 * @param mixed $separator
 	 * @return array
 	 */
-	public function getJsonList($labelField='name', $separator=' ', $options=[])
+	public function getJsonList($labelField='name', $separator=null, $options=[])
 	{
-		$ret_val = [];
-		foreach($this->getModels() as $item)
-		{
-			$_ = [
-				"id" => $item->getId(),
-				"value" => $item->getId(), 
-				"text" =>  $item->$labelField, 
-				"label" => static::getLabel($item, $label, $separator)
-			];
-			if(isset($options['with']))
+		$class = $this->locateClassForItems($options);
+			
+		$cacheKey = Cache::getKey($class::formName(), null, 'json-list', true);
+		
+		if(Cache::cache()->exists($cacheKey))
+			$ret_val = Cache::cache()->get($cacheKey);
+		else {
+			$ret_val = [];
+			$separator = is_null($separator) ? ' ' : $separator;
+			
+			foreach(self::locateItems($options) as $item)
 			{
-				foreach($options['with'] as $attribute)
+				$_ = [
+					"id" => $item->getId(),
+					"value" => $item->getId(), 
+					"text" =>  $item->$labelField, 
+					"label" => static::getLabel($item, $label, $separator)
+				];
+				if(isset($options['with']))
 				{
-					switch($attribute)
+					foreach($options['with'] as $attribute)
 					{
-						case 'htmlView':
-						$view = isset($options['view']['file']) ? $options['view']['file'] : "/".$item->isWhat()."/view";
-						$viewOptions = isset($options['view']['options']) ? $options['view']['options'] : ["model" => $item];
-						$_['html'] = \Yii::$app->getView()->renderAjax($view, $viewOptions);
-						break;
-						
-						case 'icon':
-						/*$_['label'] = \lab1\widgets\Thumbnail::widget([
-							"model" => $item->getIcon()->one(), 
-							"htmlIcon" => $item->html_icon,
-							"size" => "tiny",
-							"options" => [
-								"class" => "thumbnail text-center",
-							]
-						]).$_['label'];*/
-						break;
+						switch($attribute)
+						{
+							case 'htmlView':
+							$view = isset($options['view']['file']) ? $options['view']['file'] : "/".$item->isWhat()."/view";
+							$viewOptions = isset($options['view']['options']) ? $options['view']['options'] : ["model" => $item];
+							$_['html'] = \Yii::$app->getView()->renderAjax($view, $viewOptions);
+							break;
+							
+							case 'icon':
+							/*$_['label'] = \lab1\widgets\Thumbnail::widget([
+								"model" => $item->getIcon()->one(), 
+								"htmlIcon" => $item->html_icon,
+								"size" => "tiny",
+								"options" => [
+									"class" => "thumbnail text-center",
+								]
+							]).$_['label'];*/
+							break;
+						}
 					}
 				}
+				$ret_val[] = $_;
 			}
-			$ret_val[] = $_;
+			Cache::cache()->set($cacheKey, $ret_val, 120);
 		}
 		return (sizeof(array_filter($ret_val)) >= 1) ? $ret_val : [['id' => 0, 'text' => "No ".$this->properName($this->isWhat())." Found"]];
 	}

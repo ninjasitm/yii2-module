@@ -43,15 +43,20 @@ class Relations
 				switch($array === true)
 				{
 					case true:
-					$ret_val = array_map(function ($properties) use ($className) {
-						$model = new $className();
-						if(is_array($properties))
-							$model->setAttributes($properties);
-						return $model;
-					}, (array)$attributes);
+					if(is_array($attributes) && (!is_array(current($attributes)) && !is_object(current($attributes))))
+						$ret_val = array_map(function ($properties) use ($className) {
+							$model = new $className();
+							if(is_array($properties))
+								$model->setAttributes($properties);
+							return $model;
+						}, (array)$attributes);
+					else
+						$ret_val = $attributes;
 					break;
 					
 					default:
+					if(is_array($attributes) && (!is_array(current($attributes)) && !is_object(current($attributes))))
+						$ret_val = current($attributes);
 					if(is_object($attributes) && $attributes->className() == $className)
 						$ret_val = $attributes;
 					else
