@@ -201,7 +201,7 @@ class Dispatcher extends \yii\base\Component
 	public static function findSelf($author_id, array $criteria)
 	{
 		$criteria['user_id'] = $author_id;
-		$criteria['action'] = 'my';
+		$criteria['action'] = 'i_'.$this->_data->criteria('action');
 		$criteria['remote_type'] = array_unique([ArrayHelper::getValue($criteria, 'remote_type', 'any'), 'any']);
 		$criteria['remote_for'] = array_unique([ArrayHelper::getValue($criteria, 'remote_for', 'any'), 'any']);
 		$criteria['priority'] = array_unique([ArrayHelper::getValue($criteria, 'priority', 'any'), 'any']);
