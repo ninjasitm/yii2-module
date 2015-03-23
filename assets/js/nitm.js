@@ -300,7 +300,7 @@ function Nitm ()
 	{
 		if(typeof selector == 'object')
 			return $(selector);
-		esc = (esc == undefined) ? true : esc;
+		var esc = (esc == undefined) ? true : esc;
 		if(selector instanceof jQuery)
 		{
 			try

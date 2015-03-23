@@ -11,8 +11,8 @@ class Directory extends Behavior {
 	
 	public $parent = false;
 	public $directory = null;
-	public $files = array();
-	public $directories = array();
+	public $files = [];
+	public $directories = [];
 	
 	protected $appendPath = false;
 	protected $match = null;
@@ -25,6 +25,32 @@ class Directory extends Behavior {
 	/*---------------------
 		Public Functions
 	---------------------*/
+	/*
+	* Get all the files in a directory in a one dimensional array
+	* @param string $directory the directory to create an array out of
+	* @param boolean $appath should the full path of the file ba appended or omitted?
+	* @param boolean $empty include empty files?
+	* @return mixed $ret_val;
+	*/
+	public function getDirectories($directory,  $appendPath=false, $empty=false, $recursively=false)
+	{
+		$directory = \Yii::getAlias($directory);
+		if(is_dir($directory))
+		{
+			$this->setAppendPath($appendPath);
+			$this->returnEmpty($empty);
+			$directories = glob($directory."/*", GLOB_ONLYDIR);
+			foreach((array)$directories as $dir)
+			{
+				$dir = array_pop(explode(DIRECTORY_SEPARATOR, $dir));
+				$key = $this->appendPath ? rtrim('/', $directory).DIRECTORY_SEPARATOR.$dir : $dir;
+				$value = $key;
+				$this->directories[$key] = $value;
+			}
+		}
+		return $this->directories;
+	}
+	
 	/*
 	* Get all the files in a directory in a one dimensional array
 	* @param string $directory the directory to create an array out of
@@ -103,7 +129,7 @@ class Directory extends Behavior {
 	 * Should we append paths to the files in the array?
 	 * @param boolean $app
 	 */
-	public function setAppendPath($app = false)
+	public function setAppendPath($appendPath = false)
 	{
 		$this->appendPath = ($appendPath == true) ? true : false;
 	}
