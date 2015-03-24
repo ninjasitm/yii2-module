@@ -5,7 +5,7 @@
 		throw new \yii\web\NotFoundHttpException('No Data Found', 404);
 		break;
 		
-		default: 
+		default:
 		echo $content;
 		break;
 	}
