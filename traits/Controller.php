@@ -21,7 +21,7 @@ use yii\helpers\ArrayHelper;
 		return (@$this->settings['supported'][$what] == true);
 	}
 	
-	public static function assets()
+	public function assets()
 	{
 		return [];
 	}
@@ -70,9 +70,9 @@ use yii\helpers\ArrayHelper;
 			}
 		}
 	}
-	public function getFormVariables($model, $options, $modalOptions=[])
+	public function getFormVariables($options, $modalOptions=[], $model)
 	{
-		return \nitm\helpers\Form::getVariables($model, $options, $modalOptions);
+		return \nitm\helpers\Form::getVariables($options, $modalOptions, $model);
 	}
 	
 	public function getResponseFormat()
@@ -98,30 +98,26 @@ use yii\helpers\ArrayHelper;
 				return false;
 				
 			if(!$model)
-				$model = ($model instanceof \nitm\models\Data) ? $model : new \nitm\models\Data(['noDbInit' => true]);
+				$model = ($model instanceof \nitm\models\Data) ? $model : $this->model;
 			
 			/**
 			 * Only log this information if the logging $level is less than or equal to the gloabl accepted level
 			 */
-			if(\Yii::$app->getModule('nitm')->canLog($level)) {
-				$options = array_merge([
-					'internal_category' => 'user-activity',
-					'category' => 'User Activity',
-					'table_name' => $model->tableName(),
-					'message' => $message,
-					'level' => $level,
-					'timestamp' => time(),
-					'action' => (is_null($action) ? $this->action->id : $action), 
-				], $options);
-				return \Yii::$app->getModule('nitm')->logger->log($options);
-			}
+			$options = array_merge([
+				'internal_category' => 'user-activity',
+				'category' => 'User Activity',
+				'table_name' => $model->tableName(),
+				'message' => $message,
+				'action' => (is_null($action) ? $this->action->id : $action), 
+			], $options);
+			return \Yii::$app->getModule('nitm')->log($level, $options, $model->className());
 		}
 		return false;
 	}
 	
 	protected function commitLog()
 	{
-		return (\Yii::$app->getModule('nitm')->enableLogger) ? \Yii::$app->getModule('nitm')->logger->flush(true) : false;
+		return \Yii::$app->getModule('nitm')->commitLog();
 	}
 	
 	/**
@@ -144,14 +140,14 @@ use yii\helpers\ArrayHelper;
 		$id = ArrayHelper::remove($result, 'id', $model->getId());
 		$message = [\Yii::$app->user->identity->username];
 		
-		array_push($message, " ".($saved ? $action.(in_array($action[strlen($action)-1], ['a', 'e', 'i', 'o', 'u']) ? 'd' : 'ed') : "failed to $action")." ", $this->model->isWhat());
+		array_push($message, ($saved ? $action.(in_array($action[strlen($action)-1], ['a', 'e', 'i', 'o', 'u']) ? 'd' : 'ed') : "failed to $action"), $this->model->isWhat());
 		if($id)
 			array_push($message, "with id $id");
 		if(!$saved)
 			array_push($message, "\n\nError was: \n\n".var_export($message));
-	
+		
 		return [
-			implode(' ', $message), $action, $level, [
+			implode(' ', $message), $level, $action, [
 				'category' => $category, 
 				'internal_category' => $internalCategory
 			], $model

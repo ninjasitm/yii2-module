@@ -4,6 +4,7 @@ namespace nitm;
 
 use nitm\helpers\Session;
 use nitm\models\DB;
+use nitm\helpers\ArrayHelper;
 
 class Module extends \yii\base\Module
 {	
@@ -118,9 +119,31 @@ class Module extends \yii\base\Module
 	 */
 	public function canLog($level=null)
 	{
-		if($this->enableLogger && $this->logger)
-			if($level !== null && $level >= 0)
-				return in_array($level, range(0, $this->logger->level));
+		if($this->enableLogger && ($this->logger instanceof \yii\log\Logger)) {
+			if($level != null && $level >= 0)
+				return (int)$level <= (int)$this->logger->level;
+		}
 		return false; 
+	}
+	
+	public function commitLog()
+	{
+		return ($this->enableLogger) ? $this->logger->flush(true) : false;
+	}
+	
+	public function log($level, $options, $modelClass)
+	{
+		if($this->canLog($level)) {
+			try {
+				$collectionName = isset($options['collection_name']) ? $options['collection_name'] : 'nitm-log';
+				$options = array_merge([
+					'db_name' => \nitm\models\DB::getDbName(),
+					'level' => $level,
+					'timestamp' => time(),
+				], $options);
+				return $this->logger->log($options, $collectionName);
+			} catch (\Exception $e) {}
+		}
+		return false;
 	}
 }

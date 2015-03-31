@@ -15,6 +15,7 @@ class Directory extends Behavior {
 	public $directories = [];
 	
 	protected $appendPath = false;
+	protected $appendExtension = false;
 	protected $match = null;
 	protected $group = false;
 	protected $empty = false;
@@ -135,6 +136,15 @@ class Directory extends Behavior {
 	}
 	
 	/*
+	 * Should we append extensions to the files in the array?
+	 * @param boolean $app
+	 */
+	public function setAppendExtension($appendExtension = false)
+	{
+		$this->appendExtension = ($appendExtension == true) ? true : false;
+	}
+	
+	/*
 	 * Should we group the files in the array?
 	 * @param boolean $group
 	 */
@@ -161,24 +171,40 @@ class Directory extends Behavior {
 		$this->match = empty($match) ? array(null) : (is_array($match) ? $match : array($match));
 	}
 	
+	public static function dirExists($directory)
+	{
+		$directory = static::solveDirectory($directory);
+		return is_dir($directory) && is_readable($directory);
+	}
+	
 	/*---------------------
 		Protected Functions
 	---------------------*/
 	
-	
-	/*---------------------
-		Private Functions
-	---------------------*/
 	/*
 	* Get the proper directory
 	* @param string $directory
 	* @return string
 	*/
-	private function solveDirectory($directory)
+	protected static function solveDirectory($directory)
 	{
 		$directory = ($directory[strlen($directory)-1] == DIRECTORY_SEPARATOR) ? $directory : $directory.DIRECTORY_SEPARATOR;
-		return $directory;
+		return \Yii::getAlias($directory);
 	}
+	
+	/*
+	 * Is this file an image?
+	 */
+	protected static function isImage($file)
+	{
+		$finfo = finfo_open(FILEINFO_MIME_TYPE);
+		return array_shift(explode('/', finfo_file($finfo, $file))) == 'image';
+	}
+	
+	
+	/*---------------------
+		Private Functions
+	---------------------*/
 	
 	/*
 	 * Should we skip this directory?
@@ -186,15 +212,6 @@ class Directory extends Behavior {
 	private function shouldSkip($directory)
 	{
 		return (is_array($this->skipThese)) ? (in_array($directory, $this->skipThese)) : false;
-	}
-	
-	/*
-	 * Is this file an image?
-	 */
-	private function isImage($file)
-	{
-		$finfo = finfo_open(FILEINFO_MIME_TYPE);
-		return array_shift(explode('/', finfo_file($finfo, $file))) == 'image';
 	}
 	
 	/*
@@ -207,8 +224,10 @@ class Directory extends Behavior {
 	*/
 	private function readDirectory($directory)
 	{
-		$ret_val = array();
-		$dir = new DirectoryIterator($directory);
+		$ret_val = [];
+		if(!$this->dirExists($directory))
+			return $ret_val;
+		$dir = new \DirectoryIterator($this->solveDirectory($directory));
 		foreach($dir as $file)
 		{
 			if(!$file->isDot())
@@ -251,16 +270,19 @@ class Directory extends Behavior {
 							{
 								$indexmarker = ($this->parent == null) ? $this->currentDirectory : (($file->getPath() == $this->parent) ? $file->getPath() : str_ireplace($this->parent, '', $file->getPath()));
 								$indexmarker = substr($indexmarker, 0, strlen($indexmarker) -1);
-			// 					echo "$directory, $indexmarker, $parent<br>";
-								$name = array('full' => $file->getFilename(), 'short' => $file->getPathname());
-								switch($group)
+								
+								$name = $this->appendExtension ? $file->getFilename() : $file->getBaseName('.'.$file->getExtension());
+								if($this->appendPath)
+									$name = $file->getPathname().$name;
+
+								switch($this->group)
 								{
 									case true:
-									$ret_val[$indexmarker][] = ($this->appendPath == true) ?  $name['full'] : $name['short'];
+									$ret_val[$indexmarker][$name] = $name;
 									break;
 									
 									default:
-									$ret_val[] = ($this->appendPath == true) ?  $name['full'] : $name['short'];
+									$ret_val[$name] = $name;
 									break;
 								}
 							}

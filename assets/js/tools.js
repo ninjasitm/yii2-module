@@ -86,10 +86,13 @@ function Tools ()
 		
 		$($nitm).trigger('nitm-animate-submit-start', [object]);
 		
+		
 		var _visSelf = this;
-		var on = $(object).data('on');
+		var $object = $nitm.getObj(object);
+		var on = $object.data('on');
+		
 		var getUrl = true;
-		var url = !$(object).data('url') ? $(object).attr('href') : $(object).data('url');
+		var url = !$object.data('url') ? $object.attr('href') : $object.data('url');
 		
 		switch($(this).data('on') != undefined)
 		{
@@ -100,34 +103,34 @@ function Tools ()
 		
 		var getRemote = function () {
 			var basedOnGetUrl = (url != undefined) && (url != '#') && (url.length >= 2) && getUrl;
-			var basedOnRemoteOnce = ($(object).data('remote-once') != undefined) ? (Boolean($(object).data('remote-once')) && !$(object).data('got-remote')) : true;
+			var basedOnRemoteOnce = ($object.data('remote-once') != undefined) ? (Boolean($object.data('remote-once')) && !$object.data('got-remote')) : true;
 			return basedOnGetUrl && basedOnRemoteOnce;
 		}
 		
 		if(getRemote())
 		{
-			this.target = $nitm.getObj($(object).data('id'));
-			this.success = ($(object).data('success') != undefined) ? $(object).data('success') : null;
-			this.url = $(object).data('url') ? $(object).data('url') : $(object).attr('href');
+			this.target = $nitm.getObj($object.data('id'));
+			this.success = ($object.data('success') != undefined) ? $object.data('success') : null;
+			this.url = $object.data('url') ? $object.data('url') : $object.attr('href');
 			var ret_val = $.ajax({
 				url: url, 
-				dataType: $(object).data('type') ? $(object).data('type') : 'html',
+				dataType: $object.data('type') ? $object.data('type') : 'html',
 				complete: function (result) {
 					$nitm.module('tools').replaceContents(result.responseText, object, _visSelf);
 				}
 			});
-			$(object).data('got-remote', true);
+			$object.data('got-remote', true);
 		}
 		
 		$($nitm).trigger('nitm-animate-submit-stop', [object]);
 		
-		$nitm.handleVis($(object).data('id'));
+		$nitm.handleVis($object.data('id'));
 		return false;
 	}
 	
 	this.replaceContents = function (result, object, visibility) {
-		if($(object).data('toggle')) {
-			$.when($nitm.handleVis($(object).data('toggle'))).done(function () {
+		if($object.data('toggle')) {
+			$.when($nitm.handleVis($object.data('toggle'))).done(function () {
 				self.evalScripts(result, function (responseText) {
 					visibility.target.html(responseText);
 				});
@@ -217,40 +220,102 @@ function Tools ()
 		});
 	}
 	
-	this.dynamicValue = function (object) {
+	/**
+	 * Set the value for an element using data attributes
+	 */
+	this.initDynamicIframe = function (containerId) {
+		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		//enable hide/unhide functionality with optional data retrieval
+		container.find("[role~='dynamicIframe']").map(function(e) {
+			switch(($(this).data('id') != undefined))
+			{
+				case true:
+				var _target = this;
+				var events = $(this).data('events') != undefined ? $(this).data('events').split(',') : ['click'];
+				$.each(events, function (index, eventName) {
+					switch($(_target).data('run-once'))
+					{
+						case true:
+						case 1:
+						$(_target).one(eventName, function (e) {
+							e.preventDefault();
+							$.when(self.dynamicIframe(_target)).done(function () {
+							});
+						});
+						break;
+						
+						default:
+						$(_target).on(eventName, function (e) {
+							e.preventDefault();
+							$.when(self.dynamicIframe(_target)).done(function () {
+							});
+						});
+						break;
+					}
+				});
+				break;
+			}
+		});
+	}
+	
+	this.dynamicIframe = function (object) {
+		var $object = $nitm.getObj(object);
+		var $target = $nitm.getObj($object.data('id'));
+		if(($indicator = $nitm.getObj($object.data('indicator'))).get(0) == undefined)
+			$indicator = $object;
 		
-		var id = $nitm.getObj(object).prop('id');
-		if($nitm.hasActivity(id))
+		$indicator.text('Loading...').fadeIn();
+		$target.fadeOut();
+		var url = $nitm.getObj(object).attr('href');
+		
+		if($nitm.hasActivity($object.attr('id')))
 			return;
 		
-		$nitm.updateActivity(id);
+		$($nitm).trigger('nitm-animate-submit-start', [$indicator.get(0)]);
+			$target.attr('src', ($(object).data('url') ? $object.data('url') : $object.attr('href')));
+			$target.load(function () {
+				$(this).fadeIn();
+				$indicator.fadeOut();
+			});
+		$($nitm).trigger('nitm-animate-submit-stop', [$indicator.get(0)]);
+	}
+	
+	this.dynamicValue = function (object) {
+		
+		var $object = $nitm.getObj(object);
+		var $target = $nitm.getObj($object.data('id'));
+		
+		if($nitm.hasActivity($object.attr('id')))
+			return;
 		
 		$($nitm).trigger('nitm-animate-submit-start', [object]);
 		
+		$nitm.updateActivity($object.attr('id'));
+		
 		var ret_val = null;
-		var element = !$(object).data('id') ? $nitm.getObj(object) : $nitm.getObj($(object).data('id'));
+		var element = !$target.get(0) ? $object : $target;
 		if(element.data('run-once') && (element.data('run-times') >= 1))
 			return;
-		var url = !$(object).data('url') ? $(object).attr('href') : $(object).data('url');
-		var on = $(object).data('on');
+		var url = !$object.data('url') ? $object.attr('href') : $object.data('url');
+		var on = $object.data('on');
 		switch((url != '#') && (url.length >= 2))
 		{
 			case true:
 			element.removeAttr('disabled');
 			element.empty();	
-			var selected = !$(object).find(':selected').val() ? '' : $(object).find(':selected').val();
+			var selected = !$object.find(':selected').val() ? '' : $object.find(':selected').val();
 			switch(on != undefined)
 			{
 				case true:
 				if($(on).get(0) == undefined) return false;
 				break;
 			}
-			switch($(object).data('type'))
+			switch($object.data('type'))
 			{
 				case 'html':
 				var ret_val = $.ajax({
 					url: url+selected,
-					type: ($(object).data('method') != undefined) ? $(object).data('method') : 'get', 
+					type: ($object.data('method') != undefined) ? $object.data('method') : 'get', 
 					dataType: 'html',
 					complete: function (result) {
 						self.evalScripts(result.responseText, function (responseText) {
@@ -261,10 +326,10 @@ function Tools ()
 				break;
 				
 				case 'callback':
-				eval("var callback = "+$(object).data('callback'));
+				eval("var callback = "+$object.data('callback'));
 				var ret_val = $.ajax({
 					url: url+selected,
-					type: ($(object).data('method') != undefined) ? $(object).data('method') : 'get',  
+					type: ($object.data('method') != undefined) ? $object.data('method') : 'get',  
 					dataType: 'json',
 					complete: function (result) {
 						callback(result, element.get(0));
@@ -275,7 +340,7 @@ function Tools ()
 				default:
 				var ret_val = $.ajax({
 					url: url+selected,
-					type: ($(object).data('method') != undefined) ? $(object).data('method') : 'get',  
+					type: ($object.data('method') != undefined) ? $object.data('method') : 'get',  
 					dataType: 'text',
 					complete: function (result) {
 						element.val(result.responseText);
@@ -287,7 +352,7 @@ function Tools ()
 		}
 		element.data('run-times', 1);
 		$nitm.updateActivity(id);
-		$($nitm).trigger('nitm-animate-submit-stop', [object]);;
+		$($nitm).trigger('nitm-animate-submit-stop', [object]);
 		return ret_val; 
 	}
 	

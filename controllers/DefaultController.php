@@ -136,6 +136,7 @@ class DefaultController extends BaseController
 		}
 		
 		$createOptions = isset($options['createOptions']) ? $options['createOptions'] : [];
+		
 		$filterOptions = isset($options['filterOptions']) ? $options['filterOptions'] : [];
 		unset($options['createOptions'], $options['filterOptions']);
 		
@@ -225,7 +226,7 @@ class DefaultController extends BaseController
     {
 		$this->action->id = 'create';
 		$ret_val = false;
-		$result = [];
+		$result = ['level' => 3];
 		$level = 1;
 		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
 		$post = \Yii::$app->request->post();
@@ -252,6 +253,7 @@ class DefaultController extends BaseController
         if (!empty($post) && $this->model->save()) {
 			$metadata = isset($post[$this->model->formName()]['contentMetadata']) ? $post[$this->model->formName()]['contentMetadata'] : null;
 			$ret_val = true;
+			$result['message'] = 'Successfully created new '.$this->model->isWhat();
 			switch($metadata && $this->model->addMetadata($metadata))
 			{
 				case true:
@@ -292,7 +294,7 @@ class DefaultController extends BaseController
     {
 		$this->action->id = 'update';
 		$ret_val = false;
-		$result = [];
+		$result = ['level' => 3];
 		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
 		$post = \Yii::$app->request->post();
         $this->model =  $this->findModel($modelClass, $id, $with);
@@ -373,17 +375,17 @@ class DefaultController extends BaseController
 					$this->model = new $modelClass($attributes);
 				}
 				$deleted = true;
-				$this->log(\Yii::$app->user->identity->username." deleted ".$this->model->isWhat()." with id $id", 1);
+				$level = 1;
 				break;
 				
 				default:
-				$this->log(\Yii::$app->user->identity->username." failed to delete ".$this->model->isWhat()." with id $id", 3);
+				$level = 6;
 				break;
 			}
 		}
 		
 		$this->setResponseFormat('json');
-		return $this->finalAction($deleted, ['redirect' => \Yii::$app->request->getReferrer(), 'level' => 6]);
+		return $this->finalAction($deleted, ['redirect' => \Yii::$app->request->getReferrer(), 'logLevel' => $level]);
     }
 	
 	public function actionClose($id)

@@ -438,27 +438,18 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	 */
 	protected static function log($action, $message, $level=1, $options=[])
 	{
-		if(\Yii::$app->getModule('nitm')->enableLogger) {
-			if(\Yii::$app->getModule('nitm')->canLog($level)) {
-				try {
-					$collectionName = ArrayHelper::remove($options, 'collection_name', 'nitm-log');
-					
-					$options = array_merge([
-						'internal_category' => 'user-activity',
-						'category' => 'Model Activity',
-						'db_name' => static::$active['db']['name'],
-						'table_name' => static::$active['table']['name'],
-						'message' => $message,
-						'level' => $level,
-						'timestamp' => time(), 
-						'action' => $action, 
-					], $options);
-					
-					return \Yii::$app->getModule('nitm')->logger->log($options, $collectionName);
-				} catch (\Exception $e) {}
-			}
+		if(\Yii::$app->getModule('nitm')->enableLogger)
+		{
+			$options = array_merge([
+				'internal_category' => 'user-activity',
+				'category' => 'Model Activity',
+				'table_name' => static::tableName(),
+				'message' => $message,
+				'action' => $action, 
+			], $options);
+			return \Yii::$app->getModule('nitm')->log($level, $options, static::className());
 		}
-		return true;
+		return false;
 	}
 	
 	/**
@@ -467,7 +458,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	 */
 	protected static function commitLog()
 	{
-		return \Yii::$app->getModule('nitm')->logger->flush(true);
+		return \Yii::$app->getModule('nitm')->commitLog();
 	}
 	
 	/**

@@ -303,6 +303,10 @@ class DispatcherData
 				$default[] = 'with id %id%';
 			$default[] = "was %action%";
 			break;
+			
+			default:
+			$default = [];
+			break;
 		}
 		if(is_array($from))
 		{
