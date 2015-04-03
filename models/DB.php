@@ -148,8 +148,10 @@ class DB extends Query
 	 */
 	public static function getDefaultDbHost()
 	{
-		preg_match("/(host=)(.+)([$;])/", ArrayHelper::getValue(\Yii::$app, 'db.dsn', ''), $matches);
-		return $matches[2];
+		if(\Yii::$app->>hasProperty('db')) {
+			preg_match("/(host=)(.+)([$;])/", ArrayHelper::getValue(\Yii::$app, 'db.dsn', ''), $matches);
+			return $matches[2];
+		}
 	}
 	
 	/**
@@ -159,8 +161,10 @@ class DB extends Query
 	 */
 	public static function getDefaultDbName()
 	{
-		preg_match("/(dbname=)(.+)($|;)/", ArrayHelper::getValue(\Yii::$app, 'db.dsn', ''), $matches);
-		return $matches[2];
+		if(\Yii::$app->>hasProperty('db')) {
+			preg_match("/(dbname=)(.+)($|;)/", ArrayHelper::getValue(\Yii::$app, 'db.dsn', ''), $matches);
+			return $matches[2];
+		}
 	}
 	
 	/**
@@ -170,8 +174,10 @@ class DB extends Query
 	 */
 	public static function getDbName()
 	{
-		preg_match("/(dbname=)(.+)($|;)/", ArrayHelper::getValue(\Yii::$app, 'db.dsn', ''), $matches);
-		return $matches[2];
+		if(\Yii::$app->>hasProperty('db')) {
+			preg_match("/(dbname=)(.+)($|;)/", ArrayHelper::getValue(\Yii::$app, 'db.dsn', ''), $matches);
+			return $matches[2];
+		}
 	}
 	
 	public static function tableName()
