@@ -148,7 +148,7 @@ class DB extends Query
 	 */
 	public static function getDefaultDbHost()
 	{
-		if(\Yii::$app->>hasProperty('db')) {
+		if(\Yii::$app->hasProperty('db')) {
 			preg_match("/(host=)(.+)([$;])/", ArrayHelper::getValue(\Yii::$app, 'db.dsn', ''), $matches);
 			return $matches[2];
 		}
@@ -161,7 +161,7 @@ class DB extends Query
 	 */
 	public static function getDefaultDbName()
 	{
-		if(\Yii::$app->>hasProperty('db')) {
+		if(\Yii::$app->hasProperty('db')) {
 			preg_match("/(dbname=)(.+)($|;)/", ArrayHelper::getValue(\Yii::$app, 'db.dsn', ''), $matches);
 			return $matches[2];
 		}
@@ -174,7 +174,7 @@ class DB extends Query
 	 */
 	public static function getDbName()
 	{
-		if(\Yii::$app->>hasProperty('db')) {
+		if(\Yii::$app->hasProperty('db')) {
 			preg_match("/(dbname=)(.+)($|;)/", ArrayHelper::getValue(\Yii::$app, 'db.dsn', ''), $matches);
 			return $matches[2];
 		}
