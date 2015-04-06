@@ -351,7 +351,7 @@ function Tools ()
 			break;
 		}
 		element.data('run-times', 1);
-		$nitm.updateActivity(id);
+		$nitm.updateActivity($object.attr('id'));
 		$($nitm).trigger('nitm-animate-submit-stop', [object]);
 		return ret_val; 
 	}
