@@ -86,7 +86,7 @@ trait Nitm
 				break;
 				
 				default:
-				$ret_val = 'error';
+				$ret_val = 'danger';
 				break;
 			}
 			break;
@@ -107,7 +107,7 @@ trait Nitm
 				break;
 				
 				default:
-				$ret_val = 'error';
+				$ret_val = 'danger';
 				break;
 			}
 			break;

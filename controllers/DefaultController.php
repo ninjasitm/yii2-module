@@ -510,8 +510,10 @@ class DefaultController extends BaseController
 			$saved = $this->model->save();
 		}
 		
+		$title = $title[$this->boolResult];
 		return $this->finalAction($saved, [
-			'actionName' => $title[$this->boolResult]
+			'actionName' => $title,
+			'message' => $title.(in_array($title[strlen($title)-1], ['e']) ? 'd ' : 'ed').' '.$this->model->isWhat()
 		]);
 	}
 	
@@ -545,10 +547,12 @@ class DefaultController extends BaseController
 					$ret_val['actionHtml'] = Icon::forAction($iconName, $booleanValue);
 					$ret_val['data'] = $this->boolResult;
 					$ret_val['class'] = 'wrapper';
+					$ret_val['indicate'] = $this->model->getStatus();
 					switch(\Yii::$app->request->get(static::ELEM_TYPE_PARAM))
 					{
 						case 'li':
-						$ret_val['class'] .= ' '.\nitm\helpers\Statuses::getListIndicator($this->model->getStatus());
+						if(method_exists($this->model, 'getStatus'))
+							$ret_val['class'] .= ' '.\nitm\helpers\Statuses::getListIndicator($this->model->getStatus());
 						break;
 						
 						default:
@@ -561,9 +565,8 @@ class DefaultController extends BaseController
 					default:
 					$format = Response::formatSpecified() ? $this->getResponseFormat() : 'json';
 					$this->setResponseFormat($format);
-					if($this->model->hasAttribute('created_at')) {
+					if($this->model->hasAttribute('created_at'))
 						$this->model->created_at = \nitm\helpers\DateFormatter::formatDate($this->model->created_at);
-					}
 					switch($this->action->id)
 					{
 						case 'update':
