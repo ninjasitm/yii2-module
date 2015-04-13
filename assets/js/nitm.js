@@ -20,6 +20,7 @@ function Nitm ()
 		success: 'alert alert-success',
 		info: 'alert alert-info',
 		error: 'alert alert-danger',
+		danger: 'alert alert-danger',
 		hidden: 'hidden',
 	};
 	
@@ -157,7 +158,30 @@ function Nitm ()
 		} catch (error) {}
 	}
 	
-	this.notify = function (newMessage, newClass, newObject)
+	this.notify = function (message, type, object)
+	{
+		try {
+			$.notify({
+				message: message,
+			}, {
+				position: 'fixed',
+				z_index: 10000,
+				type: type,
+				placement: {
+					from: "top",
+					align: "right"
+				},
+				animate: {
+					exit: 'animated fadeOutUp',
+					enter: 'animated fadeInDown'
+				},
+			});
+		} catch (e) {
+			self.notifyInternal(message, type, object);
+		}
+	}
+	
+	this.notifyInternal = function (newMessage, newClass, newObject)
 	{
 		var newMessage = new String(newMessage);
 		switch(true)

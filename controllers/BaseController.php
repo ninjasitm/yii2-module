@@ -64,6 +64,12 @@ class BaseController extends Controller
 		parent::init();
 	}
 	
+	public static function assets()
+	{
+		return [
+		];
+	}
+	
 	/*
 	 * Initialize any css needed for this controller
 	 */

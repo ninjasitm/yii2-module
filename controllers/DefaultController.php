@@ -510,8 +510,12 @@ class DefaultController extends BaseController
 			$saved = $this->model->save();
 		}
 		
+		$this->shouldLog = true;
+		$title = $title[$this->boolResult];
 		return $this->finalAction($saved, [
-			'actionName' => $title[$this->boolResult]
+			'logLevel' => 1,
+			'actionName' => $title,
+			'message' => implode(' ', [$title.(in_array($title[strlen($title)-1], ['e']) ? 'd' : 'ed'), $this->model->isWhat()])
 		]);
 	}
 	
@@ -528,8 +532,9 @@ class DefaultController extends BaseController
 			/**
 			 * Perform logging if logging is enabled in the module and the controller enables it
 			 */
-			if(\Yii::$app->getModule('nitm')->enableLogger && $this->shouldLog)
+			if(\Yii::$app->getModule('nitm')->enableLogger && $this->shouldLog) {
 				call_user_func_array([$this, 'log'], $this->getLogParams($saved, $args));
+			}
 			
 			switch(\Yii::$app->request->isAjax)
 			{
@@ -543,12 +548,15 @@ class DefaultController extends BaseController
 					$ret_val['title'] = @ArrayHelper::getValue((array)$title, $booleanValue, '');
 					$iconName = @ArrayHelper::getValue((array)$icon, $booleanValue, $this->action->id);
 					$ret_val['actionHtml'] = Icon::forAction($iconName, $booleanValue);
+					$ret_val['action'] = isset($action) ? $action : $this->action->id;
 					$ret_val['data'] = $this->boolResult;
 					$ret_val['class'] = 'wrapper';
+					$ret_val['indicate'] = $this->model->getStatus();
 					switch(\Yii::$app->request->get(static::ELEM_TYPE_PARAM))
 					{
 						case 'li':
-						$ret_val['class'] .= ' '.\nitm\helpers\Statuses::getListIndicator($this->model->getStatus());
+						if(method_exists($this->model, 'getStatus'))
+							$ret_val['class'] .= ' '.\nitm\helpers\Statuses::getListIndicator($this->model->getStatus());
 						break;
 						
 						default:
@@ -561,9 +569,8 @@ class DefaultController extends BaseController
 					default:
 					$format = Response::formatSpecified() ? $this->getResponseFormat() : 'json';
 					$this->setResponseFormat($format);
-					if($this->model->hasAttribute('created_at')) {
+					if($this->model->hasAttribute('created_at'))
 						$this->model->created_at = \nitm\helpers\DateFormatter::formatDate($this->model->created_at);
-					}
 					switch($this->action->id)
 					{
 						case 'update':
@@ -574,6 +581,7 @@ class DefaultController extends BaseController
 					}
 					$viewFile = $this->model->isWhat().'/view';
 					$ret_val['success'] = true;
+					$ret_val['action'] = $this->action->id;
 					switch($this->getResponseFormat())
 					{
 						case 'json':
@@ -599,7 +607,6 @@ class DefaultController extends BaseController
 			}
         }
 		$ret_val['message'] = (!$saved) ? array_map('implode', $this->model->getErrors(), ['. ']) : @$ret_val['message'];
-		$ret_val['action'] = $this->action->id;
 		$ret_val['id'] = $this->model->getId();
 			
 		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);

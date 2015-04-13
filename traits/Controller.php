@@ -21,10 +21,9 @@ use yii\helpers\ArrayHelper;
 		return (@$this->settings['supported'][$what] == true);
 	}
 	
-	public static function assets()
+	public function assets()
 	{
-		return [
-		];
+		return [];
 	}
 	
 	/**
@@ -93,6 +92,7 @@ use yii\helpers\ArrayHelper;
 	 */
 	protected function log($message, $level=0, $action=null, $options=[], $model=null)
 	{
+		echo "Getting ready to log\n";
 		if(\Yii::$app->getModule('nitm')->enableLogger)
 		{
 			if(is_null($message))

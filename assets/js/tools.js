@@ -293,7 +293,11 @@ function Tools ()
 		$nitm.updateActivity($object.attr('id'));
 		
 		var ret_val = null;
-		var element = !$target.get(0) ? $object : $target;
+		
+		try {
+			var element = !$target.get(0) ? $object : $target;
+		} catch (e) {var element = $object;}
+		
 		if(element.data('run-once') && (element.data('run-times') >= 1))
 			return;
 		var url = !$object.data('url') ? $object.attr('href') : $object.data('url');

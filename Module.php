@@ -142,7 +142,10 @@ class Module extends \yii\base\Module
 					'timestamp' => time(),
 				], $options);
 				return $this->logger->log($options, $collectionName);
-			} catch (\Exception $e) {}
+			} catch (\Exception $e) {
+				if(defined("YII_DEBUG"))
+					throw $e;
+			}
 		}
 		return false;
 	}

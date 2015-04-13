@@ -78,7 +78,7 @@ function NitmEntity () {
 		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
 		$.map(self.actions.roles, function (v) {
 			container.find("[role~='"+v+"']").map(function() {
-				//$(this).off('click');
+				$(this).off('click');
 				$(this).on('click', function (e) {
 					var $elem = $(this);
 					e.preventDefault();
@@ -174,13 +174,10 @@ function NitmEntity () {
 		} catch(error) {
 			if(typeof self[func] == 'function') {
 				self[func](result, currentIndex, elem);
-			} else {
-				try {
-					self[func](result, currentIndex, elem);
-				} catch (error) {};
 			}
 		}
-		self.indicateResult(result.message, (realElem == undefined ? elem : realElem));
+		if(result.message)
+			$nitm.notify(result.message, result.indicate || 'info', (realElem == undefined ? elem : realElem));
 	}
 	
 	this.operation = function (form, callback, currentIndex, event) {
@@ -267,7 +264,6 @@ function NitmEntity () {
 		{
 			form.reset();
 			var message = !result.message ? "Success! You can add another or view the newly added one" : result.message;
-			$nitm.notify(message, $nitm.classes.success, form);
 			if(result.data)
 			{
 				var $module = $nitm.module(currentIndex);
@@ -287,7 +283,6 @@ function NitmEntity () {
 		if(result.success)
 		{
 			var message = !result.message ? "Update successful!" : result.message;
-			$nitm.notify(message, $nitm.classes.success, form);
 			if(result.data)
 			{
 				//Remove any items that are related with role~=itemExtra
@@ -364,10 +359,10 @@ function NitmEntity () {
 				var container = $(element);
 				container.find("[role~='"+self.actions.disabledOnResolve+"']").toggleClass($nitm.hidden, result.data);
 				var element = $("[role~='"+self.views.statusIndicator+result.id+"']");
-				console.log(element);
 				element.removeClass().addClass(result.class);
 					
 				var actionElem = container.find("[role~='"+self.actions[result.action+'Action']+"']");
+				console.log(actionElem);
 				actionElem.attr('title', result.title);
 				actionElem.html(result.actionHtml);
 			});
