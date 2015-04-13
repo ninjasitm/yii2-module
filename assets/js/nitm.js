@@ -160,7 +160,11 @@ function Nitm ()
 	
 	this.notify = function (message, type, object)
 	{
+<<<<<<< HEAD
 		try {
+=======
+		//try {
+>>>>>>> aa031cfaea8df0f747abe97bd36ad4a3e45f6e39
 			$.notify({
 				message: message,
 			}, {
@@ -176,9 +180,15 @@ function Nitm ()
 					enter: 'animated fadeInDown'
 				},
 			});
+<<<<<<< HEAD
 		} catch (e) {
 			self.notifyInternal(message, type, object);
 		}
+=======
+		//} catch (e) {
+		//	self.notifyInternal(message, type, object);
+		//}
+>>>>>>> aa031cfaea8df0f747abe97bd36ad4a3e45f6e39
 	}
 	
 	this.notifyInternal = function (newMessage, newClass, newObject)

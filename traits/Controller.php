@@ -21,11 +21,6 @@ use yii\helpers\ArrayHelper;
 		return (@$this->settings['supported'][$what] == true);
 	}
 	
-	public function assets()
-	{
-		return [];
-	}
-	
 	/**
 	 * Initialze the assets supported by this controller. Taken from static::has();
 	 * @param mixed $assts Array of assets

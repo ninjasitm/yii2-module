@@ -24,6 +24,7 @@ class Statuses
 	 */
 	protected static $listIndicators = [
 		'error' => 'list-group-item list-group-item-danger',
+		'danger' => 'list-group-item list-group-item-danger',
 		'default' => 'list-group-item',
 		'success' => 'list-group-item  list-group-item-success',
 		'info' => 'list-group-item list-group-item-info',

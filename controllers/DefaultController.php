@@ -510,12 +510,19 @@ class DefaultController extends BaseController
 			$saved = $this->model->save();
 		}
 		
+<<<<<<< HEAD
 		$this->shouldLog = true;
 		$title = $title[$this->boolResult];
 		return $this->finalAction($saved, [
 			'logLevel' => 1,
 			'actionName' => $title,
 			'message' => implode(' ', [$title.(in_array($title[strlen($title)-1], ['e']) ? 'd' : 'ed'), $this->model->isWhat()])
+=======
+		$title = $title[$this->boolResult];
+		return $this->finalAction($saved, [
+			'actionName' => $title,
+			'message' => $title.(in_array($title[strlen($title)-1], ['e']) ? 'd ' : 'ed').' '.$this->model->isWhat()
+>>>>>>> aa031cfaea8df0f747abe97bd36ad4a3e45f6e39
 		]);
 	}
 	

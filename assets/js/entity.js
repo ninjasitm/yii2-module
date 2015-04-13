@@ -176,8 +176,12 @@ function NitmEntity () {
 				self[func](result, currentIndex, elem);
 			}
 		}
+<<<<<<< HEAD
 		if(result.message)
 			$nitm.notify(result.message, result.indicate || 'info', (realElem == undefined ? elem : realElem));
+=======
+		$nitm.notify(result.message, result.indicate || 'info', (realElem == undefined ? elem : realElem));
+>>>>>>> aa031cfaea8df0f747abe97bd36ad4a3e45f6e39
 	}
 	
 	this.operation = function (form, callback, currentIndex, event) {
