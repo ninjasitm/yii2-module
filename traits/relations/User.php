@@ -149,7 +149,7 @@ trait User {
 			break;
 			
 			default:
-			$ret_val = '';
+			$ret_val = $this->username;
 			break;
 		}
 		return $ret_val;

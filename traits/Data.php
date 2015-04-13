@@ -2,7 +2,7 @@
 namespace nitm\traits;
 
 use yii\helpers\ArrayHelper;
-use nitm\helpers\Cache;
+use nitm\helpers\Cache as CacheHelper;
 
 /**
  * Traits defined for expanding query scopes until yii2 resolves traits issue
@@ -194,10 +194,10 @@ trait Data {
 		$separator = is_null($separator) ? ' ' : $separator;
 		$label = is_null($label) ? 'name' : $label;
 		
-		$cacheKey = Cache::getKey($class::formName(), null, 'list', true);
+		$cacheKey = CacheHelper::getKey($class::formName(), null, 'list', true);
 		
-		if(Cache::cache()->exists($cacheKey))
-			$ret_val = Cache::cache()->get($cacheKey);
+		if(CacheHelper::cache()->exists($cacheKey))
+			$ret_val = CacheHelper::cache()->get($cacheKey);
 		else {
 			$items = self::locateItems($queryFilters);
 			switch(count($items) >= 1)
@@ -213,7 +213,7 @@ trait Data {
 				$ret_val[] = ["No ".$class::isWhat()." found"];
 				break;
 			}
-			Cache::cache()->set($cacheKey, $ret_val, 120);
+			CacheHelper::cache()->set($cacheKey, $ret_val, 120);
 		}
 		return $ret_val;
 	}
@@ -228,10 +228,10 @@ trait Data {
 	{
 		$class = $this->locateClassForItems($options);
 			
-		$cacheKey = Cache::getKey($class::formName(), null, 'json-list', true);
+		$cacheKey = CacheHelper::getKey($class::formName(), null, 'json-list', true);
 		
-		if(Cache::cache()->exists($cacheKey))
-			$ret_val = Cache::cache()->get($cacheKey);
+		if(CacheHelper::cache()->exists($cacheKey))
+			$ret_val = CacheHelper::cache()->get($cacheKey);
 		else {
 			$ret_val = [];
 			$separator = is_null($separator) ? ' ' : $separator;
@@ -271,7 +271,7 @@ trait Data {
 				}
 				$ret_val[] = $_;
 			}
-			Cache::cache()->set($cacheKey, $ret_val, 120);
+			CacheHelper::cache()->set($cacheKey, $ret_val, 120);
 		}
 		return (sizeof(array_filter($ret_val)) >= 1) ? $ret_val : [['id' => 0, 'text' => "No ".$this->properName($this->isWhat())." Found"]];
 	}
