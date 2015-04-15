@@ -153,11 +153,15 @@ class DefaultController extends BaseController
 		], (array)@$options['viewOptions']);
 		
 		//print_r($dataProvider->query->all());
-        return $this->render(ArrayHelper::getValue($options, 'view', 'index'), array_merge([
-            'dataProvider' => $dataProvider,
-            'searchModel' => $searchModel,
-			'model' => $this->model
-        ], $options['viewOptions']));
+		Response::viewOptions(null, [
+			'view' => ArrayHelper::getValue($options, 'view', 'index'),
+			'args' => array_merge([
+				'dataProvider' => $dataProvider,
+				'searchModel' => $searchModel,
+				'model' => $this->model
+			], $options['viewOptions'])
+		]);
+        return $this->renderResponse(null, Response::viewOptions(), false);
     }
 	
 	/*
@@ -253,7 +257,11 @@ class DefaultController extends BaseController
         if (!empty($post) && $this->model->save()) {
 			$metadata = isset($post[$this->model->formName()]['contentMetadata']) ? $post[$this->model->formName()]['contentMetadata'] : null;
 			$ret_val = true;
-			$result['message'] = 'Successfully created new '.$this->model->isWhat();
+			$result['message'] = implode(' ', [
+				"Succesfully created new ",
+				$this->model->isWhat(),
+				': '.$this->model->title()
+			]);
 			switch($metadata && $this->model->addMetadata($metadata))
 			{
 				case true:
@@ -323,7 +331,11 @@ class DefaultController extends BaseController
 				);
 				break;
 			}
-			$result['message'] = "Succesfully updated ".$this->model->isWhat()." with id: ".$this->model->getId();
+			$result['message'] = implode(' ', [
+				"Succesfully updated ",
+				$this->model->isWhat(),
+				': '.$this->model->title()
+			]);
 			Response::viewOptions("view",  '/'.$this->model->isWhat().'/view');
 			
         } else {
@@ -419,8 +431,8 @@ class DefaultController extends BaseController
 					'date' => 'closed_at'
 				],
 				'title' => [
-					'Close',
-					'Re-Open'
+					'Re-Open',
+					'Close'
 				]
 			],
 			'complete' => [
@@ -431,8 +443,8 @@ class DefaultController extends BaseController
 					'date' => 'completed_at'
 				],
 				'title' => [
-					'Complete',
-					'In-Complete'
+					'In-Complete',
+					'Complete'
 				]
 			],
 			'resolve' => [
@@ -443,8 +455,8 @@ class DefaultController extends BaseController
 					'date' => 'resolved_at'
 				],
 				'title' => [
-					'Resolve',
-					'Un-Resolve'
+					'Un-Resolve',
+					'Resolve'
 				]
 			],
 			'disable' => [
@@ -467,8 +479,8 @@ class DefaultController extends BaseController
 					'date' => 'deleted_at'
 				],
 				'title' => [
-					'Delete',
-					'Restore'
+					'Restore',
+					'Delete'
 				]
 			]
 		];
@@ -510,19 +522,13 @@ class DefaultController extends BaseController
 			$saved = $this->model->save();
 		}
 		
-<<<<<<< HEAD
 		$this->shouldLog = true;
-		$title = $title[$this->boolResult];
+		$actionTitle = strtolower($title[(int)$this->boolResult]);
+		$actionTitle .= (in_array(substr($actionTitle, strlen($actionTitle)-1, 1), ['e']) ? 'd' : 'ed');
 		return $this->finalAction($saved, [
 			'logLevel' => 1,
-			'actionName' => $title,
-			'message' => implode(' ', [$title.(in_array($title[strlen($title)-1], ['e']) ? 'd' : 'ed'), $this->model->isWhat()])
-=======
-		$title = $title[$this->boolResult];
-		return $this->finalAction($saved, [
-			'actionName' => $title,
-			'message' => $title.(in_array($title[strlen($title)-1], ['e']) ? 'd ' : 'ed').' '.$this->model->isWhat()
->>>>>>> aa031cfaea8df0f747abe97bd36ad4a3e45f6e39
+			'actionName' => $actionTitle,
+			'message' => implode(' ', ["Successfully", $actionTitle, $this->model->isWhat().':', $this->model->title()])
 		]);
 	}
 	
@@ -541,6 +547,8 @@ class DefaultController extends BaseController
 			 */
 			if(\Yii::$app->getModule('nitm')->enableLogger && $this->shouldLog) {
 				call_user_func_array([$this, 'log'], $this->getLogParams($saved, $args));
+				foreach(['logLevel'] as $remove)
+					unset($ret_val[$remove]);
 			}
 			
 			switch(\Yii::$app->request->isAjax)
@@ -557,20 +565,21 @@ class DefaultController extends BaseController
 					$ret_val['actionHtml'] = Icon::forAction($iconName, $booleanValue);
 					$ret_val['action'] = isset($action) ? $action : $this->action->id;
 					$ret_val['data'] = $this->boolResult;
-					$ret_val['class'] = 'wrapper';
+					$ret_val['class'] = [];
 					$ret_val['indicate'] = $this->model->getStatus();
 					switch(\Yii::$app->request->get(static::ELEM_TYPE_PARAM))
 					{
 						case 'li':
 						if(method_exists($this->model, 'getStatus'))
-							$ret_val['class'] .= ' '.\nitm\helpers\Statuses::getListIndicator($this->model->getStatus());
+							$ret_val['class'][] = \nitm\helpers\Statuses::getListIndicator($this->model->getStatus());
 						break;
 						
 						default:
 						if(method_exists($this->model, 'getStatus'))
-							$ret_val['class'] .= ' '.\nitm\helpers\Statuses::getIndicator($this->model->getStatus());
+							$ret_val['class'][] = \nitm\helpers\Statuses::getIndicator($this->model->getStatus());
 						break;
 					}
+					$ret_val['class'] = implode(' ', $ret_val['class']);
 					break;
 					
 					default:

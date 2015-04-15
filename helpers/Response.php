@@ -74,6 +74,7 @@ class Response extends Behavior
 		if(isset($params['js'])) $params['js'] = is_array($params['js']) ? implode(PHP_EOL, $params['js']) : $params['js'];
 		$format = (!\Yii::$app->request->isAjax && (static::getFormat() == 'modal')) ? 'html' : static::getFormat();
 		$params['view'] =  ArrayHelper::getValue((array)$params, 'view', static::$viewPath);
+		
 		switch($format)
 		{
 			case 'xml':
@@ -85,6 +86,7 @@ class Response extends Behavior
 			case 'html':
 			$params['options'] = ArrayHelper::getValue(static::$viewOptions, 'options', []);
 			if(isset($params['js'])) static::$view->registerJs($params['js']);
+			static::$view->registerJs('$.extend($nitm, '.json_encode(ArrayHelper::getValue(\Yii::$app->params, 'nitmJs', [])).');');
 			$ret_val = static::$controller->$render($params['view'], ArrayHelper::getValue($params, 'args', []), static::$controller);
 			break;
 			

@@ -18,6 +18,9 @@ trait Data {
 	protected static $tableName;
 	protected static $_flags = [];
 	
+	public function title() {
+	}
+	
 	/*
 	 * What does this claim to be?
 	 */

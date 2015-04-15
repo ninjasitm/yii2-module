@@ -21,6 +21,11 @@ use yii\helpers\ArrayHelper;
 		return (@$this->settings['supported'][$what] == true);
 	}
 	
+	public function assets()
+	{
+		return [];
+	}
+	
 	/**
 	 * Initialze the assets supported by this controller. Taken from static::has();
 	 * @param mixed $assts Array of assets
@@ -87,7 +92,6 @@ use yii\helpers\ArrayHelper;
 	 */
 	protected function log($message, $level=0, $action=null, $options=[], $model=null)
 	{
-		echo "Getting ready to log\n";
 		if(\Yii::$app->getModule('nitm')->enableLogger)
 		{
 			if(is_null($message))
@@ -136,7 +140,7 @@ use yii\helpers\ArrayHelper;
 		$id = ArrayHelper::remove($result, 'id', $model->getId());
 		$message = [\Yii::$app->user->identity->username];
 		
-		array_push($message, ($saved ? $action.(in_array($action[strlen($action)-1], ['a', 'e', 'i', 'o', 'u']) ? 'd' : 'ed') : "failed to $action"), $this->model->isWhat());
+		array_push($message, ($saved ? $action.(in_array(substr($action, strlen($action)-1, 1), ['e']) ? 'd' : 'ed') : "failed to $action"), $this->model->isWhat());
 		if($id)
 			array_push($message, "with id $id");
 		if(!$saved)

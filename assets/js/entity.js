@@ -90,11 +90,30 @@ function NitmEntity () {
 					if(proceed === true)
 					{
 						$nitm.startSpinner($elem);
-						var method = $elem.data('method') == 'get' ? 'get' : 'post';
-						$[method]($elem.attr('href'), function (result) { 
+						var successFunc = $elem.data('data-success-callback') == undefined ? function (result) {
 							$nitm.stopSpinner($elem);
 							self.afterAction(result.action, result, currentIndex, $elem.get(0));
-						}, 'json');
+						} : $elem.data('data-success-callback');
+						
+						var errorFunc = $elem.data('data-error-callback') == undefined ? function (xhr, text, error) {
+							$nitm.stopSpinner($elem);
+							var message = "An error occurred while reading the data!\nThe error was:<i> "+text+"</i>";
+							if($nitm.debug == true)
+								message += "<br><br>Detailed error is: <br><br><i>"+error+"</i>";
+								
+							$nitm.notify(message, 'danger');
+						} : $elem.data('data-error-callback');
+						
+						if($elem.attr('href') || $elem.data('url')) {
+							var url = !$elem.attr('href') ? $elem.attr('url') : $elem.attr('href');
+							$.ajax({
+								method: $elem.data('method') == 'get' ? 'get' : 'post',
+								url: url, 
+								success: successFunc, 
+								error: errorFunc,
+								dataType: $elem.data('data-type') != undefined ? $elem.data('data-type') : 'json',
+							});
+						}
 					}
 				});
 			});
@@ -176,12 +195,20 @@ function NitmEntity () {
 				self[func](result, currentIndex, elem);
 			}
 		}
-<<<<<<< HEAD
-		if(result.message)
-			$nitm.notify(result.message, result.indicate || 'info', (realElem == undefined ? elem : realElem));
-=======
-		$nitm.notify(result.message, result.indicate || 'info', (realElem == undefined ? elem : realElem));
->>>>>>> aa031cfaea8df0f747abe97bd36ad4a3e45f6e39
+		if(result.message) {
+			switch(result.action)
+			{
+				case 'update':
+				case 'create':
+				var indicate = result.indicate || 'info';
+				break;
+				
+				default:
+				var indicate = 'notify';
+				break;
+			}
+			$nitm.notify(result.message, indicate, (realElem == undefined ? elem : realElem));
+		}
 	}
 	
 	this.operation = function (form, callback, currentIndex, event) {
@@ -328,8 +355,7 @@ function NitmEntity () {
 				});
 				container.find("[role~='"+self.views.replyForm+"']").toggleClass($nitm.hidden, result.data);
 				var actionElem = container.find("[role~='"+self.actions[result.action+'Action']+"']");
-				actionElem.attr('title', result.title);
-				actionElem.find(':first-child').replaceWith(result.actionHtml);
+				actionElem.attr('title', result.title).find(':first-child').replaceWith(result.actionHtml);
 				
 				var element = $("[role~='"+self.views.statusIndicator+result.id+"']");
 				element.removeClass().addClass(result.class);
@@ -366,9 +392,7 @@ function NitmEntity () {
 				element.removeClass().addClass(result.class);
 					
 				var actionElem = container.find("[role~='"+self.actions[result.action+'Action']+"']");
-				console.log(actionElem);
-				actionElem.attr('title', result.title);
-				actionElem.html(result.actionHtml);
+				actionElem.attr('title', result.title).html(result.actionHtml);
 			});
 		}
 	}
@@ -381,8 +405,7 @@ function NitmEntity () {
 				var container = $(element);
 				container.removeClass().addClass(result.class);
 				var actionElem = container.find("[role~='"+self.actions.duplicateAction+"']");
-				actionElem.attr('title', result.title);
-				actionElem.find(':first-child').replaceWith(result.actionHtml);
+				actionElem.attr('title', result.title).find(':first-child').replaceWith(result.actionHtml);
 			});
 		}
 	}

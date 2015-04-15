@@ -86,6 +86,11 @@ body {
 	position: fixed;
 }
 
+.alert-notify {
+  color: #fff;
+  background-color: #777;
+}
+
 .alert-disabled, .bg-disabled, .label-disabled {
   color: #222;
   background-color: #ddd;

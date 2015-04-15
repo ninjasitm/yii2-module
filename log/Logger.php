@@ -94,7 +94,6 @@ class Logger extends \yii\log\Logger
 	{
 		if(\Yii::$app->getModule('nitm')->enableLogger && (is_array($array) && $array != []))
 		{
-			echo "Logging message\n";
 			$parser = (\UAParser\Parser::create());
 			$r = $parser->parse(!\Yii::$app->request->userAgent ? $_SERVER['SERVER_SOFTWARE'] : \Yii::$app->request->userAgent);
 			$baseInfo = [
