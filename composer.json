@@ -11,15 +11,22 @@
         }
     ],	
    "require": {
-		"yiisoft/yii2": "*",
-		"yiisoft/yii2-swiftmailer": "*",
-		"yiisoft/yii2-gii": "*",
-		"dektrium/yii2-user": "*",
-		"ua-parser/uap-php" : "*"
+	"yiisoft/yii2": "*",
+	"yiisoft/yii2-swiftmailer": "*",
+	"yiisoft/yii2-gii": "*",
+	"dektrium/yii2-user": "*",
+	"ua-parser/uap-php" : "*",
+     	"mouse0270/bootstrap-notify": "*"
     },
     "autoload": {
         "psr-4": {
             "nitm\\": ""
         }
-    }
+    },
+    "repositories" : [
+        {
+                "type":"vcs",
+                "url": "https://github.com/mouse0270/bootstrap-notify.git"
+        }
+    ]
 }
