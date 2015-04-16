@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 NITM Yii2 Module
 ============
 Widgets created for Ninjas in the Machine
