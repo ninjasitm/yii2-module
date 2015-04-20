@@ -223,13 +223,25 @@ trait Nitm
      */
     public static function getCategoryList($type)
     {
-		
 		switch(CacheHelper::cache()->exists('category-list-'.$type))
 		{
 			case false:
 			$model = new Category([
 				'queryFilters' => [
-					'where' => 'id IN '.new \yii\db\Expression("(SELECT remote_id FROM ".ParentMap::tableName()." WHERE (parent_id=(SELECT remote_id FROM ".ParentMap::tableName()." WHERE remote_type='$type' && remote_table='".Category::tableName()."' LIMIT 1)))"),
+					'select' => ['name', 'id'],
+					'where' => 'id IN ('.new \yii\db\Expression(ParentMap::find()
+						->select('remote_id')
+						->where([
+							'parent_id' => new \yii\db\Expression('('.ParentMap::find()
+								->select('remote_id')
+								->where([
+									'remote_type' => $type,
+									'remote_table' => Category::tableName(),
+								])
+								->createCommand()->getRawSql().')'),
+							'parent_table' => Category::tableName(),
+						])
+						->createCommand()->getRawSql().')'),
 					'orderBy' => ['name' => SORT_ASC]
 				]
 			]);
@@ -238,6 +250,7 @@ trait Nitm
 			break;
 			
 			default:
+			echo "List for $type exists<br>";
 			$ret_val = CacheHelper::cache()->get('category-list-'.$type);
 			break;
 		}
