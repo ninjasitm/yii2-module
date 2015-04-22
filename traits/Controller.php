@@ -10,6 +10,7 @@ use yii\helpers\ArrayHelper;
  trait Controller {
 	
 	protected $_logLevel = 3;
+	protected $logCollection;
 	protected $shouldLog = true;
 	
     /*
@@ -21,7 +22,7 @@ use yii\helpers\ArrayHelper;
 		return (@$this->settings['supported'][$what] == true);
 	}
 	
-	public function assets()
+	public static function assets()
 	{
 		return [];
 	}
@@ -134,6 +135,14 @@ use yii\helpers\ArrayHelper;
 		$category = ArrayHelper::remove($result, 'logCategory', 'User Action');
 		$internalCategory = ArrayHelper::remove($result, 'internalLogCategory', 'user-activity');
 		
+		$baseArgs = [
+			'category' => $category, 
+			'internal_category' => $internalCategory
+		];
+			
+		if(!isset($result['collection_name']) && (isset($this->logCollection) && !is_null($this->logCollection)))
+			$baseArgs['collection_name'] = $this->logCollection;
+		
 		if(!$model)
 			$model = $this->hasProperty('model') && ($this->model instanceof \nitm\models\Data) ? $this->model : new \nitm\models\Data(['noDbInit' => true]);
 		
@@ -147,10 +156,7 @@ use yii\helpers\ArrayHelper;
 			array_push($message, "\n\nError was: \n\n".var_export($message));
 		
 		return [
-			implode(' ', $message), $level, $action, [
-				'category' => $category, 
-				'internal_category' => $internalCategory
-			], $model
+			implode(' ', $message), $level, $action, $baseArgs, $model
 		];
 	}
 	

@@ -189,7 +189,7 @@ trait Data {
 	 * @param mixed $separator
 	 * @return array
 	 */
-	public function getList($label='name', $separator=null, $queryFilters=[])
+	public function getList($label='name', $separator=null, $queryFilters=[], $key=null)
 	{
 		$class = $this->locateClassForItems($queryFilters);
 		
@@ -197,7 +197,7 @@ trait Data {
 		$separator = is_null($separator) ? ' ' : $separator;
 		$label = is_null($label) ? 'name' : $label;
 		
-		$cacheKey = CacheHelper::getKey($class::formName(), null, 'list', true);
+		$cacheKey = CacheHelper::getKey(is_string($key) ? $key : $class::formName(), null, 'list', true);
 		
 		if(CacheHelper::cache()->exists($cacheKey))
 			$ret_val = CacheHelper::cache()->get($cacheKey);
@@ -227,11 +227,11 @@ trait Data {
 	 * @param mixed $separator
 	 * @return array
 	 */
-	public function getJsonList($labelField='name', $separator=null, $options=[])
+	public function getJsonList($labelField='name', $separator=null, $options=[], $key=null)
 	{
 		$class = $this->locateClassForItems($options);
-			
-		$cacheKey = CacheHelper::getKey($class::formName(), null, 'json-list', true);
+
+		$cacheKey = CacheHelper::getKey(is_string($key) ? $key : $class::formName(), null, 'list', true);
 		
 		if(CacheHelper::cache()->exists($cacheKey))
 			$ret_val = CacheHelper::cache()->get($cacheKey);

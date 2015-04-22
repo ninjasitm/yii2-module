@@ -135,7 +135,8 @@ class Module extends \yii\base\Module
 	{
 		if($this->canLog($level)) {
 			try {
-				$collectionName = isset($options['collection_name']) ? $options['collection_name'] : 'nitm-log';
+				
+				$collectionName = $this->getCollectionName($options);
 				$options = array_merge([
 					'db_name' => \nitm\models\DB::getDbName(),
 					'level' => $level,
@@ -148,5 +149,10 @@ class Module extends \yii\base\Module
 			}
 		}
 		return false;
+	}
+	
+	public function getCollectionName(&$from=[])
+	{
+		return ArrayHelper::remove($from, 'collection_name', (($this->logCollections != []) ? $this->logCollections[0] : 'nitm-log'));
 	}
 }

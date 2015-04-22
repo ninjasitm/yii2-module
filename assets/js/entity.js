@@ -174,18 +174,6 @@ function NitmEntity () {
 		});
 	}
 	
-	this.indicateResult = function (message, elem) {
-		var $elem = $nitm.getObj(elem);
-		try {
-			$elem.tooltip('destroy');
-			$elem.tooltip({
-				html: true,
-				title: "<h3>"+message+"</h3>"
-			});
-			$elem.tooltip('show');
-		} catch (error) {}
-	}
-	
 	this.afterAction = function (action, result, currentIndex, elem, realElem) {
 		var func = 'after'+$nitm.safeFunctionName(action);
 		try {

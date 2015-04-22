@@ -158,6 +158,20 @@ function Nitm ()
 		} catch (error) {}
 	}
 	
+	this.indicate = function (message, elem, className) {
+		var $elem = $nitm.getObj(elem);
+		try {
+			$elem.tooltip('destroy');
+			$elem.tooltip({
+				html: true,
+				title: "<h3>"+message+"</h3>"
+			});
+			$elem.tooltip('show');
+			if(className != undefined)
+				$elem.addClass(className);
+		} catch (error) {}
+	}
+	
 	this.notify = function (message, type, object)
 	{
 		try {

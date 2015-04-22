@@ -547,7 +547,7 @@ class DefaultController extends BaseController
 			 */
 			if(\Yii::$app->getModule('nitm')->enableLogger && $this->shouldLog) {
 				call_user_func_array([$this, 'log'], $this->getLogParams($saved, $args));
-				foreach(['logLevel'] as $remove)
+				foreach(['logLevel', 'collection_name'] as $remove)
 					unset($ret_val[$remove]);
 			}
 			

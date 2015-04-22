@@ -69,27 +69,40 @@ class MongoTarget extends \yii\log\DbTarget
                 $text = VarDumper::export($message['message']);
             }
 			
-			if(!isset($currentIndexes[$collection]))
-				$currentIndexes[$collection] = array_map(function ($key) {
+			if(!isset($currentIndexes[$collection])) {
+				$currentIndexes[$collection] = ($found = array_map(function ($key) {
 					return key($key['key']);
-				}, $this->db->getCollection($collection)->mongoCollection->getIndexInfo());
+				}, $this->db->getCollection($collection)->mongoCollection->getIndexInfo())) != [] ? $found : array_keys($message);
+			}
 			
 			$message['timestamp'] = !isset($message['timestamp']) ? microtime(true) : $message['timestamp'];
 			
 			/**
 			 * Gather the indexes
 			 */
-			$indexes = array_merge($indexes, array_keys($message));
+			$indexes = array_replace($indexes, array_keys($message));
+			
 			/**
 			 * If new indexes are introduced update the index
-			 */
-			 
+			 */			 
 			if($currentIndexes[$collection] != $indexes){
-				$this->db->getCollection($collection)->dropAllIndexes();
-				foreach($indexes as $index)
-					$this->db->getCollection($collection)->createIndex($index);
+				$previous = $this->db->getCollection($collection)->dropAllIndexes();
+				foreach($indexes as $index) {
+					if(is_numeric($message[$index]) || (is_string($message[$index]) && strlen($message[$index]) <= 32))
+					{
+						try {
+							$this->db->getCollection($collection)->createIndex($index);
+						} catch(\Exception $e) {
+							if(defined('YII_DEBUG')) {
+								print_r($e);
+								exit;
+							}
+						}
+					}
+				}
 				$currentIndexes[$collection] = $indexes;
 			}
+			
 			$this->db->getCollection($collection)->insert($message);
         }
     }

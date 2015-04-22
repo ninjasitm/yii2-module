@@ -223,7 +223,8 @@ trait Nitm
      */
     public static function getCategoryList($type)
     {
-		switch(CacheHelper::cache()->exists('category-list-'.$type))
+		$key = 'cl'.ucfirst($type);
+		switch(CacheHelper::cache()->exists($key))
 		{
 			case false:
 			$model = new Category([
@@ -245,13 +246,13 @@ trait Nitm
 					'orderBy' => ['name' => SORT_ASC]
 				]
 			]);
-			$ret_val = $model->getList('name');
-			CacheHelper::cache()->set('category-list-'.$type, $ret_val, 600);
+			$ret_val = $model->getList('name', null, [], $key);
+			CacheHelper::cache()->set($key, $ret_val, 600);
 			break;
 			
 			default:
-			echo "List for $type exists<br>";
-			$ret_val = CacheHelper::cache()->get('category-list-'.$type);
+			echo "Key $key already exists<br>";
+			$ret_val = CacheHelper::cache()->get($key);
 			break;
 		}
 		asort($ret_val);

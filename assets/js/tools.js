@@ -113,7 +113,8 @@ function Tools ()
 			this.success = ($object.data('success') != undefined) ? $object.data('success') : null;
 			this.url = $object.data('url') ? $object.data('url') : $object.attr('href');
 			var ret_val = $.ajax({
-				url: url, 
+				url: url,
+				type: ($object.data('method') != undefined) ? $object.data('method') : 'get',  
 				dataType: $object.data('type') ? $object.data('type') : 'html',
 				complete: function (result) {
 					$nitm.module('tools').replaceContents(result.responseText, object, _visSelf);
@@ -314,14 +315,20 @@ function Tools ()
 				if($(on).get(0) == undefined) return false;
 				break;
 			}
+			
+			var ajaxSettings = {
+				url: url+selected,
+				method: (($object.data('method') != undefined) ? $object.data('method') : (($object.data('ajaxMethod') != undefined) ? $object.data('ajaxMethod') : 'get')), 
+				error: function (xhr, status, error) {
+					$nitm.indicate(error, object);
+				}
+			}
 			switch($object.data('type'))
 			{
 				case 'html':
-				var ret_val = $.ajax({
-					url: url+selected,
-					type: ($object.data('method') != undefined) ? $object.data('method') : 'get', 
+				$.extend(ajaxSettings, {
 					dataType: 'html',
-					complete: function (result) {
+					success: function (result) {
 						self.evalScripts(result.responseText, function (responseText) {
 							element.html(responseText)
 						});
@@ -331,31 +338,29 @@ function Tools ()
 				
 				case 'callback':
 				eval("var callback = "+$object.data('callback'));
-				var ret_val = $.ajax({
-					url: url+selected,
-					type: ($object.data('method') != undefined) ? $object.data('method') : 'get',  
+				$.extend(ajaxSettings, {
 					dataType: 'json',
-					complete: function (result) {
+					success: function (result) {
 						callback(result, element.get(0));
 					}
 				});
 				break;
 				
 				default:
-				var ret_val = $.ajax({
-					url: url+selected,
-					type: ($object.data('method') != undefined) ? $object.data('method') : 'get',  
+				$.extend(ajaxSettings, { 
 					dataType: 'text',
-					complete: function (result) {
+					success: function (result) {
 						element.val(result.responseText);
 					}
 				});
 				break;
 			}
+			var ret_val = $.ajax(ajaxSettings).done(function () {
+				element.data('run-times', 1);
+				$nitm.updateActivity($object.attr('id'));
+			});
 			break;
 		}
-		element.data('run-times', 1);
-		$nitm.updateActivity($object.attr('id'));
 		$($nitm).trigger('nitm-animate-submit-stop', [object]);
 		return ret_val; 
 	}
