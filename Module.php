@@ -79,7 +79,7 @@ class Module extends \yii\base\Module
 		/**
 		 * Aliases for nitm module
 		 */
-		\Yii::setAlias('nitm', dirname(__DIR__)."/yii2-module");
+		\Yii::setAlias('nitm', realpath(__DIR__));
 	}
 	
 	public function getSearchClass($modelName)

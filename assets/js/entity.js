@@ -43,6 +43,8 @@ function NitmEntity () {
 	this.defaultInit = [
 	];
 	
+	this.errorCount = 0;
+	
 	this.init = function (container, key, defaults) {
 		this.initDefaults(container, key, defaults);
 	}
@@ -207,7 +209,6 @@ function NitmEntity () {
 		self.updateActivity(form.id);
 		
 		self.setCurrent(currentIndex);
-		
 		try {
 			event.preventDefault();
 		} catch (error) {};
@@ -228,25 +229,28 @@ function NitmEntity () {
 				url: $(form).attr('action'), 
 				data: data,
 				success: function (result){
-					switch(typeof callback == 'function')
-					{
-						case true:
+					if(typeof callback == 'function')
 						callback(result, form, this);
-						break;
-						
-						default:
+					else {
 						//if the module already has a method for this action
 						try {
 							var originalEventTarget = event.originalEvent.explicitOriginalTarget;
 						} catch (error) {
 							var originalEventTarget = undefined;
 						}
-						self.afterAction(result.action, result, currentIndex, form, originalEventTarget);
-						break;
 					}
 				},
-				error: function () {
-					$nitm.notify('Whoops something went wrong. Try again. If it keeps happening let the lazy  admin know!', $nitm.classes.error, form);
+				error: function (xhs, status, error) {
+					self.errorCount++;
+					if(self.errorCount < 3) {
+						$nitm.notify('Whoops something went wrong. Try again. If it keeps happening let the lazy  admin know!', $nitm.classes.warning, form);
+						self.updateActivity($form.attr('id'));
+					} else
+						$nitm.dialog('This won\'t work anymore. Please notify the admin. The error is: <br><br><code>'+error+'</code>', {
+							dialogClass: $nitm.classes.error
+						});
+					self.toggleInputs(form, true);
+					$($nitm).trigger('nitm-animate-submit-stop', [form]);
 				},
 				type: $form.attr('method'),
 			});
@@ -254,6 +258,7 @@ function NitmEntity () {
 				self.toggleInputs(form, true);
 				self.updateActivity($form.attr('id'));
 				$($nitm).trigger('nitm-animate-submit-stop', [form]);
+				self.errorCount = 0;
 			});
 			break;
 		}
@@ -329,16 +334,11 @@ function NitmEntity () {
 			self.getItem(elem, result.id).each(function(index, element) {
 				var container = $(element);
 				container.find("[role~='"+self.actions.disabledOnClose+"']").map(function () {
-					switch($(this).css('visbility') == undefined)
-					{
-						case false:
+					if($(this).css('visbility') == undefined) {
 						var visibility = ($(this).css('visbility') == 'hidden') ? 'visible' : 'hidden';
 						$(this).css('visbility', visibility);
-						break;	
-											
-						default:
+					} else {
 						$(this).toggleClass($nitm.classes.hidden, result.data);
-						break;
 					}
 				});
 				container.find("[role~='"+self.views.replyForm+"']").toggleClass($nitm.hidden, result.data);

@@ -251,7 +251,6 @@ trait Nitm
 			break;
 			
 			default:
-			echo "Key $key already exists<br>";
 			$ret_val = CacheHelper::cache()->get($key);
 			break;
 		}

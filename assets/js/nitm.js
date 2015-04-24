@@ -172,8 +172,47 @@ function Nitm ()
 		} catch (error) {}
 	}
 	
-	this.notify = function (message, type, object)
-	{
+	this.dialog = function (message, options) {
+		
+		var options = options == undefined ? {} : options;
+		var title = options.title == undefined ? '<h3>Message</h3>' : options.title;
+		var actions = options.actions == undefined ? '<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>' : options.actions;
+		var dialogClass = options.dialogClass == undefined ? 'default' : options.dialogClass;
+		
+		$.each(['title', 'actions', 'dialogClass'], function (property) {
+			delete options[property];
+		})
+		
+		try {
+			var body = $("<div class='modal fade in' role='dialog' aria-hidden='true' style='z-index:100000'>");
+			var modalDialog = $("<div class='modal-dialog'>");
+			var modalContent = $("<div class='modal-content "+dialogClass+"'>");
+			var modalBody = $("<div class='modal-body'>");
+			var modalTitle = $("<div class='modal-title'>").append(title);
+			var modalHeader = $("<div class='modal-header'>");
+			var modalFooter= $("<div class='modal-footer'>");
+			var modalClose = $('<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>');
+			modalHeader.append(modalClose);
+			modalHeader.append(modalTitle);
+			modalContent.append(modalHeader);
+			modalBody.append(message);
+			modalContent.append(modalFooter);
+			modalFooter.append(actions);
+			body.append(modalDialog.append(modalContent.append(modalBody)));
+			body.modal($.extend(options, {
+				show: true
+			}));
+		} catch(e) {
+			var body = $('<div class="dialog" style="z-index: 100000">').html(message);
+			body.dialog($.extend(options, {
+				resizable: false,
+				modal: true,
+				show: 'clip'
+			}));
+		}
+	}
+	
+	this.notify = function (message, type, object) {
 		try {
 			$.notify({
 				message: message,
@@ -195,8 +234,7 @@ function Nitm ()
 		}
 	}
 	
-	this.notifyInternal = function (newMessage, newClass, newObject)
-	{
+	this.notifyInternal = function (newMessage, newClass, newObject) {
 		var newMessage = new String(newMessage);
 		switch(true)
 		{
