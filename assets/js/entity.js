@@ -238,6 +238,7 @@ function NitmEntity () {
 						} catch (error) {
 							var originalEventTarget = undefined;
 						}
+						self.afterAction(result.action, result, currentIndex, form, originalEventTarget);
 					}
 				},
 				error: function (xhs, status, error) {
