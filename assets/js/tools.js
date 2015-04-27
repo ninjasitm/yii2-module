@@ -24,10 +24,10 @@ function Tools ()
 	this._activity = {};
 	
 	this.init = function (containerId) {
-		this.coreInit(containerId);
+		this.initDefaults(containerId);
 	}
 	
-	this.coreInit = function (containerId) {
+	this.initDefaults = function (containerId) {
 		this.defaultInit.map(function (method, key) {
 			if(typeof self[method] == 'function')
 				self[method](containerId);
@@ -39,12 +39,15 @@ function Tools ()
 	 */
 	this.initSubmitSelect = function (containerId) {
 		//May not be necesary when using Bootstrap Nav menu
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);	
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);	
 		container.find("[role~='changeSubmit']").map(function(e) {
-			$(this).off('change');
-			$(this).on('change', function (event) {
-				window.location.replace($(this).val());
-			});
+			if(!$(this).data('nitm-entity-change')) {
+				$(this).data('nitm-entity-change', true);
+				$(this).off('change');
+				$(this).on('change', function (event) {
+					window.location.replace($(this).val());
+				});
+			}
 		});
 	}
 	
@@ -52,28 +55,30 @@ function Tools ()
 	 * Use data attributes to load a URL into a container/element
 	 */
 	this.initVisibility = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality with optional data retrieval
 		container.find("[role~='visibility']").map(function(e) {
 			var _target = this;
 			if(_target.id != undefined) {
 				var events = $(this).data('events') != undefined ? $(this).data('events').split(',') : ['click'];
 				$.each(events, function (index, eventName) {
-					$(_target).off(eventName);
-					if($(_target).data('no-animation'))
-						var _callback = function (e) {
-							self.visibility(_target)
-						}
-					else
-						var _callback = function (e) {
-							e.preventDefault();
-							$.when(self.visibility(_target)).done(function () {
-							});
-						}
-					if($(this).data('run-once'))
-						$(_target).one(eventName, _callback);
-					else
-						$(_target).on(eventName, _callback);
+					if(!$(_target).data('nitm-entity-'+eventName)) {
+						$(_target).data('nitm-entity-'+eventName, true);
+						if($(_target).data('no-animation'))
+							var _callback = function (e) {
+								self.visibility(_target)
+							}
+						else
+							var _callback = function (e) {
+								e.preventDefault();
+								$.when(self.visibility(_target)).done(function () {
+								});
+							}
+						if($(this).data('run-once'))
+							$(_target).one(eventName, _callback);
+						else
+							$(_target).on(eventName, _callback);
+					}
 				});
 			}
 		});
@@ -142,33 +147,36 @@ function Tools ()
 	 * Populate another dropdown with data from the current dropdown
 	 */
 	this.initDynamicDropdown = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);		
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);		
 		container.find("[role~='dynamicDropdown']").map(function(e) {
 			var id = $(this).data('id');
 			switch(id != undefined)
 			{
 				case true:
-				$(this).off('change');
-				$(this).on('change', function (e) {
-					e.preventDefault();
-					var element = $nitm.getObj('#'+id);
-					var url = $(this).data('url');
-					if((url != '#') && (url.length >= 2)) {
-						element.removeAttr('disabled');
-						element.empty();	
-						var ret_val = $.get(url+$(this).find(':selected').val()).done( function (result) {
-							var result = $.parseJSON(result);
-							element.append( $('<option></option>').val('').html('Select value...') );
-							if(typeof result == 'object')
-							{
-								$.each(result, function(val, text) {
-									element.append( $('<option></option>').val(text.value).html(text.label) );
-								});
-							}
-						}, 'json');
-					}
-					return ret_val;
-				});
+				if(!$(_target).data('nitm-entity-change')) {
+					$(_target).data('nitm-entity-change', true);
+					$(this).off('change');
+					$(this).on('change', function (e) {
+						e.preventDefault();
+						var element = $nitm.getObj('#'+id);
+						var url = $(this).data('url');
+						if((url != '#') && (url.length >= 2)) {
+							element.removeAttr('disabled');
+							element.empty();	
+							var ret_val = $.get(url+$(this).find(':selected').val()).done( function (result) {
+								var result = $.parseJSON(result);
+								element.append( $('<option></option>').val('').html('Select value...') );
+								if(typeof result == 'object')
+								{
+									$.each(result, function(val, text) {
+										element.append( $('<option></option>').val(text.value).html(text.label) );
+									});
+								}
+							}, 'json');
+						}
+						return ret_val;
+					});
+				}
 				break;
 			}
 		});
@@ -178,7 +186,7 @@ function Tools ()
 	 * Set the value for an element using data attributes
 	 */
 	this.initDynamicValue = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality with optional data retrieval
 		container.find("[role~='dynamicValue']").map(function(e) {
 			switch(($(this).data('id') != undefined) || ($(this).data('type') != undefined))
@@ -187,18 +195,21 @@ function Tools ()
 				var _target = this;
 				var events = $(this).data('events') != undefined ? $(this).data('events').split(',') : ['click'];
 				$.each(events, function (index, eventName) {
-					if($(_target).data('run-once')) {
-						$(_target).one(eventName, function (e) {
-							e.preventDefault();
-							$.when(self.dynamicValue(_target)).done(function () {
+					if(!$(_target).data('nitm-entity-'+eventName)) {
+						$(_target).data('nitm-entity-'+eventName, true);
+						if($(_target).data('run-once')) {
+							$(_target).one(eventName, function (e) {
+								e.preventDefault();
+								$.when(self.dynamicValue(_target)).done(function () {
+								});
 							});
-						});
-					} else {
-						$(_target).on(eventName, function (e) {
-							e.preventDefault();
-							$.when(self.dynamicValue(_target)).done(function () {
+						} else {
+							$(_target).on(eventName, function (e) {
+								e.preventDefault();
+								$.when(self.dynamicValue(_target)).done(function () {
+								});
 							});
-						});
+						}
 					}
 				});
 				break;
@@ -210,25 +221,28 @@ function Tools ()
 	 * Set the value for an element using data attributes
 	 */
 	this.initDynamicIframe = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality with optional data retrieval
 		container.find("[role~='dynamicIframe']").map(function(e) {
 			if(($(this).data('id') != undefined))
 				var _target = this;
 				var events = $(this).data('events') != undefined ? $(this).data('events').split(',') : ['click'];
 				$.each(events, function (index, eventName) {
-					if($(_target).data('run-once')) {
-						$(_target).one(eventName, function (e) {
-							e.preventDefault();
-							$.when(self.dynamicIframe(_target)).done(function () {
+					if(!$(_target).data('nitm-entity-'+eventName)) {
+						$(_target).data('nitm-entity-'+eventName, true);
+						if($(_target).data('run-once')) {
+							$(_target).one(eventName, function (e) {
+								e.preventDefault();
+								$.when(self.dynamicIframe(_target)).done(function () {
+								});
 							});
-						});
-					} else {
-						$(_target).on(eventName, function (e) {
-							e.preventDefault();
-							$.when(self.dynamicIframe(_target)).done(function () {
+						} else {
+							$(_target).on(eventName, function (e) {
+								e.preventDefault();
+								$.when(self.dynamicIframe(_target)).done(function () {
+								});
 							});
-						});
+						}
 					}
 				});
 		});
@@ -260,7 +274,7 @@ function Tools ()
 		
 		var $object = $nitm.getObj(object);
 		var $target = $nitm.getObj($object.data('id'));
-		
+				
 		if($nitm.hasActivity($object.attr('id')))
 			return;
 		
@@ -300,8 +314,8 @@ function Tools ()
 				$.extend(ajaxSettings, {
 					dataType: 'html',
 					success: function (result) {
-						self.evalScripts(result.responseText, function (responseText) {
-							element.html(responseText)
+						self.evalScripts(result, function (responseText) {
+							element.html(responseText);
 						});
 					}
 				});
@@ -321,7 +335,7 @@ function Tools ()
 				$.extend(ajaxSettings, { 
 					dataType: 'text',
 					success: function (result) {
-						element.val(result.responseText);
+						element.val(result);
 					}
 				});
 				break;
@@ -354,13 +368,12 @@ function Tools ()
 		if (typeof callback == 'function') {
 			$(document).one('ajaxStop', function () {
 				if(options != undefined) {
-					var existing = (options.context == undefined) ? false : options.context.attr('id');
+					var existing = (!options.context) ? false : options.context.attr('id');
 				} else {
 					var existing = false;
 				}
-				var existingWrapper = !existing ? false : $nitm.getObj(existing).find("[role='nitmToolsAjaxWrapper']").attr('id');
-				if(!existingWrapper){
-					var wrapperId = existingWrapper;
+				var wrapperId = !existing ? false : $nitm.getObj(existing).find("[role='nitmToolsAjaxWrapper']").attr('id');
+				if(wrapperId){
 					var wrapper = $('#'+wrapperId);
 					wrapper.html('').html(dom.html());
 				} else {
@@ -380,7 +393,7 @@ function Tools ()
 						deferred.resolve();
 					}).promise();
 				})().then(function () {
-					self.coreInit(wrapperId);
+					self.initDefaults(wrapperId);
 					var scriptText = '';
 					/*
 					 *Now we can run the scripts that were not run.
@@ -419,14 +432,17 @@ function Tools ()
 	 * Remove the parent element up to a certain depth
 	 */
 	this.initRemoveParent = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality
 		container.find("[role~='removeParent']").map(function(e) {
-			$(this).on('click', function (e) {
-				e.preventDefault();
-				self.removeParent(this);
-				return true;
-			});
+			if(!$(this).data('nitm-entity-click')) {
+				$(this).data('nitm-entity-click', true);
+				$(this).on('click', function (e) {
+					e.preventDefault();
+					self.removeParent(this);
+					return true;
+				});
+			}
 		});
 	}
 	
@@ -434,16 +450,19 @@ function Tools ()
 	 * Remove the parent element up to a certain depth
 	 */
 	this.initCloneParent = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality
 		container.find("[role~='cloneParent']").map(function(e) {
-			$(this).on('click', function (e) {
-				e.preventDefault();
-				self.cloneParent(this);
-				if($(this).data('propagate') == undefined)
-					$(this).click();
-				return true;
-			});
+		if(!$(this).data('nitm-entity-click')) {
+			$(this).data('nitm-entity-click', true);
+				$(this).on('click', function (e) {
+					e.preventDefault();
+					self.cloneParent(this);
+					if($(this).data('propagate') == undefined)
+						$(this).click();
+					return true;
+				});
+			}
 		});
 	}
 	
@@ -500,13 +519,16 @@ function Tools ()
 	 * Initialize remove parent elements
 	 */
 	this.initDisableParent = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality
 		container.find("[role~='disableParent']").map(function(e) {
-			$(this).on('click', function (e) {
-				e.preventDefault();
-				self.disableParent(this);
-			});
+			if(!$(this).data('nitm-entity-click')) {
+				$(this).data('nitm-entity-click', true);
+				$(this).on('click', function (e) {
+					e.preventDefault();
+					self.disableParent(this);
+				});
+			}
 		});
 	}
 	
@@ -643,7 +665,7 @@ function Tools ()
 	 * Custom auto complete handler
 	 */
 	this.initAutocompleteSelect = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		container.find("[role~='autocompleteSelect']").each(function() {
 			$(this).on('autocompleteselect', function (e, ui) {
 				e.preventDefault();
@@ -667,7 +689,7 @@ function Tools ()
 	 * Off canvas menu support
 	 */
 	this.initOffCanvasMenu = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		$(document).ready(function () {
 			$("[data-toggle='offcanvas']").click(function () {
 				$('.row-offcanvas').toggleClass('active')

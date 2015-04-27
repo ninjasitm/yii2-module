@@ -77,53 +77,55 @@ function NitmEntity () {
 	}
 	
 	this.initMetaActions = function (containerId, currentIndex) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		$.map(self.actions.roles, function (v) {
 			container.find("[role~='"+v+"']").map(function() {
-				$(this).off('click');
-				$(this).on('click', function (e) {
-					var $elem = $(this);
-					e.preventDefault();
-					var proceed = true;
-					if($elem.attr('role').indexOf(self.actions.deleteAction) != -1)
-						if(!confirm("Are you sure you want to delete this?"))
-							proceed = false;
-					
-					if(proceed === true)
-					{
-						$nitm.startSpinner($elem);
-						var successFunc = $elem.data('data-success-callback') == undefined ? function (result) {
-							$nitm.stopSpinner($elem);
-							self.afterAction(result.action, result, currentIndex, $elem.get(0));
-						} : $elem.data('data-success-callback');
+				if(!$(this).data('nitm-entity-click')) {
+					$(this).data('nitm-entity-click', true);
+					$(this).on('click', function (e) {
+						var $elem = $(this);
+						e.preventDefault();
+						var proceed = true;
+						if($elem.attr('role').indexOf(self.actions.deleteAction) != -1)
+							if(!confirm("Are you sure you want to delete this?"))
+								proceed = false;
 						
-						var errorFunc = $elem.data('data-error-callback') == undefined ? function (xhr, text, error) {
-							$nitm.stopSpinner($elem);
-							var message = "An error occurred while reading the data!\nThe error was:<i> "+text+"</i>";
-							if($nitm.debug == true)
-								message += "<br><br>Detailed error is: <br><br><i>"+error+"</i>";
-								
-							$nitm.notify(message, 'danger');
-						} : $elem.data('data-error-callback');
-						
-						if($elem.attr('href') || $elem.data('url')) {
-							var url = !$elem.attr('href') ? $elem.attr('url') : $elem.attr('href');
-							$.ajax({
-								method: $elem.data('method') == 'get' ? 'get' : 'post',
-								url: url, 
-								success: successFunc, 
-								error: errorFunc,
-								dataType: $elem.data('data-type') != undefined ? $elem.data('data-type') : 'json',
-							});
+						if(proceed === true)
+						{
+							$nitm.startSpinner($elem);
+							var successFunc = $elem.data('data-success-callback') == undefined ? function (result) {
+								$nitm.stopSpinner($elem);
+								self.afterAction(result.action, result, currentIndex, $elem.get(0));
+							} : $elem.data('data-success-callback');
+							
+							var errorFunc = $elem.data('data-error-callback') == undefined ? function (xhr, text, error) {
+								$nitm.stopSpinner($elem);
+								var message = "An error occurred while reading the data!\nThe error was:<i> "+text+"</i>";
+								if($nitm.debug == true)
+									message += "<br><br>Detailed error is: <br><br><i>"+error+"</i>";
+									
+								$nitm.notify(message, 'danger');
+							} : $elem.data('data-error-callback');
+							
+							if($elem.attr('href') || $elem.data('url')) {
+								var url = !$elem.attr('href') ? $elem.attr('url') : $elem.attr('href');
+								$.ajax({
+									method: $elem.data('method') == 'get' ? 'get' : 'post',
+									url: url, 
+									success: successFunc, 
+									error: errorFunc,
+									dataType: $elem.data('data-type') != undefined ? $elem.data('data-type') : 'json',
+								});
+							}
 						}
-					}
-				});
+					});
+				}
 			});
 		});
 	}
 	
 	this.initSearch = function (containerId) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		$nitm.getObj(container).find("form[role~='"+this.forms.roles.ajaxSearch+"']").map(function() {
 			var _form = this;
 			$(this).off('submit');
@@ -151,7 +153,7 @@ function NitmEntity () {
 	}
 	
 	this.initForms = function (containerId, currentIndex) {
-		var container = $nitm.getObj((containerId == undefined) ? 'body' : containerId);
+		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		try {
 			var roles = $nitm.module(currentIndex).forms.roles;
 		} catch(error) {
@@ -159,19 +161,22 @@ function NitmEntity () {
 		}
 		$.map(roles, function(role, key) {
 			container.find("form[role~='"+role+"']").map(function() {
-				var $form = $(this);
-				$form.on('submit', function (e) {
-					e.preventDefault();
-					if($form.data('yiiActiveForm') != undefined) {
-						$form.one('beforeSubmit', function (event) {
-							if($form.data('yiiActiveForm').validated)
-								self.operation($form.get(0), null, currentIndex, e);
-						});
-					}
-					else {
-						self.operation($form.get(0), null, currentIndex, e);
-					}
-				});
+				if(!$(this).data('nitm-entity-form-submit')) {
+					$(this).data('nitm-entity-form-submit', true);
+					var $form = $(this);
+					$form.on('submit', function (e) {
+						e.preventDefault();
+						if($form.data('yiiActiveForm') != undefined) {
+							$form.one('beforeSubmit', function (event) {
+								if($form.data('yiiActiveForm').validated)
+									self.operation($form.get(0), null, currentIndex, e);
+							});
+						}
+						else {
+							self.operation($form.get(0), null, currentIndex, e);
+						}
+					});
+				}
 			});
 		});
 	}
@@ -197,7 +202,7 @@ function NitmEntity () {
 				var indicate = 'notify';
 				break;
 			}
-			$nitm.notify(result.message, indicate, (realElem == undefined ? elem : realElem));
+			$nitm.notify(result.message, indicate, (!realElem ? elem : realElem));
 		}
 	}
 	
@@ -238,6 +243,7 @@ function NitmEntity () {
 						} catch (error) {
 							var originalEventTarget = undefined;
 						}
+						self.afterAction(result.action, result, currentIndex, form, originalEventTarget);
 					}
 				},
 				error: function (xhs, status, error) {
@@ -329,6 +335,7 @@ function NitmEntity () {
 	}
 	
 	this.afterDisable = function (result, currentIndex, elem) {
+		self.setCurrent(currentIndex);
 		if(result.success)
 		{
 			self.getItem(elem, result.id).each(function(index, element) {

@@ -832,6 +832,16 @@ Array.prototype.unique = function() {
     return a;
 };
 
+$.fn.isBound = function(type, fn) {
+    var data = this.data('events')[type];
+
+    if (data === undefined || data.length === 0) {
+        return false;
+    }
+
+    return (-1 !== $.inArray(fn, data));
+};
+
 $nitm = (window.$nitm == undefined) ? new Nitm() : $nitm;
 
 /**
