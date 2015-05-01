@@ -101,12 +101,17 @@ class DefaultController extends BaseController
 			'with' => [], 
 			'viewOptions' => [], 
 			'construct' => [
+				'inclusiveSearch' => true,
+				'exclusiveSearch' => true,
+				'forceExclusiveBooleanSearch' => false,
+				'booleanSearch' => true,
 				'queryOptions' => [
 				]
 			],
 		], $options);
         $searchModel = new $className($options['construct']);
 		$searchModel->addWith($options['with']);
+		
         $dataProvider = $searchModel->search($options['params']);
 		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
 		switch((sizeof($options['params']) == 0) || !isset($options['params']['sort']))

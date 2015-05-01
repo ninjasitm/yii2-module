@@ -136,7 +136,8 @@ function NitmEntity () {
 					var replaceId = $(form).data('id');
 					$nitm.notify(result.message, $nitm.classes.info, form);
 					$nitm.getObj(replaceId).replaceWith(result.data);
-					//history.pushState({}, result.message, xmlHttp.url);
+					$nitm.module('tools').initDefaults('#'+replaceId);
+					history.pushState({}, result.message, (!result.url ? xmlHttp.url : result.url));
 				});
 			}
 			$(this).find(':input').on('change', function (e) {submitFunction(e)});
