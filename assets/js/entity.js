@@ -76,8 +76,17 @@ function NitmEntity () {
 		} catch (error) {console.log(error);};
 	}
 	
+	this.getContainer = function (containerId) {
+		if(containerId != undefined)
+			return containerId;
+		else if(this.views.hasOwnProperty('containerId'))
+			return self.views.containerId;
+		else
+			return 'body';
+	}
+	
 	this.initMetaActions = function (containerId, currentIndex) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+		var container = $nitm.getObj(this.getContainer(containerId));
 		$.map(self.actions.roles, function (v) {
 			container.find("[role~='"+v+"']").map(function() {
 				if(!$(this).data('nitm-entity-click')) {
@@ -125,7 +134,7 @@ function NitmEntity () {
 	}
 	
 	this.initSearch = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+		var container = $nitm.getObj(this.getContainer(containerId));
 		$nitm.getObj(container).find("form[role~='"+this.forms.roles.ajaxSearch+"']").map(function() {
 			var _form = this;
 			$(this).off('submit');
@@ -154,7 +163,7 @@ function NitmEntity () {
 	}
 	
 	this.initForms = function (containerId, currentIndex) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+		var container = $nitm.getObj(this.getContainer(containerId));
 		try {
 			var roles = $nitm.module(currentIndex).forms.roles;
 		} catch(error) {
