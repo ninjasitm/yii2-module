@@ -4,7 +4,6 @@ namespace nitm\helpers;
 
 use yii\db\ActiveRecord;
 use yii\base\Behavior;
-use yii\helpers\ArrayHelper;
 use DOMDocument;
 use DOMElement;
 use DOMComment;

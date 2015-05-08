@@ -10,7 +10,7 @@ use yii\helpers\Html;
  */
 class Form extends Behavior
 {
-	public static function getVariables($model, $options=[], $modalOptions=[])
+	public static function getVariables($model, $options=[], $modalOptions=[], $setViewOptions=true)
 	{
 		$ret_val = [
 			"success" => false, 
@@ -110,12 +110,16 @@ class Form extends Behavior
 						'class' => $model->isNewRecord ? 'btn btn-success' : 'btn btn-primary',
 						'form' => $formOptions['options']['id'],
 					]);
-					Response::viewOptions(null, [
+					
+					$formArgs = [
 						"view" => $options['view'],
 						'modalOptions' => static::getModalOptions($modalOptions, $model),
 						'title' => static::getTitle($model, $options['title']),
 						'footer' => $footer
-					]);
+					];
+						
+					if($setViewOptions)
+						Response::viewOptions(null, $formArgs);
 					
 					/**
 					 * Get data provider information
@@ -127,21 +131,29 @@ class Form extends Behavior
 					]);
 					$ret_val['data'] = static::getDataProvider($model, $dataProviderOptions);
 					
-					Response::viewOptions("args", array_merge([
+					$formArgs['args'] = array_merge([
 						'scenario' => $scenario,
 						"formOptions" => $formOptions,
 						"model" => $model,
 						'dataProvider' => $ret_val['data'],
 						'action' => $action,
 						'type' => $model->isWhat(),
-					], $options['viewArgs']));
-					switch(\Yii::$app->request->isAjax)
+					], $options['viewArgs']);
+					
+					if($setViewOptions) {
+						Response::viewOptions("args", $formArgs['args']);
+						switch(\Yii::$app->request->isAjax)
+						{
+							case false:
+							Response::viewOptions('options', [
+								'style' => 'padding: 0 15px; position: absolute; height: 100%, width: 100%'
+							]);
+							break;
+						}
+					}
+					else
 					{
-						case false:
-						Response::viewOptions('options', [
-							'class' => 'wrapper full-width full-height'
-						]);
-						break;
+						$ret_val['form'] = $formArgs;
 					}
 					$ret_val['success'] = true;
 					$ret_val['action'] = $options['param'];
