@@ -18,6 +18,93 @@ use yii\helpers\ArrayHelper as BaseArrayHelper;
  */
 class ArrayHelper extends BaseArrayHelper
 {
+	public static function diff($array1, $array2, $mode='default') {
+		switch($mode)
+		{
+			case 'assoc':
+			$difference = static::diffAssoc($array1, $array2);
+			break;
+			
+			case 'key':
+			$difference = static::diffKey($array1, $array2);
+			break;
+			
+			default:
+			$difference = static::diffSimple($array1, $array2);
+			break;
+		}
+		return $difference;
+	}
+	
+	/**
+	 * Lazy copy pasta
+	 * http://php.net/manual/en/function.array-diff-assoc.php
+	 */
+	public static function diffAssoc($array1, $array2)
+	{
+		$difference = [];
+		foreach($array1 as $key => $value) {
+			if( is_array($value) ) {
+				if( !isset($array2[$key]) || !is_array($array2[$key]) ) {
+					$difference[$key] = $value;
+				} else {
+					$new_diff = static::diffAssoc($value, $array2[$key]);
+					if( !empty($new_diff) )
+						$difference[$key] = $new_diff;
+				}
+			} else if( !array_key_exists($key,$array2) || $array2[$key] !== $value ) {
+				$difference[$key] = $value;
+			}
+		}
+		return $difference;
+	}
+	
+	/**
+	 * Lazy copy pasta
+	 * http://php.net/manual/en/function.array-diff.php
+	 */
+	function diffSimple($array1, $array2) {
+		$aReturn = array();
+	  
+		foreach ($array1 as $mKey => $mValue) {
+			if (array_key_exists($mKey, $array2)) {
+				if (is_array($mValue)) {
+					$aRecursiveDiff = static::diffSimple($mValue, $array2[$mKey]);
+					if (count($aRecursiveDiff)) { $aReturn[$mKey] = $aRecursiveDiff; }
+				} else {
+					if ($mValue != $array2[$mKey]) {
+						$aReturn[$mKey] = $mValue;
+					}
+				}
+			} else {
+				$aReturn[$mKey] = $mValue;
+			}
+		}
+	  
+		return $aReturn;
+	} 
+	
+	/**
+	* @author Gajus Kuizinas <gk@anuary.com>
+	* @version 1.0.0 (2013 03 19)
+	*/
+	function diffKey(array $array1, array $array2) {
+		$diff = array_diff_key($array1, $array2);
+		$intersect = array_intersect_key($array1, $array2);
+	   
+		foreach ($intersect as $k => $v) {
+			if (is_array($array1[$k]) && is_array($array2[$k])) {
+				$d = static::diffKey($array1[$k], $array2[$k]);
+			   
+				if ($d) {
+					$diff[$k] = $d;
+				}
+			}
+		}
+	   
+		return $diff;
+	}
+
 	public static function mapRecursive($array, $callback) {
 		if(is_array($array) || $array instanceof ArrayAccess)
 		{

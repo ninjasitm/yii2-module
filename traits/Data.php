@@ -63,8 +63,12 @@ trait Data {
 	 * @param string $name
 	 * @return string
 	 */
-	public static function properName($value=null)
+	public function properName($value=null)
 	{
+		if(isset($this))
+			$value = is_null($value) ? $this->isWhat() : $value;
+		else
+			$value = is_null($value) ?  static::isWhat() : $value;
 		return \nitm\helpers\ClassHelper::properName($value);
 	}
 	
@@ -73,14 +77,22 @@ trait Data {
 	 * @param string $name
 	 * @return string
 	 */
-	public static function properClassName($value=null)
+	public function properClassName($value=null)
 	{
+		if(isset($this))
+			$value = is_null($value) ? $this->className() : $value;
+		else
+			$value = is_null($value) ?  static::className() : $value;
 		return \nitm\helpers\ClassHelper::properClassName($value);
 	}
 	
-	public static function getNamespace()
+	public function getNamespace()
 	{
-		return \nitm\helpers\ClassHelper::getNameSpace();
+		if(isset($this))
+			$class = $this->className();
+		else
+			$class = static::className();
+		return \nitm\helpers\ClassHelper::getNameSpace($class);
 	}
 	
 	public function flagId($flag)

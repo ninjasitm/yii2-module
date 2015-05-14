@@ -14,9 +14,9 @@ class ClassHelper extends Model
 	 * @param string $name
 	 * @return string
 	 */
-	public static function properName($value=null)
+	public static function properName($value)
 	{
-		$ret_val = preg_replace('/[\-\_]/', " ", is_null($value) ?  static::isWhat() : $value);
+		$ret_val = preg_replace('/[\-\_]/', " ", $value);
 		return implode(' ', array_map('ucfirst', explode(' ', $ret_val)));
 	}
 	
@@ -25,15 +25,15 @@ class ClassHelper extends Model
 	 * @param string $name
 	 * @return string
 	 */
-	public static function properClassName($value=null)
+	public static function properClassName($value)
 	{
 		$ret_val = is_null($value) ?  static::className() : preg_replace('/[\-\_]/', " ", $value);
 		return implode('', array_map('ucfirst', explode(' ', static::properName($ret_val))));
 	}
 	
-	public static function getNamespace()
+	public static function getNamespace($className)
 	{
-		return (new \ReflectionClass(static::className()))->getNamespaceName();
+		return (new \ReflectionClass($className))->getNamespaceName();
 	}
 }
 ?>
