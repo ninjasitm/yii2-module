@@ -62,7 +62,7 @@ class Form extends Behavior
 					//Get the data according to get$options['param'] functions
 					$model->requestModel->queryFilters['limit'] = 1;
 					$model->requestModel->queryFilters[$model->requestModel->primaryKey()[0]] = $model->requestModel->getId();
-					$model = array_shift($model->requestModel->getArrays());
+					$model = array_shift($model->requestModel->getModels());
 					if(!$model)
 						$model = new $options['modelClass'](@$options['construct']);
 					else

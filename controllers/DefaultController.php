@@ -684,6 +684,7 @@ class DefaultController extends BaseController
 		$force = false;
 		$options['id'] = $id;
 		$options['param'] = $type;
+		
 		if(isset($options['modelClass']))
 		{
 			$this->model = ($this->model->className() == $options['modelClass']) ? $this->model : new $options['modelClass'](@$options['construct']);
