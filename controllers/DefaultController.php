@@ -105,39 +105,19 @@ class DefaultController extends BaseController
 				'exclusiveSearch' => true,
 				'forceExclusiveBooleanSearch' => false,
 				'booleanSearch' => true,
-				'queryOptions' => [
-				]
+				'queryOptions' => []
 			],
 		], $options);
         $searchModel = new $className($options['construct']);
-		$searchModel->addWith($options['with']);
 		
         $dataProvider = $searchModel->search($options['params']);
 		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
-		switch((sizeof($options['params']) == 0) || !isset($options['params']['sort']))
-		{	
-			case true:
-			switch(1)
-			{
-				case $searchModel instanceof \nitm\search\BaseElasticSearch:
-				if(!$dataProvider->query->orderBy)
-					$dataProvider->query->orderBy([
-						$searchModel->primaryModel->primaryKey()[0] => [
-							'order' => 'desc',
-							'ignore_unmapped' => true
-						]
-					]);
-				break;
-				
-				default:
-				if(!$dataProvider->query->orderBy)
-					$dataProvider->query->orderBy([
-						$searchModel->primaryModel->primaryKey()[0] => SORT_DESC
-					]);
-				break;
-			}
-			$dataProvider->pagination->params['sort'] = '-'.$searchModel->primaryModel->primaryKey()[0];
-			break;
+		if((sizeof($options['params']) == 0) || !isset($options['params']['sort']))
+		{
+			if(!$dataProvider->query->orderBy)
+				$dataProvider->query->orderBy([
+					$searchModel->primaryModel->primaryKey()[0] => SORT_DESC
+				]);
 		}
 		
 		$createOptions = isset($options['createOptions']) ? $options['createOptions'] : [];

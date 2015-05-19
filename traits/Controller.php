@@ -291,10 +291,8 @@ use yii\helpers\ArrayHelper;
 	protected function getOrderByQuery()
 	{
 		return [
-			"(CASE 
-				WHEN updated_at > created_at THEN updated_at
-				ELSE created_at
-			END)" => SORT_DESC,
+			"updated_at" => SORT_DESC,
+			"created_at" => SORT_DESC,
 		];
 	}
  }
