@@ -108,9 +108,11 @@ class DefaultController extends BaseController
 				'queryOptions' => []
 			],
 		], $options);
+		
         $searchModel = new $className($options['construct']);
 		
         $dataProvider = $searchModel->search($options['params']);
+		
 		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
 		if((sizeof($options['params']) == 0) || !isset($options['params']['sort']))
 		{
@@ -137,7 +139,6 @@ class DefaultController extends BaseController
 			'isWhat' => $this->model->isWhat()
 		], (array)@$options['viewOptions']);
 		
-		//print_r($dataProvider->query->all());
 		Response::viewOptions(null, [
 			'view' => ArrayHelper::getValue($options, 'view', 'index'),
 			'args' => array_merge([

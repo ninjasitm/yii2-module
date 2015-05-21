@@ -71,7 +71,7 @@ class Relations
 				$ret_val = null;
 			break;
 		}
-		$model->populateRelation($name, $ret_val);
+		//$model->populateRelation($name, $ret_val);
 		return $ret_val;
 	}
 	

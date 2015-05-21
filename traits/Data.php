@@ -131,7 +131,7 @@ trait Data {
 	 * This is here to allow base classes to modify the query before finding the count
      * @return \yii\db\ActiveQuery
      */
-    public function getCount($link)
+    public function getCount($link=null)
     {
 		$primaryKey = current($this->primaryKey());
 		$link = is_array($link) ? $link : [$primaryKey => $primaryKey];
@@ -146,7 +146,9 @@ trait Data {
 	
 	public function count()
 	{
-		return $this->hasProperty('count') && isset($this->count) ? $this->count->_count : 0;
+		return \nitm\helpers\Relations::getRelatedRecord('count', $this, static::className(), [
+			'_count' => 0
+		])->_count;
 	}
 
 	/*
@@ -178,16 +180,18 @@ trait Data {
 		$class = $this->locateClassForItems($options);
 			
 		$items = [];
+		$this->queryFilters = array_merge($this->queryFilters, array_merge([
+				'limit' => 100,
+				'select' => '*',
+			], $options));
 		if(isset($this)) {
-			$this->queryFilters['limit'] = ArrayHelper::getValue($options, 'limit', 100);
 			$items = $this->getModels();
 		}
 		else {
-			$query = $class::find()
-				->limit(ArrayHelper::getValue($queryFilters, 'limit', 100))
-				->select(ArrayHelper::getValue($queryFilters, 'select', '*'));
-			if(!is_null($sort = ArrayHelper::getValue($queryFilters, 'orderBy', null)))
-				$query->orderBy($sort);
+			$query = $class::find();
+			foreach($this->queryFilters as $name=>$value)
+				if($query->hasMethod($name))
+					$query->$name($value);
 			$items = $query->all();
 		}
 		return $items;

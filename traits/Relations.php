@@ -25,7 +25,7 @@ trait Relations {
 				$className = \nitm\models\User::className();
 		}
 		$options['select'] = isset($options['select']) ? $options['select'] : ['id', 'username', 'disabled'];
-		$options['with'] = isset($options['with']) ? $options['select'] : ['profile'];
+		$options['with'] = isset($options['with']) ? $options['with'] : ['profile'];
 		$options['where'] = [];
 		return $this->getRelationQuery($className, $link, $options);
 	}

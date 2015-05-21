@@ -223,7 +223,14 @@ class Cache extends Model
 					 */
 					 foreach($array[1] as $attributes)
 					 {
-					 	$ret_val[] = new $array[0]($attributes);
+						 $model = new $array[0];
+						 foreach($attributes as $attribute=>$value)
+						 	if($model->hasMethod('get'.$attribute))
+								$model->populateRelation($attribute, $value);
+							else if($model->hasAttribute($attribute))
+								$model->setAttribute($attribute, $value);
+							else if($model->hasProperty($attribute))
+								$model->$attribute = $value;
 					 }
 				}
 			}
