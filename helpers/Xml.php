@@ -37,9 +37,9 @@ class Xml
 		return $str;
 	}
 	
-	public static function build(&$root, $options=[], &$scaffold=null)
+	public static function build($root, $options=[], $scaffold=null, $debug=false)
 	{
-		return array_merge($options, self::buildXml($root, $options, $scaffold));
+		return array_merge($options, self::buildXml($root, $options, $scaffold, $debug));
 	}
 	
 	public static function buildHierarchy(array $hierarchy, $index=null)
@@ -63,94 +63,89 @@ class Xml
 		return $ret_val;
 	} 
 	
-	public static function buildXml(&$parent, $options=[], &$scaffold=null)
-	{
+	public static function buildXml($parent, $options=[], $scaffold=null, $debug=false)
+	{		
 		$container = ArrayHelper::getValue($options, 'container');
 		$properties = ArrayHelper::getValue($options, 'properties', []);
-		$hierarchy = ArrayHelper::getValue($options, 'hierarchy');
-		$encoding = ArrayHelper::getValue($options, 'encoding', 'utf-8');
-		
+		$hierarchy = ArrayHelper::getValue($options, 'hierarchy', []);
+		$encoding = ArrayHelper::getValue($options, 'encoding', 'UTF-8');
+		/**
+		 * We need a DOMDocument $scaffold in order to create mutable nodes
+		 */
+		$scaffold = ($scaffold instanceof DOMDocument) ? $scaffold : new DOMDocument('1.0', $encoding);		
 		$ret_val = [];
+		
 		//first of all are we dealing with a dom document?
-		if($parent instanceof DOMElement)
+		if($parent instanceof \DOMElement || $parent instanceof \DOMDocument)
 		{
 			//if so go through all the elements in the array and create the proper hierarchy
 			self::$counter++;
 			foreach($hierarchy as $idx=>$elem)
 			{ 
 				$name = ArrayHelper::getValue($elem, 'name', $idx);
-				switch(empty($name))
-				{
-					case false:
-					try {
-						$object = new DOMElement(htmlentities(trim($name), ENT_XML1), ArrayHelper::remove($elem, 'value', null));
-					} catch (\DOMException $e) { 
-						if(defined('YII_DEBUG'))
-							throw($e);
-						else
-							continue;
-					}
-					//Append this element to the parent
-					try {
-						$parent->appendChild($object);
-					} catch (\DOMException $e) {
-						if(defined('YII_DEBUG'))
-							throw($e);
-						else
-							continue;
-					}
-					switch(empty($elem['children']))
-					{
-						case false:
-						//Create the proper hierarchy for these new elements
-						$childOptions = array_merge($options, [
-							'hierarchy' => $elem['children'],
-							'properties' => []
-						]);
-						static::buildXml($object, $childOptions, ArrayHelper::getValue((array)$scaffold, $name, $scaffold));
-						break;
-						
-						default:
-						$properties = (is_array($properties) && (count($properties) >= 1)) ? $properties : (is_array($elem) ? array_keys($elem) : []);
-						//go through the parameters array and set value accordingly
-						foreach(array_keys($elem) as $type)
-						{
-							if(isset($elem[$type]))
-							{
-								switch($type)
-								{
-									case 'value':
-									$object->nodeValue = $elem[$type];
-									break;
-									
-									case 'text':
-									//set the values for this text.property
-									$object->appendChild(new DOMText($elem['text']));
-									break;
-									
-									case 'comment':
-									//set the values for this text.property
-									$object->appendChild(new DOMTComment($elem['comment']));
-									break;
-									
-									case 'attributes':
-									//set the values for this attribute.property
-									foreach($elem['attributes'] as $attr=>$val)
-									{
-										$object->appendChild(new DOMAttr(htmlentities(trim($attr), ENT_COMPAT, $encoding), $val));
-									}
-									break;
-								}
-								//echo "Created element of type: $type\n<br>";
-							}
-						}
-						break;
-					}
-					break;
+				if(!$name)
+					continue;
+				
+				/**
+				 * Need to create eleemnt through scaffold to allow mutability
+				 */
+				$object = $scaffold->createElement(htmlentities(trim($name), ENT_XML1)); 
+				
+				//Append this element to the parent
+				try {
+					$parent->appendChild($object);
+				} catch (\DOMException $e) {
+					if(defined('YII_DEBUG'))
+						throw($e);
+					else
+						continue;
+				}
+				if(isset($elem['children']) && !empty($elem['children'])) {
+					//Create the proper hierarchy for these new elements
+					$childOptions = array_merge($options, [
+						'hierarchy' => $elem['children'],
+						'properties' => []
+					]);
+					self::buildXml($object, $childOptions, ArrayHelper::getValue((array)$scaffold, $name, $scaffold));
+				} else {
+					$properties = (is_array($properties) && (count($properties) >= 1)) ? $properties : (is_array($elem) ? array_keys($elem) : []);
+					self::buildProperties($object, $elem, $encoding);
 				}
 			}
 		}
 		return $ret_val;
+	}
+	
+	public static function buildProperties($object, $properties, $encoding='UTF-8')
+	{
+		//go through the parameters array and set value accordingly
+		foreach((array)$properties as $type=>$value)
+		{
+			switch($type)
+			{
+				case 'value':
+				$object->nodeValue = $value;
+				break;
+				
+				case 'text':
+				//set the values for this text.property
+				$object->appendChild(new DOMText($value));
+				break;
+				
+				case 'comment':
+				//set the values for this text.property
+				$object->appendChild(new DOMTComment($value));
+				break;
+				
+				case 'attributes':
+				//set the values for this attribute.property
+				foreach($value as $attr=>$val)
+				{
+					$object->setAttribute(htmlentities(trim($attr), ENT_COMPAT, $encoding), $val);
+				}
+				break;
+			}
+		}
 	}
 	
    
@@ -164,12 +159,12 @@ class Xml
 	{
 		switch($from)
 		{
-			case static::FROM_SIMPLE_XML:
-			return static::toArrayFromXimpleXml($root);
+			case self::FROM_SIMPLE_XML:
+			return self::toArrayFromXimpleXml($root);
 			break;
 			
 			default:
-			return static::toArrayFromDom($root);
+			return self::toArrayFromDom($root);
 			break;
 		}
 	} 
