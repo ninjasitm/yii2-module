@@ -1,16 +1,20 @@
 <?php
 
-namespace nitm\models;
+namespace nitm\helpers;
 
 use Yii;
 use yii\web\Application;
 use yii\base\Event;
 use yii\base\Model;
 use nitm\helpers\Session;
+use nitm\helpers\Cache;
+use nitm\helpers\ArrayHelper;
+use nitm\helpers\Json;
 use nitm\models\configer\Container;
 use nitm\models\configer\Section;
 use nitm\models\configer\Value;
 use nitm\models\configer\File;
+use nitm\models\DB;
 
 /**
  * Class Configer
@@ -72,16 +76,11 @@ class Configer extends Model
 	private $_event;
 	private static $hasNew;
 	
-	public function __construct()
-	{
-		$this->init();
-	}
-	
 	public function init($enable_backups=true, $backupExtention='.cfg.bak')
 	{
+		parent::init();
 		$this->backups = $enable_backups;
 		$this->backupExtention = $backupExtention;
-		$this->dir['config'] = $this->dir['default'];
 		$this->config('supported', $this->_supported);
 		$this->initEvents();
 	}
@@ -148,9 +147,14 @@ class Configer extends Model
 	 */
 	public static function config($name=null, $value=null, $append=false)
 	{
-		//echo "Setting $name and appending?: $append to value ".jsON_encode($value)."<br>\n";
 		$name = is_array($name) ? implode('.', $name) : $name;
 		return \nitm\helpers\ArrayHelper::getOrSetValue(static::$config, $name, $value, $append);
+	}
+	
+	protected function event($name=null, $value=null, $append = false)
+	{
+		$name = is_array($name) ? implode('.', $name) : $name;
+		return \nitm\helpers\ArrayHelper::getOrSetValue($this->_event->data, $name, $value, $append);
 	}
 	
 	/*
@@ -159,50 +163,60 @@ class Configer extends Model
 	public function initEvents()
 	{
 		$this->on("afterCreate", function($e) {
-			$this->config('current.section', $this->_event['data']['section']);
-			if($this->container == \Yii::$app->getModule('nitm')->config->container) {
-				$value = (is_null($decoded = json_decode(trim($this->_event['data']['value']), true)) ? $this->_event['data']['value'] : $decoded);
-				Session::set($this->container.'.'.$this->_event['data']['key'], $value);
-			}
-			Session::set($this->uriOf($this->_event['data']['key'], true), $this->_event['data']['value']);
-			\Yii::$app->getModule('nitm')->logger->log($this->getEventData());
+			$this->config('current.section', $this->event('section'));
+			
+			if($this->container == \Yii::$app->getModule('nitm')->config->container)
+				Session::set(Session::settings.'.'.$this->event('key'), Json::decode($this->event('value')));
+				
+			Session::set($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
+			$this->trigger('logData');
 		});
 		
 		$this->on("afterUpdate", function($e) {
-			if($this->container == \Yii::$app->getModule('nitm')->config->container) {
-				$value = (is_null($decoded = json_decode(trim($this->_event['data']['value']), true)) ? $this->_event['data']['value'] : $decoded);
-				Session::set($this->container.'.'.$this->_event['data']['key'], $value);
-			}
-			Session::set($this->uriOf($this->_event['data']['key'], true).'.value', $this->_event['data']['value']);
-			\Yii::$app->getModule('nitm')->logger->log($this->getEventData());
+			
+			if($this->container == \Yii::$app->getModule('nitm')->config->container)
+				Session::set(Session::settings.'.'.$this->event('key'), Json::decode($this->event('value')));
+			
+			Session::set($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
+			$this->trigger('logData');
 		});
 		
 		$this->on("afterDelete", function($e) {
-			switch($this->_event['data']['action'])
+			switch($this->event('action'))
 			{
 				case 'delete':
 				$value = $section;
 				break;
 			}
-			$this->config('current.section', @$this->_event['data']['section']);
-			Session::del($this->uriOf($this->_event['data']['key'], true), true);
-			switch($this->container == \Yii::$app->getModule('nitm')->config->container)
-			{
-				case true:
-				Session::del($this->container.'.'.$this->_event['data']['key']);
-				break;
-			}
-			\Yii::$app->getModule('nitm')->logger->log($this->getEventData());
+			$this->config('current.section', $this->event('section'));
+			Session::del($this->uriOf($this->event('key'), true), true);
+			
+			if($this->container == \Yii::$app->getModule('nitm')->config->container)
+				Session::del(Session::settings.'.'.$this->event('key'));
+				
+			$this->trigger('logData');
 		});
+		
+		$this->on('logData', function ($e) {
+			$data = array_merge($this->getEventData(), $this->_event->data);
+			\Yii::$app->getModule('nitm')->logger->log($data);
+			$this->_event->handled = true;
+		});
+	}
+	
+	protected function setEventData($data) {
+		$this->_event = new Event([
+			'data' => $data
+		]);
 	}
 	
 	protected function getEventData()
 	{
 		return [
-			'db_name' => $this->_event['data']['db'],
-			'table_name' => $this->_event['data']['table'],
-			'action' => $this->_event['data']['action'],
-			'message' => $this->_event['data']['message']
+			'db_name' => $this->event('db'),
+			'table_name' => $this->event('table'),
+			'action' => $this->event('action'),
+			'message' => $this->event('message')
 		];
 	}
 	
@@ -244,21 +258,14 @@ class Configer extends Model
 				$this->config('current.config', Session::getVal(self::dm.'.'.$this->_location.'.config'));
 				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
-			switch($getValues)
-			{
-				case false:
+			
+			if(!$getValues)
 				$this->config('current.config', null);
-				break;
-			}
+				
 			$this->config('load.current', (bool)count($this->config('current.config'))>=1);
 			$this->config('load.sections', (bool)count($this->config('current.sections'))>=1);
-			switch($this->container == \Yii::$app->getModule('nitm')->config->container)
-			{
-				case false:
-				Session::set(Session::settings.'.'.$this->_event['data']['key'], $this->_event['data']['value']);
-				break;
-			}
-			Session::set(self::dm.'current.config', $this->_location.'.'.$container);
+				
+			Session::set(self::dm.'.current.config', $this->_location.'.'.$container);
 			break;
 		}
 	}
@@ -781,13 +788,10 @@ class Configer extends Model
 			$ret_val = array_merge($ret_val, $this->_create($container, $key, $value));
 			$ret_val['data'] = [$key, $value];
 			$ret_val['class'] = !$ret_val['success'] ? $this->classes['failure'] : $this->classes['success'];
-			$e = new Event;
-			$this->_event['data'] = array_merge($ret_val, [
-				'table' => 'config',
-				'db' => DB::getDbName(),
+			$this->setEventData(array_merge($ret_val, [
 				'action' => 'Create Config',
 				'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username') ." created new key->value ($key -> ".var_export($value, true).") to config ".$container
-			]);
+			]));
 			$this->trigger('afterCreate');
 			break;
 			
@@ -828,13 +832,12 @@ class Configer extends Model
 					{
 						case true:
 						$ret_val['class'] = $this->classes['success'];
-						$e = new Event;
-						$this->_event['data'] = array_merge($ret_val, [
+						$this->setEventData(array_merge($ret_val, [
 							'table' => 'NULL',
 							'db' => 'NULL',
 							'action' => 'Create Config',
 							'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username') ." created new key->value ($key -> ".var_export($value, true).") to config file ".basename($container)
-						]);
+						]));
 						$this->trigger('afterCreate');
 						break;
 					}
@@ -885,14 +888,12 @@ class Configer extends Model
 			{
 				case true:
 				$ret_val['class'] = $this->classes['success'];
-				$this->_event['data'] = [
-					'table' => 'config',
-					'db' => DB::getDbName(),
+				$this->setEventData([
 					'key' => $key,
 					'value' => $value,
 					'action' => "Update Config",
 					'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." updated value ($key from '".var_export($ret_val['old_value'], true)."' to '".var_export($value, true)."') in container ".basename($container)
-				];
+				]);
 				$this->trigger('afterUpdate');
 				break;
 			}
@@ -919,14 +920,12 @@ class Configer extends Model
 				{
 					case true:
 					$ret_val['class'] = $this->classes['success'];
-					$this->_event['data'] = [
-						'table' => 'null',
-						'db' => DB::getDbName(),
+					$this->setEventData([
 						'key' => $key,
 						'value' => $value,
 						'action' => "Update Config File",
 						'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." updated value ($key from '".var_export($ret_val['old_value'], true)."' to '".var_export($value, true)."') in config file ".basename($container)
-					];
+					]);
 					$this->trigger('afterUpdate');
 					break;
 				}
@@ -968,15 +967,13 @@ class Configer extends Model
 			{
 				case true:
 				$ret_val['class'] = $this->classes['success'];
-				$this->_event['data'] = [
-					'table' => 'config',
-					'db' => DB::getDbName(),
+				$this->setEventData([
 					'key' => $key,
 					'value' => $value,
 					'section' => $ret_val['section'],
 					'action' => "Delete Config",
 					'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." deleted value ($key -> '".var_export($value, true)."') from config file ".basename($container)
-				];
+				]);
 				$this->trigger('afterDelete');
 				break;
 			}
@@ -1001,15 +998,13 @@ class Configer extends Model
 				{
 					case true:
 					$ret_val['class'] = $this->classes['success'];
-					$this->_event['data'] = [
-						'table' => 'NULL',
-						'db' => 'NULL',
+					$this->setEventData([
 						'key' => $key,
 						'value' => $value,
 						'section' => $ret_val['section'],
 						'action' => "Delete Config",
 						'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." deleted value ($key -> '".var_export($value, true)."') from config file ".basename($container)
-					];
+					]);
 					$this->trigger('afterDelete');
 					break;
 				}
@@ -1040,12 +1035,10 @@ class Configer extends Model
 				$message .= "created container for $in";
 				$data["sections"]['containerid'] = $this->containerModel->id; 
 				$data["sections"]['name'] = 'global';
-				$this->_event['data'] = [
-					'table' => 'config',
-					'db' => DB::getDbName(),
+				$this->setEventData([
 					'action' => 'create',
 					'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." ".$message
-				];
+				]);
 				$this->trigger('afterCreate');
 				$ret_val['class'] = $this->classes['success'];
 				break;
@@ -1065,13 +1058,10 @@ class Configer extends Model
 				case true:
 				$ret_val['success'] = true;
 				$ret_val['message'] = "The system was able to create the config file".basename($new_config_file);
-				$e = new Event;
-				$this->_event['data'] = [
-					'table' => 'NULL',
-					'db' => 'NULL',
+				$this->setEventData([
 					'action' => 'Create Config File',
 					'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." created a new config file: ".basename($new_config_file)
-				];
+				]);
 				$this->trigger('afterCreate');
 				$ret_val['class'] = $this->classes['success'];
 				break;

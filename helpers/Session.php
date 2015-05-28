@@ -12,7 +12,7 @@ class Session extends Model
 	//setup protected data
 	protected static $session = null;
 	protected static $sessionName = "helper.";
-	protected static $noQualifier = ['settings','securer','helper','batch', 'fields', 'configer', 'comparer'];
+	protected static $noQualifier = ['active', 'settings','securer','helper','batch', 'fields', 'configer', 'comparer'];
 	protected static $qualifier = ['adder','deleter','updater','general'];
 	protected static $batchQualifier = ['batch','deleter'];
 
@@ -126,6 +126,7 @@ class Session extends Model
 		$cIdx = (is_null($cIdx)) ? $csdm : $cIdx;
 		$cIdx = (is_array($cIdx)) ? $cIdx : array($cIdx);
 		self::$compare = $compare;
+		//echo "Setting ".json_encode($cIdx)."\n";
 		foreach($cIdx as $dx)
 		{
 			$hier = explode('.', $dx);
@@ -297,7 +298,7 @@ class Session extends Model
 			$access_str = "['".Helper::splitf($hierarchy, "']['")."']";
 			$csdm = @static::getCsdm();;
 			$access_str = ($csdm != null) ? (($csdm == $hierarchy[0]) ? $access_str : ((!in_array($hierarchy[0], self::$noQualifier)) ? $csdm.$access_str : $access_str)) : $access_str;
-			eval("\$size = sizeof(\$_SESSION['".static::sessionName()."']".$access_str.");");
+			eval("\$size = count(\$_SESSION['".static::sessionName()."']".$access_str.");");
 			if(!$size_only)
 				$ret_val = array('value' => self::getVal($item), 'size' => $size, 'idx' => $item);
 			else
@@ -594,21 +595,20 @@ class Session extends Model
 						array_shift($hierarchy);
 					break;
 				}
-				$ret_val = $_SESSION[static::sessionName()][$csdm];
-				foreach($hierarchy as $k)
-				{
-					if($k)
+				if($csdm) {
+					$ret_val = $_SESSION[static::sessionName()][$csdm];
+					foreach($hierarchy as $k)
 					{
-						if(isset($ret_val[$k]))
-							$ret_val = $ret_val[$k];
+						if($k)
+							if(isset($ret_val[$k]))
+								$ret_val = $ret_val[$k];
+							else {
+								$ret_val = false;
+								break;
+							}
 						else
-						{
 							$ret_val = false;
-							break;
-						}
 					}
-					else
-						$ret_val = false;
 				}
 				break;
 			}

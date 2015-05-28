@@ -7,7 +7,7 @@ use yii\helpers\Html;
 use yii\web\Controller;
 use nitm\helpers\Session;
 use nitm\helpers\Response;
-use nitm\models\Configer;
+use nitm\helpers\ArrayHelper;
 
 class BaseController extends Controller
 {
@@ -301,43 +301,44 @@ class BaseController extends Controller
 		$ret_val = array();
 		$navigation = !is_array($navigation) ? static::loadNav('settings.navigation') : $navigation;
 		$top = ($navigation === null) ? true : false;
-		foreach($navigation as $idx=>$item)
+		foreach($navigation as $idx=>$options)
 		{
 			if(isset($item['adminOnly']) && !\Yii::$app->user->identity->isAdmin())
 			continue;
 			
 			$submenu = null;
-			switch(isset($item['sub']) && is_array($item['sub']))
+			switch(isset($options['sub']) && is_array($options['sub']))
 			{
 				case true:
-				$item['sub'] = static::getNavHtml($item['sub']);
-				$submenu = $item['sub'];
+				$options['sub'] = static::getNavHtml($options['sub']);
+				$submenu = $options['sub'];
 				break;
 			} 
-			if(is_array($item))
+			if(is_array($options))
 			{
-				$item = array_merge($item, [
-					'label' => Html::tag('span', @$item['name'], [
-						'class' => @$item['label-class']
+				$label = ArrayHelper::remove($options, 'name', 'no-name');
+				$url = ArrayHelper::remove($options, 'data-url', ArrayHelper::remove($options, 'href', '#'));
+				$class = ArrayHelper::remove($options, 'class', '');
+				$labelClass = ArrayHelper::remove($options, 'label-class', '');
+				$item = array_merge($options, [
+					'label' => Html::tag('span', $label, [
+						'class' => $labelClass
 					]),
 					'items' => $submenu,
-					'url' => @$item['href'],
+					'url' => $url,
 					"options" => [
-						"class" => @$item['class'], 
+						"class" => $class, 
 						"encode" => false
-					]
+					],
+					'linkOptions' => $options
 				]);
 				$ret_val[$idx] = $item;
-				switch(empty($encapsulate))
-				{
-					case false:
-					$ret_val[$idx]['label'] = Html::tag($encapsulate, $ret_val[$idx]['label'], 
-					[
-						"class" => @$item['class'], 
+				if(!empty($encapsulate)){
+					$ret_val[$idx]['label'] = Html::tag($encapsulate, $ret_val[$idx]['label'], [
+						"class" => $class, 
 						"encode" => false
 					]);
 					$ret_val[$idx]['options']['class'] = null;
-					break;
 				}
 			}
 		}

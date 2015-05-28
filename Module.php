@@ -91,8 +91,8 @@ class Module extends \yii\base\Module
 	{
 		if($this->enableConfig)
 			$this->config = \Yii::createObject(array_merge([
-				'class' => '\nitm\models\Configer',
-				'dir' => './config/ini/',
+				'class' => '\nitm\helpers\Configer',
+				'dir' => ['config' => './config/ini/'],
 				'engine' => 'db',
 				'container' => 'globals'
 			], (array)$this->config));

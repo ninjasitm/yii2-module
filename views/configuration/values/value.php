@@ -67,7 +67,7 @@
 					'class' => 'btn btn-primary btn-sm',
 					'title' => "Edit $id",
 					'role' => 'updateFieldButton',
-					'data-id' => $id.'.div',
+					'data-id' => $unique_id.'.div',
 					'data-type' => $model->config('current.type'),
 					"data-loading-text" => "Editing..."
 				]);
@@ -89,7 +89,7 @@
 				echo Html::activeHiddenInput($model, 'name', array('value' => $unique_id));
 				echo Html::activeHiddenInput($model, 'what', array('value' => 'value'));
 				echo Html::activeHiddenInput($model, 'container', array('value' => $container_name));
-				echo Html::activeHiddenInput($model, 'div_container', array('value' => $id.'.div'));
+				echo Html::activeHiddenInput($model, 'div_container', array('value' => $unique_id.'.div'));
 				echo Html::submitButton('del', [
 					'class' => 'btn btn-danger btn-sm',
 					'title' => "Are you sure you want to delete the $unique_id",

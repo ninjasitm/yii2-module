@@ -178,6 +178,7 @@ function Configuration()
 						self.update(elem);
 					};
 					$(this).on('click', function (e) {
+						e.preventDefault();
 						fn();
 					});
 					$(this).data('action', fn);
@@ -407,10 +408,10 @@ function Configuration()
 			e.preventDefault();
 			self.parse(this);
 		});
-		$nitm.getObj(id).html('').append(form);
+		$nitm.getObj(elem.id).html('').append(form);
 		//disable onclick functionality
-		$nitm.getObj(id).off('click');
-		$nitm.getObj(id+this.iObj).focus();
+		$nitm.getObj(elem.id).off('click');
+		$nitm.getObj(elem.id+this.iObj).focus();
 	}
 }
 

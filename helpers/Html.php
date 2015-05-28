@@ -2,7 +2,7 @@
 
 namespace nitm\helpers;
 
-class Hrml
+class Html
 {
 	/**
 	 * Get certain types of icons

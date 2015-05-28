@@ -20,6 +20,7 @@ function Tools ()
 		'initAutocompleteSelect',
 		'initSubmitSelect',
 		'initToolTips',
+		'initConfirm'
 	];
 	this._activity = {};
 	
@@ -68,12 +69,14 @@ function Tools ()
 							var _callback = function (e) {
 								e.preventDefault();
 								self.visibility($target.get(0))
+								return true;
 							}
 						else
 							var _callback = function (e) {
 								e.preventDefault();
 								$.when(self.visibility($target.get(0))).done(function () {
 								});
+								return true;
 							}
 						if($target.data('run-once'))
 							$target.one(eventName, _callback);
@@ -176,7 +179,7 @@ function Tools ()
 								}
 							}, 'json');
 						}
-						return ret_val;
+						return true;
 					});
 				}
 				break;
@@ -203,6 +206,7 @@ function Tools ()
 							e.preventDefault();
 							$.when(self.dynamicValue($target.get(0))).done(function () {
 							});
+							return true;
 						}
 						if($target.data('run-once'))
 							$target.one(eventName, _callback);
@@ -272,7 +276,7 @@ function Tools ()
 		
 		var $object = $nitm.getObj(object);
 		var $target = $nitm.getObj($object.data('id'));
-				
+		
 		if($nitm.hasActivity($object.attr('id')))
 			return;
 		
@@ -691,6 +695,23 @@ function Tools ()
 		$(document).ready(function () {
 			$("[data-toggle='offcanvas']").click(function () {
 				$('.row-offcanvas').toggleClass('active')
+			});
+		});
+	}
+	
+	this.initConfirm = function () {
+		console.log("Binding for confirm");
+		$(document).ready(function () {
+			$('[data-confirm]').on('click', function (event) {
+				if(!confirm($(this).data('confirm'))) {
+					event.preventDefault();
+					event.stopImmediatePropagation();
+				} else {
+					return true;
+				}
+			}).each(function () {
+				var listeners = $._data(this, "events").click;
+				listeners.reverse();
 			});
 		});
 	}

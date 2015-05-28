@@ -6,7 +6,7 @@ use Yii;
 use yii\helpers\ArrayHelper;
 use nitm\helpers\Helper;
 use nitm\helpers\Session;
-use nitm\models\Configer;
+use nitm\helpers\Configer;
 use nitm\helpers\Response;
 use nitm\interfaces\DefaultControllerInterface;
 
@@ -15,7 +15,7 @@ class ConfigurationController extends DefaultController
 	public function init()
 	{
 		parent::init();
-		$this->model = new Configer();
+		$this->model = $this->module->config;
 	}
 	
 	public function behaviors()
