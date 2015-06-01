@@ -130,11 +130,14 @@ class MongoTarget extends \yii\log\DbTarget
 		/**
 		 * Now remap the keys to the messages so that insert can work properly
 		 */
-        $filtered = array_merge($this->messages, $this->filterMessages($extracted['values'], $this->getLevels(), $this->categories, $this->except));
-		
-		array_walk($filtered, function ($value, $key) use(&$messages, $extracted){
-			$messages[$key] = array_combine($extracted['keys'][$key], $value);
-		});
+		if(is_array($values = ArrayHelper::getValue($extracted, 'values', [])))
+			if(is_array($filtered = $this->filterMessages($values, $this->getLevels(), $this->categories, $this->except))) {
+				$filtered = array_merge($this->messages, $filtered);
+			
+				array_walk($filtered, function ($value, $key) use(&$messages, $extracted){
+					$messages[$key] = array_combine($extracted['keys'][$key], $value);
+				});
+			}
 		
 		$this->messages = $messages;
 		
