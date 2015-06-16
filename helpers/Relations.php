@@ -7,7 +7,7 @@ namespace nitm\helpers;
  */
 
 class Relations
-{
+{	
 	/**
 	 * Get a relation. Either a model or array of models
 	 * @param string $name The name of the relation
@@ -69,9 +69,9 @@ class Relations
 			}
 			else
 				$ret_val = null;
+			$model->populateRelation($name, $ret_val);
 			break;
 		}
-		//$model->populateRelation($name, $ret_val);
 		return $ret_val;
 	}
 	

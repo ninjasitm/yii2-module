@@ -494,7 +494,7 @@ function Tools ()
 	/**
 	 * Remove the parent element up to a certain depth
 	 */
-	this.cloneParent = function (elem)
+	this.cloneParent = function (elem, callbacks)
 	{
 		var $element = $(elem);
 		var clone = $nitm.getObj($element.data('clone')).clone();
@@ -502,6 +502,14 @@ function Tools ()
 		var currentId = !clone.attr('id') ? clone.prop('tagName') : clone.attr('id');
 		clone.attr('id', currentId+Date.now());
 		var to = $nitm.getObj($element.data('to'));
+		
+		if(typeof callbacks.before == 'function') {
+			clone = callbacks.before(clone, to, elem);
+		} else if($element.data('before-clone') != undefined)  {
+			eval("var beforeClone = "+$element.data('before-clone'));
+			clone = beforeClone(clone, to, elem);
+		}
+		
 		if($element.data('after') != undefined) {
 			clone.insertAfter(to.find($element.data('after')));
 		}
@@ -510,8 +518,11 @@ function Tools ()
 		} else {
 			to.append(clone);
 		}
-		eval("var afterClone = "+$element.data('after-clone'));
-		if(typeof afterClone == 'function'){
+		
+		if(typeof callbacks.after == 'function') {
+			callbacks.after(clone, to, elem);
+		} else if($element.data('after-clone') != undefined)  {
+			eval("var afterClone = "+$element.data('after-clone'));
 			afterClone(clone, to, elem);
 		}
 		return clone;
