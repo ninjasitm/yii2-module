@@ -5,6 +5,9 @@ namespace nitm\models;
 use Yii;
 use yii\base\Event;
 use yii\db\ActiveRecord;
+use nitm\helpers\alerts\Dispatcher;
+use nitm\Module as Nitm;
+use nitm\search\Module as NitmSearch;
 
 /**
  */
@@ -20,14 +23,6 @@ class Entity extends Data
 		$this->initEvents();
 	}
 	
-	protected function initEvents()
-	{
-		$this->on(ActiveRecord::EVENT_BEFORE_INSERT, [$this, 'beforeSaveEvent']);
-		$this->on(ActiveRecord::EVENT_BEFORE_UPDATE, [$this, 'beforeSaveEvent']);
-		$this->on(ActiveRecord::EVENT_AFTER_INSERT, [$this, 'afterSaveEvent']);
-		$this->on(ActiveRecord::EVENT_AFTER_UPDATE, [$this, 'afterSaveEvent']);
-	}
-	
 	public function scenarios()
 	{
 		return array_merge(parent::scenarios(), [
@@ -35,39 +30,49 @@ class Entity extends Data
 		]);
 	}
 	
-	public function beforeSaveEvent($event=null)
+	protected function initEvents()
 	{
-		$event = is_null($event) ? new \yii\base\Event([
-			'sender' => $this
-		]) : $event;
-		
-		if(\Yii::$app->hasModule('nitm'))
-		{
-			$event->data = [
-				'action' => $event->sender->getScenario(),
-				'variables' => [
-					'%id%' => $event->sender->getId(),
-					"%viewLink%" => \yii\helpers\Html::a(\Yii::$app->urlManager->createAbsoluteUrl($event->sender->isWhat()."/view/".$event->sender->getId()), \Yii::$app->urlManager->createAbsoluteUrl($event->sender->isWhat()."/view/".$event->sender->getId()))
-				],
-			];
-			\Yii::$app->getModule('nitm')->alerts->prepareAlerts($event);
-		}
-		return $event->handled;
+		//$this->on(static::EVENT_BEFORE_INSERT, [$this, 'beforeSaveEvent']);
+		//$this->on(static::EVENT_BEFORE_UPDATE, [$this, 'beforeSaveEvent']);
+		$this->on(static::EVENT_AFTER_INSERT, [$this, 'afterSaveEvent']);
+		$this->on(static::EVENT_AFTER_UPDATE, [$this, 'afterSaveEvent']);
 	}
+	
+	/*protected function beforeSaveEvent($event)
+	{
+		\Yii::$app->getModule('nitm')->trigger(Nitm::ALERT_EVENT_PREPARE, new Event(['sender' => $event->sender]));
+	}*/
 	
 	public function afterSaveEvent($event)
 	{
-		if(\Yii::$app->hasModule('nitm'))
-		{
-			$event->data = array_replace_recursive($this->getAlertOptions($event), (array)$event->data);
-			\Yii::$app->getModule('nitm')->alerts->processAlerts($event);
-		}
-		if(\Yii::$app->hasModule('nitm-search'))
-			\Yii::$app->getModule('nitm-search')->processRecord($event);
+		\Yii::$app->getModule('nitm')->trigger(Nitm::ALERT_EVENT_PROCESS, new Event([
+			'sender' => $event->sender,
+			'data' => $event->data
+		]));
+		//if(\Yii::$app->hasModule('nitm-search'))
+		//	\Yii::$app->getModule('nitm-search')->trigger(NitmSearch::HANDLE_RECORD_EVENT_PROCESS, new Event([
+		//		'sender' => $event->sender,
+		//		'data'  => $event->data
+		//	]));
+		return $event->handled;
 	}
 	
-	protected function getAlertOptions($event)
+	public function initalizeEventData(&$event)
 	{
+		$event->data = [
+			'action' => $event->sender->getScenario(),
+			'variables' => [
+				'%id%' => $event->sender->getId(),
+				"%viewLink%" => \yii\helpers\Html::a(
+				\Yii::$app->urlManager->createAbsoluteUrl($event->sender->isWhat()."/view/".$event->sender->getId()), 
+				\Yii::$app->urlManager->createAbsoluteUrl($event->sender->isWhat()."/view/".$event->sender->getId()))
+			],
+		];
+	}
+	
+	public function getAlertOptions($event)
+	{
+		$event->sender->initalizeEventData($event);
 		$options = [	
 			'criteria' => [
 				'action' => $event->sender->getScenario(),

@@ -37,7 +37,7 @@ class DispatcherData
 		{
 			$user = $address['user'];
 			unset($address['user']);
-			$ret_val[key($address)] = $user->getId();
+			$ret_val[key($address)] = $user['id'];
 		}
 		return $ret_val;
 	}
@@ -102,7 +102,7 @@ class DispatcherData
 	private function defaultVariables()
 	{
 		return [ 
-			'%who%' => '@'.\Yii::$app->user->identity->username,
+			'%who%' => '@'.\Yii::$app->user->getIdentity()->username,
 			'%when%' => date('D M jS Y @ h:iA'), 
 			'%today%' => date('D M jS Y'),
 			'%priority%' => ($this->criteria('priority') == 'any') ? 'Normal' : ucfirst($this->criteria('priority')),
@@ -217,43 +217,44 @@ class DispatcherData
 	{
 		$method = (string)$method;
 		$ret_val = [];
-		switch($global)
-		{
-			case true:
+		
+		if($global)
 			$users = static::getUsers();
-			break;
-		}
+		else
+			$users = is_array(current($users)) ? $users : [$users];
+			
 		$methods = ($method == 'any' || is_null($method)) ? array_keys(static::supportedMethods()) : explode(',', $method);
 		if(in_array('any', $methods))
 			unset($methods[array_search('any', $methods)]);
+			
 		foreach($users as $user)
 		{
 			foreach($methods as $method)
 			{
-				if($user->getId() == \Yii::$app->user->getId())
+				if($user['id'] == \Yii::$app->user->getIdentity()->getId())
 					continue;
 				switch($method)
 				{
 					case 'email':
 					switch(1)
 					{
-						case ($uri = (is_object($user->profile) ? $user->profile->getAttribute('public_email') : $user->email)) != '':
+						case ($uri = (is_object($user['profile']) ? $user['profile']['public_email'] : $user['email'])) != '':
 						break;
 						
 						default:
-						$uri = $user->email;
+						$uri = $user['email'];
 						break;
 					}
 					break;
 					
 					default:
-					$uri = is_object($user->profile) ? $user->profile->getAttribute($method.'_email') : null;
+					$uri = is_array($user['profile']) ? $user['profile'][$method.'_email'] : null;
 					break;
 				}
 				if(!empty($uri))
 				{
-					$name = $user->fullName();
-					$id = !$user->getId() ? 'global' : $user->getId();
+					$name = $user['profile']['name'];
+					$id = !$user['id'] ? 'global' : $user['id'];
 					$ret_val[$method][$id] = [$uri => (!$name ? $uri : $name), 'user' => $user];
 				}
 			}
@@ -266,17 +267,23 @@ class DispatcherData
      */
     public static function getUsers($options=[])
     {
-		$userClass = \Yii::$app->user->identity->className();
+		$userClass = \Yii::$app->user->getIdentity()->className();
 		$key = 'alerts.users';
         switch(Cache::exists($key))
 		{
 			case true:
-			$ret_val = Cache::getCachedModelArray($key, $options);
+			$ret_val = Cache::cache()->get($key, $options);
 			break;
 			
 			default:
-			$ret_val = $userClass::find()->with('profile')->where(static::$usersWhere)->all();
-			Cache::setCachedModelArray($key, $ret_val, $userClass);
+			$ret_val = $userClass::find()
+				->select(['id', 'username', 'email'])
+				->with('profile')
+				->where(static::$usersWhere)
+				->andWhere(['disabled' => false])
+				->asArray()
+				->all();
+			Cache::cache()->set($key, $ret_val, $userClass);
 			break;
 		}
 		return $ret_val;
@@ -284,7 +291,7 @@ class DispatcherData
 	
 	public function usersWhere($where=[])
 	{
-		//$userClass = \Yii::$app->user->identity->className();
+		//$userClass = \Yii::$app->user->getIdentity()->className();
 		//$userClass::$usersWhere = $where;
 	}
 	

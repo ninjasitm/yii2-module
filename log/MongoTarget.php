@@ -153,7 +153,6 @@ class MongoTarget extends \yii\log\DbTarget
             $this->exportInterval = 0;
             $this->export();
             $this->exportInterval = $oldExportInterval;
-            $this->messages = [];
         }
     }
 	

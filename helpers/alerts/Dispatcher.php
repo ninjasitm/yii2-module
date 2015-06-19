@@ -5,8 +5,10 @@ namespace nitm\helpers\alerts;
 use Yii;
 use yii\helpers\Html;
 use yii\helpers\ArrayHelper;
+use yii\base\Event;
 use nitm\helpers\Cache;
-use nitm\widgets\models\Alerts;
+use nitm\models\Alerts;
+use nitm\models\Entity;
 
 /**
  * This is the alert dispatcher class.
@@ -14,6 +16,9 @@ use nitm\widgets\models\Alerts;
 class Dispatcher extends \yii\base\Component
 {
 	public $mode;
+	public $mailPath =' @app/mail';
+	public $mailLayoutsPath = '@nitm/mail/layouts';
+	public $mailViewsPath = '@nitm/views/alerts';
 	public $useFullnames = true;
 	public $defaultMessage = '%user% performed %action% on %id%';
 	public $defaultMobileMessage = '%user% performed %action% on %id%';
@@ -46,19 +51,9 @@ class Dispatcher extends \yii\base\Component
 	const BATCH = 'batch';
 	const SINGLE = 'single';
 	
-	const EVENT_PREPARE = 'prepare';
-	const EVENT_PROCESS = 'process';
-	
 	public function init()
 	{
-		$this->initEvents();
 		$this->_data = new DispatcherData;
-	}
-	
-	protected function initEvents()
-	{
-		$this->on(self::EVENT_PREPARE, [$this, 'prepareAlerts']);
-		$this->on(self::EVENT_PROCESS, [$this, 'processAlerts']);
 	}
 	
 	public function reset()
@@ -69,13 +64,15 @@ class Dispatcher extends \yii\base\Component
 		$this->_message = null;
 	}
 	
-	public function prepareAlerts($event, $for='any', $priority='any')
+	public function start($event, $for='any', $priority='any')
 	{
-		$this->_event = $event;
 		if(!\Yii::$app->getModule('nitm')->enableAlerts)
 			return;
-		if($this->_event->handled)
+
+		if($event->handled)
 			return;
+
+		$this->_event = $event;
 
 		$this->_data->processEventData($this->_event->data, $this);
 		
@@ -99,39 +96,34 @@ class Dispatcher extends \yii\base\Component
 	 *		]
 	 * ]
 	 */
-	public function processAlerts($event)
+	public function process($event)
 	{
-		$this->_event = $event;
-		
 		if(!\Yii::$app->getModule('nitm')->enableAlerts)
 			return;
-		if($this->_event->handled)
+		
+		if($event->handled)
 			return;
+			
+		if($event->sender->hasMethod('getAlertOptions'))
+			$event->data = array_replace_recursive($event->sender->getAlertOptions($event), (array)$event->data);
+		
+		$this->_event = $event;
+		$this->prepare($event);
 		
 		$this->_data->criteria('remote_id', $this->_event->sender->getId());
-		switch(!$this->_data->criteria('action'))
-		{
-			case false:
+		if($this->_data->criteria('action')) {
 			$this->prepare($event);
-			switch($this->isPrepared())
-			{
-				case true:
+			if($this->isPrepared()) {
 				//First check to see if this specific alert exits
 				if(count($this->_event->data))
 					$this->sendAlerts($this->_event->data, ArrayHelper::getValue($this->_event->data, 'owner_id', null));
-				$this->_event->handled = true;
-				break;
-				
-				default:
-				throw new \yii\base\Exception("No alert preparation was done!");
-				break;
-			}
-			break;
-			
-			default:
-			throw new \yii\base\Exception("Need an action to process the alert");
-			break;
-		}
+				$event->handled = true;
+			} else 
+				if((defined('YII_ENV') && YII_ENV == 'dev') && (defined('YII_DEBUG') && YII_DEBUG))
+					throw new \yii\base\Exception("No alert preparation was done!");
+		} else
+			if((defined('YII_ENV') && YII_ENV == 'dev') && (defined('YII_DEBUG') && YII_DEBUG))
+				throw new \yii\base\Exception("Need an action to process the alert");
 	}
 	
 	public function prepare($event)
@@ -173,7 +165,9 @@ class Dispatcher extends \yii\base\Component
 			->union($this->findListeners($this->_data->criteria()))
 			->union($this->findGlobal($this->_data->criteria()))
 			->indexBy('user_id')
-			->with('user')->all();
+			->with('user')
+			->asArray()
+			->all();
 	}
 	
 	/**
@@ -187,7 +181,7 @@ class Dispatcher extends \yii\base\Component
 		return Alerts::find()->select('*')
 			->where($criteria)
 			->andWhere([
-				'user_id' => \Yii::$app->user->getId()
+				'user_id' => \Yii::$app->user->getIdentity()->getId()
 			])
 			->indexBy('user_id')
 			->with('user');
@@ -267,7 +261,7 @@ class Dispatcher extends \yii\base\Component
 			->orWhere($criteria)
 			->andWhere($remoteWhere)
 			->andWhere([
-				'not', ['user_id' => \Yii::$app->user->getId()]
+				'not', ['user_id' => \Yii::$app->user->getIdentity()->getId()]
 			])
 			->indexBy('user_id')
 			->with('user');
@@ -311,20 +305,23 @@ class Dispatcher extends \yii\base\Component
 			{
 				switch(1)
 				{
-					case $alert->global == true:
+					case $alert['global'] == true:
 					/**
 					 * Only send global emails based on what the user preferrs in their profile. 
 					 * For specific alerts those are based ont he alert settings
 					 */
-					$to['global'] = array_merge_recursive($to['global'], $this->_data->getAddresses($alert->methods, $this->_data->getUsers(), true));
+					$to['global'] = array_merge_recursive($to['global'], $this->_data->getAddresses($alert['methods'], $this->_data->getUsers(), true));
+					$this->_sendCount += count($this->_data->getUsers());
 					break;
 					
-					case $alert->user->getId() == $this->_originUserId:
-					$to['owner'] = array_merge_recursive($to['owner'], $this->_data->getAddresses($alert->methods, [$alert->user]));
+					case $alert['user']['id'] == $this->_originUserId:
+					$to['owner'] = array_merge_recursive($to['owner'], $this->_data->getAddresses($alert['methods'], $alert['user']));
+					$this->_sendCount += 1;
 					break;
 					
 					default:
-					$to['individual'] = array_merge_recursive($to['individual'], $this->_data->getAddresses($alert->methods, [$alert->user]));
+					$to['individual'] = array_merge_recursive($to['individual'], $this->_data->getAddresses($alert['methods'], $alert['user']));
+					$this->_sendCount += 1;
 					break;
 				}
 			}
@@ -342,10 +339,9 @@ class Dispatcher extends \yii\base\Component
 			$logger = \Yii::$app->getModule('nitm')->logger;
 			$logger->log([
 				'message' => "Sent ".$this->_sendCount." alerts to destinations.\n\nCriteria: ".json_encode($this->_data->criteria(), JSON_PRETTY_PRINT)."\n\nRecipients: ".json_encode(array_map(function (&$group) {
-					return array_map(function (&$recipients) {
-						return array_map(function(&$recipient) {
-							ArrayHelper::remove($recipient, 'user');
-							return $recipient;
+					return array_map(function ($recipients) {
+						return array_map(function($recipient) {
+							return ArrayHelper::getValue($recipient, 'user', []);
 						}, $recipients);
 					}, $group);
 				}, $to), JSON_PRETTY_PRINT),
@@ -369,7 +365,7 @@ class Dispatcher extends \yii\base\Component
 		{
 			$property = $layout.'Layout';
 			$this->_oldLayouts[$property] = \Yii::$app->mailer->$property;
-			\Yii::$app->mailer->$property = '@nitm/mail/layouts/'.$layout;
+			\Yii::$app->mailer->$property = rtrim($this->mailLayoutsPath).DIRECTORY_SEPARATOR.$layout;
 		}
 	}
 	
@@ -447,13 +443,13 @@ class Dispatcher extends \yii\base\Component
 		}
 		
 		if(!is_null($user))
-			$params['greeting'] = "Dear ".$user->username.", <br><br>";
+			$params['greeting'] = "Dear ".($this->useFullnames ? $user['profile']['name'] : $user['username']).", <br><br>";
 			
 		$params['title'] = $params['subject'];
 		switch($type)
 		{
 			case 'email':
-			$view = ['html' => '@nitm/views/alerts/message/email'];
+			$view = ['html' => rtrim($this->mailViewsPath).DIRECTORY_SEPARATOR.'message/email'];
 			$params['content'] = $this->getEmailMessage($params['content'], $user, $scope);
 			break;
 			
@@ -461,7 +457,7 @@ class Dispatcher extends \yii\base\Component
 			//140 characters to be able to send a single SMS
 			$params['content'] = $this->getMobileMessage($params['content']);
 			$params['title'] = '';
-			$view = ['text' => '@nitm/views/alerts/message/mobile'];
+			$view = ['text' => rtrim($this->mailViewsPath).DIRECTORY_SEPARATOR.'message/mobile'];
 			break;
 		}
 		$params = $this->_data->replaceCommon($params);
@@ -496,7 +492,7 @@ class Dispatcher extends \yii\base\Component
 	{
 		foreach((array)$addresses as $address)
 		{
-			$userId = $address['user']->getId();
+			$userId = $address['user']['id'];
 			switch(isset($this->_notifications[$userId]))
 			{
 				case false:
@@ -546,13 +542,11 @@ class Dispatcher extends \yii\base\Component
 	{
 		//140 characters to be able to send a single SMS
 		$alertAttributes = null;
-		if(!is_null($user) && is_a($user, \nitm\models\User::className())) {
-			$alert = ArrayHelper::getValue($this->_alerts, $user->getId(), null);
-			if($alert instanceof Alert)
-				$alertAttributes =  $alert->getAttributes();
+		if(is_array($user) && count($user)) {
+			$alert = ArrayHelper::getValue($this->_alerts, $user['id'], null);
 		}
 			
-		return nl2br($original.$this->getFooter($scope, $alertAttributes));
+		return nl2br($original.$this->getFooter($scope, $alert));
 	}
 	
 	private function getFooter($scope, $alert=null)

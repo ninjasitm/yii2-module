@@ -15,7 +15,7 @@ class ConfigurationController extends DefaultController
 	public function init()
 	{
 		parent::init();
-		$this->model = $this->module->config;
+		$this->model = \Yii::$app->getModule('nitm')->config;
 	}
 	
 	public function behaviors()

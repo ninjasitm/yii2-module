@@ -5,6 +5,9 @@ namespace nitm;
 use nitm\helpers\Session;
 use nitm\models\DB;
 use nitm\helpers\ArrayHelper;
+use nitm\log\Logger;
+use nitm\importer\Importer;
+use nitm\helpers\alerts\Dispatcher;
 
 class Module extends \yii\base\Module
 {	
@@ -65,16 +68,21 @@ class Module extends \yii\base\Module
 	/*
 	 * @var array The arrap mapping for search classes
 	 */
-	public $searchClassMap = [
-	];
+	public $searchClassMap = [];
+	
+	//For Alert/Dispatcher events
+	const ALERT_EVENT_PREPARE = 'nitm.alert.prepare';
+	const ALERT_EVENT_PROCESS = 'nitm.alert.process';
+	//For Logger events
+	const LOGGER_EVENT_PREPARE = 'nitm.logger.prepare';
+	const LOGGER_EVENT_PROCESS = 'nitm.logger.process';
 
 	public function init()
 	{
 		parent::init();
 		// custom initialization code goes here
-		
 		$this->bootstrap();
-		Session::del(Session::current);
+		$this->initEvents();
 		
 		/**
 		 * Aliases for nitm module
@@ -128,7 +136,7 @@ class Module extends \yii\base\Module
 	
 	public function commitLog()
 	{
-		return ($this->enableLogger) ? $this->logger->flush(true) : false;
+		return ($this->enableLogger) ? $this->logger->flush() : false;
 	}
 	
 	public function log($level, $options, $modelClass)
@@ -154,5 +162,17 @@ class Module extends \yii\base\Module
 	public function getCollectionName(&$from=[])
 	{
 		return ArrayHelper::remove($from, 'collection_name', (($this->logCollections != []) ? $this->logCollections[0] : 'nitm-log'));
+	}
+	
+	protected function initEvents()
+	{
+		if($this->enableAlerts) {
+			$this->on(self::ALERT_EVENT_PREPARE, [$this->alerts, 'start']);
+			$this->on(self::ALERT_EVENT_PROCESS, [$this->alerts, 'process']);
+		}
+		if($this->enableLogger) {
+			$this->on(self::LOGGER_EVENT_PREPARE, [$this->logger, 'start']);
+			$this->on(self::LOGGER_EVENT_PROCESS, [$this->logger, 'process']);
+		}
 	}
 }

@@ -62,13 +62,20 @@ class Logger extends \yii\log\Logger
 	
 	public function initDispatcher()
 	{
-		if(is_array($this->dispatcher))
+		if(\Yii::$app->get('log') && is_array($this->dispatcher) && isset($this->dispatcher['targets'])) {
+			$targets = array_map(function ($config) {
+				return \Yii::createObject($config);
+			}, $this->dispatcher['targets']);
+			$this->dispatcher = \Yii::$app->log;
+			$this->dispatcher->targets = array_merge($this->dispatcher->targets, $targets);
+		}
+		else if(is_array($this->dispatcher))
 		{
 			$this->dispatcher = \Yii::createObject(array_merge([
 				'class' => '\yii\log\Dispatcher'
 			], ArrayHelper::toArray($this->dispatcher)));
 		}
-		else 
+		else
 			$this->dispatcher = \Yii::$app->log;
 		return $this;
 	}

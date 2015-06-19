@@ -500,7 +500,8 @@ class DefaultController extends BaseController
 				}
 			}
 			$this->model->setAttribute($attributes['attribute'], $this->boolResult);
-			$this->setResponseFormat('json');
+			if(!Response::formatSpecified())
+				$this->setResponseFormat('json');
 			
 			if(isset($afterAction) && is_callable($afterAction))
 				$afterAction($this->model);
