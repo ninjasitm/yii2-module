@@ -19,6 +19,7 @@ trait Data {
 	protected static $_flags = [];
 	
 	public function title() {
+		return $this->getId();
 	}
 	
 	/*

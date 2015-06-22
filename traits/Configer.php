@@ -44,12 +44,12 @@ trait Configer {
 	 */
 	public static function initConfig($container=null)
 	{
-		Session::del('settings.alerts');
 		$module = \Yii::$app->getModule('nitm');
-		$container = empty($container) ? $module->config->container : $container;
+		$container = is_null($container) ? $module->config->container : $container;
 		switch(1)
 		{
 			case !CacheHelper::cache()->exists('config-'.$container):
+			case CacheHelper::cache()->exists('config-'.$container) && (count(CacheHelper::cache()->get('config-'.$container) == 0)):
 			case !isset(static::$settings[$container]):
 			case ($container == $module->config->container) && (!Session::isRegistered(Session::settings)):
 			$module->config->setEngine($module->config->engine);
@@ -69,7 +69,7 @@ trait Configer {
 				default:
 				switch(1)
 				{
-					case CacheHelper::cache()->exists('config-'.$container):
+					case CacheHelper::cache()->exists('config-'.$container) && count(CacheHelper::cache()->get('config-'.$container)):
 					$config = CacheHelper::cache()->get('config-'.$container);
 					Session::set(Session::current.'.'.$container, $config);
 					static::$settings[$container] = $config;

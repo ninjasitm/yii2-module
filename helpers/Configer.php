@@ -165,8 +165,9 @@ class Configer extends Model
 		$this->on("afterCreate", function($e) {
 			$this->config('current.section', $this->event('section'));
 			
+			$value = Json::isJson($this->event('value')) ? Json::decode($this->event('value')) : $this->event('value');
 			if($this->container == \Yii::$app->getModule('nitm')->config->container)
-				Session::set(Session::settings.'.'.$this->event('key'), Json::decode($this->event('value')));
+				Session::set(Session::settings.'.'.$this->event('key'), $value);
 				
 			Session::set($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
 			$this->trigger('logData');
@@ -174,8 +175,9 @@ class Configer extends Model
 		
 		$this->on("afterUpdate", function($e) {
 			
+			$value = Json::isJson($this->event('value')) ? Json::decode($this->event('value')) : $this->event('value');
 			if($this->container == \Yii::$app->getModule('nitm')->config->container)
-				Session::set(Session::settings.'.'.$this->event('key'), Json::decode($this->event('value')));
+				Session::set(Session::settings.'.'.$this->event('key'), $value);
 			
 			Session::set($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
 			$this->trigger('logData');
