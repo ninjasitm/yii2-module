@@ -48,31 +48,25 @@ trait Configer {
 		$container = is_null($container) ? $module->config->container : $container;
 		switch(1)
 		{
+			case !isset(static::$settings[$container]):
 			case !CacheHelper::cache()->exists('config-'.$container):
 			case CacheHelper::cache()->exists('config-'.$container) && (count(CacheHelper::cache()->get('config-'.$container) == 0)):
-			case !isset(static::$settings[$container]):
 			case ($container == $module->config->container) && (!Session::isRegistered(Session::settings)):
+			
 			$module->config->setEngine($module->config->engine);
 			$module->config->setType($module->config->engine, $container);
-			switch($module->config->engine)
-			{
-				case 'file':
+			
+			if($module->config->engine == 'file')
 				$module->setDir($module->config->dir);
-				break;
-			}
-			switch(1)
-			{
-				case Session::isRegistered(Session::current.'.'.$container):
-				static::$settings[$container] = Session::getval(Session::current.'.'.$container);
-				break;
 				
-				default:
+			if(Session::isRegistered(Session::current.'.'.$container))
+				static::$settings[$container] = Session::getval(Session::current.'.'.$container);
+			else {
 				switch(1)
 				{
 					case CacheHelper::cache()->exists('config-'.$container) && count(CacheHelper::cache()->get('config-'.$container)):
 					$config = CacheHelper::cache()->get('config-'.$container);
 					Session::set(Session::current.'.'.$container, $config);
-					static::$settings[$container] = $config;
 					break;
 					
 					case ($container == $module->config->container) && (!Session::isRegistered(Session::settings)):
@@ -80,15 +74,15 @@ trait Configer {
 					Session::set(Session::settings, $config);
 					break;
 					
-					case ($container != $module->config->container) && !isset(static::$settings[$container]):
+					default:
 					$config = $module->config->getConfig($module->config->engine, $container, true);
 					CacheHelper::cache()->set('config-'.$container, $config, 120);
 					Session::set(Session::current.'.'.$container, $config);
-					static::$settings[$container] = $config;
 					break;
 				}
-				break;
+				static::$settings[$container] = $config;
 			}
+			break;
 		}
 	}
 }

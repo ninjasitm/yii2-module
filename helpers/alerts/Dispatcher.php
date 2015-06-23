@@ -62,6 +62,7 @@ class Dispatcher extends \yii\base\Component
 		$this->_prepared = false;
 		$this->resetMailerLayout();
 		$this->_message = null;
+		$this->_sendCount = 0;
 	}
 	
 	public function start($event, $for='any', $priority='any')
@@ -310,26 +311,25 @@ class Dispatcher extends \yii\base\Component
 					 * Only send global emails based on what the user preferrs in their profile. 
 					 * For specific alerts those are based ont he alert settings
 					 */
-					$to['global'] = array_merge_recursive($to['global'], $this->_data->getAddresses($alert['methods'], $this->_data->getUsers(), true));
-					$this->_sendCount += count($this->_data->getUsers());
+					$users = $this->_data->getUsers();
+					$to['global'] = array_merge_recursive($to['global'], $this->_data->getAddresses($alert['methods'], $users, true));
 					break;
 					
 					case $alert['user']['id'] == $this->_originUserId:
 					$to['owner'] = array_merge_recursive($to['owner'], $this->_data->getAddresses($alert['methods'], $alert['user']));
-					$this->_sendCount += 1;
 					break;
 					
 					default:
-					$to['individual'] = array_merge_recursive($to['individual'], $this->_data->getAddresses($alert['methods'], $alert['user']));
-					$this->_sendCount += 1;
+					$to['individual'] = array_merge_recursive($to['individual'], $this->_data->getAddresses($alert['methods'], $alert['user']));;
 					break;
 				}
 			}
 			
 			foreach($to as $scope=>$types)
 			{
-				if(count($types))
+				if(count($types)) {
 					$this->sendAs($scope, $types, $compose);
+				}
 			}
 			
 			$this->sendNotifications();

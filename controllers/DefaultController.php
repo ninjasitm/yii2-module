@@ -536,6 +536,7 @@ class DefaultController extends BaseController
 				call_user_func_array([$this, 'log'], $this->getLogParams($saved, $args));
 				foreach(['logLevel', 'collection_name'] as $remove)
 					unset($ret_val[$remove]);
+				$this->commitLog();
 			}
 			
 			switch(\Yii::$app->request->isAjax)

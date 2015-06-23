@@ -31,21 +31,16 @@ trait Data {
 			$stack = explode('\\', $value);
 			return strtolower(implode('-', preg_split('/(?=[A-Z])/', array_pop($stack), -1, PREG_SPLIT_NO_EMPTY)));
 		};
-		switch(ArrayHelper::getValue(current(debug_backtrace(false, 1)), 'type', null))
-		{
-			case '->':
+		if(isset($this)){
+			$class = isset($this->is) ? $this->is : $this->className();
 			//If it's a model then get the instantiated $is value
-			return $purify(isset($this->is) ? $this->is : static::className());
-			break;
-			
-			default:
-			//Otherwise get the instantiated class value
-			$class = static::className();
-			if(!isset($class::$_is)) {
+			return $purify($class);
+		} else {
+			//Otherwise get the static class value
+			$class = get_called_class();
+			if(!isset($class::$_is))
 				$class::$_is = $purify($class);
-			}
 			return $class::$_is;
-			break;
 		}
 	}
 	
