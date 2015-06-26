@@ -194,4 +194,59 @@ class ArrayHelper extends BaseArrayHelper
 		else
 			return null;
 	}
+    
+	/**
+     * Check to see if a certain key exists in an array
+     * @param array|object $array
+	 * @param string $key
+	 * @return mixed
+     */
+    public static function exists($array, $key)
+    {
+		//By default the path exists
+		$ret_val = true;
+		$hierarchy = explode('.', $key);
+		
+		foreach($hierarchy as $key)
+		{
+			if(is_array($array) && isset($array[$key]))
+				$array = $array[$key];
+			else if(is_object($array) && property_exists($object, $key))
+				$array = $object->$key;
+			else {
+				$ret_val = false;
+				break;
+			}
+		}
+		return $ret_val;
+    }
+		
+	
+	/*
+	 * Search and delete values in $array
+	 * @param mixed $array
+	 * @param mixed $keys
+	 * @param mixed $data
+	 * @return bool
+	 */
+	public static function remove(&$array, $keys, $default=null)
+	{
+		$ret_val = $removed = false;
+		$notFound = true;
+		$keys = is_array($keys) ? $keys : [$keys];
+		$key = null;
+		for($i = 0; $i < count($keys); $i++)
+		{
+			$key = array_shift($keys);
+			if(is_array($array) && isset($array[$key]) && !is_array($array[$key])) {
+				$ret_val = $array[$key];
+				unset($array[$key]);
+				return $ret_val;	
+			}
+			if(is_array($array) && isset($array[$key]) && is_array($array[$key])) {
+				return static::remove($array[$key], $keys);
+			}
+		}
+		return !$ret_val ? $default : $ret_val;
+	}
 }

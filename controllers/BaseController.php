@@ -53,13 +53,7 @@ class BaseController extends Controller
 		$this->initAssets();
 		$this->initMetaTags();
 		$this->initJs();
-		$registered = Session::isRegistered(Session::settings);
-		switch(!$registered || !(Session::size(Session::settings)))
-		{
-			case true:
-			$this->initConfig();
-			break;
-		}
+		$this->initConfig();
 		//$this->initConfig(@Yii::$app->controller->id);
 		parent::init();
 	}
@@ -257,7 +251,7 @@ class BaseController extends Controller
 	public static function loadNav($from="navigation")
 	{
 		$ret_val = $priorities = [];
-		$navigation = Session::getVal($from);
+		$navigation = \Yii::$app->getModule('nitm')->config->get($from);
 		if(is_array($navigation))
 		{
 			foreach($navigation as $group=>$val)
@@ -299,7 +293,7 @@ class BaseController extends Controller
 	public static function getNavHtml($navigation=null, $encapsulate=null)
 	{
 		$ret_val = array();
-		$navigation = !is_array($navigation) ? static::loadNav('settings.navigation') : $navigation;
+		$navigation = !is_array($navigation) ? static::loadNav('navigation') : $navigation;
 		$top = ($navigation === null) ? true : false;
 		foreach($navigation as $idx=>$options)
 		{

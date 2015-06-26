@@ -34,6 +34,7 @@ use nitm\models\DB;
 class Configer extends Model
 {
 	//public data
+	public $storeIn = 'session';
 	public $backups = true;
 	public $backupExtention = '.cfg.bak';
 	public $dir = ["default" => 'config/ini/', "config" => null];
@@ -47,7 +48,7 @@ class Configer extends Model
 	public $value;			//The value
 	public $section;		//Current value section
 	public $what;			//What is being done
-	public $engine;			//Current engine
+	public $engine;			//Current engine. Database or file?
 	public $comment;		//The comment
 	public $convert;		//Convert
 	public $convertTo;		//Convert to what engine?
@@ -68,7 +69,7 @@ class Configer extends Model
 	
 	//private data
 	private static $_containers;
-	private static $_cache = [];
+	private static $_cache;
 	private $_objects = [];
 	private $_types = ['ini' => 'cfg', 'xml' => 'xml', 'file' => 'cfg'];
 	private $_location = "file";
@@ -157,6 +158,77 @@ class Configer extends Model
 		return \nitm\helpers\ArrayHelper::getOrSetValue($this->_event->data, $name, $value, $append);
 	}
 	
+	/**
+	 * Find out where configuration information is being stored in
+	 * @return classname of stroage adapter
+	 */	
+	protected function resolveStoredIn() 
+	{
+		switch($this->storeIn)
+		{
+			case 'cache':
+			$class = Cache::className();
+			$prefix = function ($name) {
+				return Session::getPath($name);
+			};
+			break;
+			
+			default:
+			$class = Session::className();
+			$prefix = function ($name) {
+				return $name;
+			};
+			break;
+		}
+		return [$class, $prefix];
+	}
+	
+	/**
+	 * Set a config value based on the storage location
+	 * @param string $name
+	 * @param mixed $value
+	 * @return boolean
+	 */
+	public function set($name, $value, $duration=120)
+	{
+		list($class, $prefix) = $this->resolveStoredIn();
+		return call_user_func_array([$class, 'set'], [$prefix($name), $value, $duration]);
+	}
+	
+	/**
+	 * Get a config value based on the storage location
+	 * @param string $name
+	 * @return mixed
+	 */
+	public function get($name, $asArray = false)
+	{
+		list($class, $prefix) = $this->resolveStoredIn();
+		$path = $prefix($name);
+		return call_user_func_array([$class, 'get'], [$prefix($name), $asArray]);
+	}
+	
+	/**
+	 * Remove a config value based on the storage location
+	 * @param string $name
+	 * @return boolean
+	 */
+	public function remove($name)
+	{
+		list($class, $prefix) = $this->resolveStoredIn();
+		return call_user_func_array([$class, 'delete'], [$prefix($name)]);
+	}
+	
+	/**
+	 * Doesa config value exist?
+	 * @param string $name
+	 * @return boolean
+	 */	
+	public function exists($name)
+	{
+		list($class, $prefix) = $this->resolveStoredIn();
+		return call_user_func_array([$class, 'exists'], [$prefix($name)]);
+	}
+	
 	/*
 	 * Initiate the event handlers for this class
 	 */
@@ -167,9 +239,9 @@ class Configer extends Model
 			
 			$value = Json::isJson($this->event('value')) ? Json::decode($this->event('value')) : $this->event('value');
 			if($this->container == \Yii::$app->getModule('nitm')->config->container)
-				Session::set(Session::settings.'.'.$this->event('key'), $value);
+				$this->set(Session::settings.'.'.$this->event('key'), $value);
 				
-			Session::set($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
+			$this->set($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
 			$this->trigger('logData');
 		});
 		
@@ -177,9 +249,9 @@ class Configer extends Model
 			
 			$value = Json::isJson($this->event('value')) ? Json::decode($this->event('value')) : $this->event('value');
 			if($this->container == \Yii::$app->getModule('nitm')->config->container)
-				Session::set(Session::settings.'.'.$this->event('key'), $value);
+				$this->set(Session::settings.'.'.$this->event('key'), $value);
 			
-			Session::set($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
+			$this->set($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
 			$this->trigger('logData');
 		});
 		
@@ -191,10 +263,10 @@ class Configer extends Model
 				break;
 			}
 			$this->config('current.section', $this->event('section'));
-			Session::del($this->uriOf($this->event('key'), true), true);
+			$this->remove($this->uriOf($this->event('key'), true), true);
 			
 			if($this->container == \Yii::$app->getModule('nitm')->config->container)
-				Session::del(Session::settings.'.'.$this->event('key'));
+				$this->remove(Session::settings.'.'.$this->event('key'));
 				
 			$this->trigger('logData');
 		});
@@ -239,7 +311,7 @@ class Configer extends Model
 			switch($container)
 			{
 				case 'pma':
-				$template = Session::getVal("settings.templates.iframe");
+				$template = $this->get("settings.templates.iframe");
 				$this->render($template, ['src' => '/phpmyadmin/main.php']);
 				return;
 				break;
@@ -250,14 +322,14 @@ class Configer extends Model
 			$this->setEngine($engine);
 			$this->setType($engine, $container);
 			//if the selected config is not loaded then load it
-			if((Session::getVal(self::dm.'.current.config') != $this->_location.'.'.$container) || (Session::getVal(self::dm.'.current.engine') != $this->_location)) {
+			if(($this->get(self::dm.'.current.config') != $this->_location.'.'.$container) || ($this->get(self::dm.'.current.engine') != $this->_location)) {
 				$this->config('current.config', $this->getConfig($engine, $container, $getValues, true));
-				Session::set(self::dm.'.'.$this->_location.'.config', $this->config('current.config'));
+				$this->set(self::dm.'.'.$this->_location.'.config', $this->config('current.config'));
 				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
 			//otherwise just get the current loaded config
 			else {
-				$this->config('current.config', Session::getVal(self::dm.'.'.$this->_location.'.config'));
+				$this->config('current.config', $this->get(self::dm.'.'.$this->_location.'.config'));
 				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
 			
@@ -267,7 +339,7 @@ class Configer extends Model
 			$this->config('load.current', (bool)count($this->config('current.config'))>=1);
 			$this->config('load.sections', (bool)count($this->config('current.sections'))>=1);
 				
-			Session::set(self::dm.'.current.config', $this->_location.'.'.$container);
+			$this->set(self::dm.'.current.config', $this->_location.'.'.$container);
 			break;
 		}
 	}
@@ -353,9 +425,9 @@ class Configer extends Model
 			//clear any other unused engine data
 			foreach(array_diff_key($this->_supported, [$this->_location => ucfirst($this->_location)]) as $clear=>$key)
 			{
-				Session::del(self::dm.'.'.$clear);
+				$this->remove(self::dm.'.'.$clear);
 			}
-			Session::set(self::dm.'.current.engine', $this->_location);
+			$this->set(self::dm.'.current.engine', $this->_location);
 			break;
 		}
 	}
@@ -518,12 +590,7 @@ class Configer extends Model
 					to save memory/space and to not allow any new changes to be made
 				*/
 				$this->setBase($container);
-				switch(Session::getVal(self::dm.'.'.$this->_location.'.'.$this->container) != $data)
-				{
-					case true:
-					Session::set(self::dm.'.'.$this->_location.'.'.$this->container);
-					break;
-				}
+				$this->set(self::dm.'.'.$this->_location.'.'.$this->container, $data);
 				break;
 			}
 			break;
@@ -609,7 +676,7 @@ class Configer extends Model
 		switch($from_sess === true)
 		{
 			case true:
-			$ret_val = &$_SESSION[$this->sess_name.$_SERVER['SERVER_NAME']][self::dm];
+			$ret_val = $this->get($this->sess_name.$_SERVER['SERVER_NAME'].'.'.self::dm);
 			break;
 			
 			default:
@@ -792,7 +859,7 @@ class Configer extends Model
 			$ret_val['class'] = !$ret_val['success'] ? $this->classes['failure'] : $this->classes['success'];
 			$this->setEventData(array_merge($ret_val, [
 				'action' => 'Create Config',
-				'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username') ." created new key->value ($key -> ".var_export($value, true).") to config ".$container
+				'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username') ." created new key->value ($key -> ".var_export($value, true).") to config ".$container
 			]));
 			$this->trigger('afterCreate');
 			break;
@@ -802,7 +869,7 @@ class Configer extends Model
 			
 			case 'file':
 			$container = $this->resolveDir($this->config('current.path'));
-			Session::setCsdm(self::dm.'.'.$this->_location);
+			$this->setCsdm(self::dm.'.'.$this->_location);
 			switch(sizeof($hierarchy))
 			{
 				///we might be creating a container
@@ -838,7 +905,7 @@ class Configer extends Model
 							'table' => 'NULL',
 							'db' => 'NULL',
 							'action' => 'Create Config',
-							'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username') ." created new key->value ($key -> ".var_export($value, true).") to config file ".basename($container)
+							'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username') ." created new key->value ($key -> ".var_export($value, true).") to config file ".basename($container)
 						]));
 						$this->trigger('afterCreate');
 						break;
@@ -851,7 +918,7 @@ class Configer extends Model
 		}
 		$ret_val['action'] = 'create';
 		$this->config('current.action', $ret_val);
-		Session::set(Configer::dm.'.action', $ret_val);
+		$this->set(Configer::dm.'.action', $ret_val);
 	}
 	
 	/*
@@ -866,8 +933,7 @@ class Configer extends Model
 	{
 		$key = is_array($key) ? implode('.', $key) : $key;
 		$value = is_array($value) ? json_encode($value) : $value;
-		if(is_array($container))
-		{
+		if(is_array($container)) {
 			debug_print_backtrace();
 			exit;
 		}
@@ -894,7 +960,7 @@ class Configer extends Model
 					'key' => $key,
 					'value' => $value,
 					'action' => "Update Config",
-					'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." updated value ($key from '".var_export($ret_val['old_value'], true)."' to '".var_export($value, true)."') in container ".basename($container)
+					'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." updated value ($key from '".var_export($ret_val['old_value'], true)."' to '".var_export($value, true)."') in container ".basename($container)
 				]);
 				$this->trigger('afterUpdate');
 				break;
@@ -926,7 +992,7 @@ class Configer extends Model
 						'key' => $key,
 						'value' => $value,
 						'action' => "Update Config File",
-						'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." updated value ($key from '".var_export($ret_val['old_value'], true)."' to '".var_export($value, true)."') in config file ".basename($container)
+						'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." updated value ($key from '".var_export($ret_val['old_value'], true)."' to '".var_export($value, true)."') in config file ".basename($container)
 					]);
 					$this->trigger('afterUpdate');
 					break;
@@ -937,7 +1003,7 @@ class Configer extends Model
 		$ret_val['action'] = 'update';
 		$ret_val['value'] = rawurlencode($value);
 		$this->config('current.action', $ret_val);
-		Session::set(Configer::dm.'.action', $ret_val);
+		$this->set(Configer::dm.'.action', $ret_val);
 	}
 	
 	/*
@@ -959,7 +1025,7 @@ class Configer extends Model
 		$this->setEngine($engine);
 		$this->setBase($container);
 		$hierarchy = explode('.', $this->uriOf($key));
-		$value = Session::getVal($this->uriOf($key));
+		$value = $this->get($this->uriOf($key));
 		switch($this->_location)
 		{
 			case 'db':
@@ -974,7 +1040,7 @@ class Configer extends Model
 					'value' => $value,
 					'section' => $ret_val['section'],
 					'action' => "Delete Config",
-					'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." deleted value ($key -> '".var_export($value, true)."') from config file ".basename($container)
+					'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." deleted value ($key -> '".var_export($value, true)."') from config file ".basename($container)
 				]);
 				$this->trigger('afterDelete');
 				break;
@@ -1005,7 +1071,7 @@ class Configer extends Model
 						'value' => $value,
 						'section' => $ret_val['section'],
 						'action' => "Delete Config",
-						'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." deleted value ($key -> '".var_export($value, true)."') from config file ".basename($container)
+						'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." deleted value ($key -> '".var_export($value, true)."') from config file ".basename($container)
 					]);
 					$this->trigger('afterDelete');
 					break;
@@ -1016,7 +1082,7 @@ class Configer extends Model
 		}
 		$ret_val['action'] = 'delete';
 		$this->config('current.action', $ret_val);
-		Session::set(Configer::dm.'.action', $ret_val);
+		$this->set(Configer::dm.'.action', $ret_val);
 	}
 	
 	public function createContainer($name, $in=null, $engine='db')
@@ -1039,7 +1105,7 @@ class Configer extends Model
 				$data["sections"]['name'] = 'global';
 				$this->setEventData([
 					'action' => 'create',
-					'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." ".$message
+					'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." ".$message
 				]);
 				$this->trigger('afterCreate');
 				$ret_val['class'] = $this->classes['success'];
@@ -1062,7 +1128,7 @@ class Configer extends Model
 				$ret_val['message'] = "The system was able to create the config file".basename($new_config_file);
 				$this->setEventData([
 					'action' => 'Create Config File',
-					'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." created a new config file: ".basename($new_config_file)
+					'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." created a new config file: ".basename($new_config_file)
 				]);
 				$this->trigger('afterCreate');
 				$ret_val['class'] = $this->classes['success'];
@@ -1202,7 +1268,7 @@ class Configer extends Model
 	{
 		$uriOf = $this->uriOf($key);
 		$hierarchy = explode('.', $uriOf);
-		$old_value = Session::getVal($uriOf);
+		$old_value = $this->get($uriOf);
 		$name = isset($hierarchy[4]) ? $hierarchy[4] : (sizeof($hierarchy) == 3 ? $hierarchy[2] : null);
 		$sectionName = isset($hierarchy[4]) ? $hierarchy[3] : $hierarchy[1];
 		$ret_val = [
@@ -1306,7 +1372,7 @@ class Configer extends Model
 		$ret_val = [
 			'success' => false,
 			'container' => $key,
-			'value' => Session::getVal($uriOf),
+			'value' => $this->get($uriOf),
 			'key' => $uriOf,
 			'message' => "Unable to delete ".$key,
 			'section' => $sectionName
@@ -1517,7 +1583,7 @@ class Configer extends Model
 						'table' => 'config',
 						'db' => DB::getDbName(),
 						'action' => $action[$result],
-						'message' => "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." ".$message
+						'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." ".$message
 					])
 				);
 				break;
@@ -1541,7 +1607,7 @@ class Configer extends Model
 							'table' => 'NULL',
 							'db' => "NULL",
 							'action' => "Delete Config File",
-							'message' => $action[$result], "On ".date("F j, Y @ g:i a")." user ".Session::getVal('securer.username')." deleted config file: ".basename($config_file)
+							'message' => $action[$result], "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." deleted config file: ".basename($config_file)
 						])
 					);
 					$ret_val['success'] = true;

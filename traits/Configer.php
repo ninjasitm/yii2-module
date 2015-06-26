@@ -4,6 +4,7 @@ namespace nitm\traits;
 use nitm\helpers\Session;
 use nitm\helpers\Helper;
 use nitm\helpers\Cache as CacheHelper;
+use nitm\helpers\ArrayHelper;
 
  /**
   * Configuration traits that can be shared
@@ -33,9 +34,8 @@ trait Configer {
 			default:
 			array_unshift($hierarchy, static::isWhat());
 			break;
-		}
-		@eval("\$ret_val = static::\$settings['".Helper::splitf($hierarchy, "']['")."'];");
-		return $ret_val;
+		}		
+		return ArrayHelper::getValue(static::$settings, implode('.', $hierarchy));
 	}
 	
 	/*
@@ -49,41 +49,34 @@ trait Configer {
 		switch(1)
 		{
 			case !isset(static::$settings[$container]):
-			case !CacheHelper::cache()->exists('config-'.$container):
-			case CacheHelper::cache()->exists('config-'.$container) && (count(CacheHelper::cache()->get('config-'.$container) == 0)):
-			case ($container == $module->config->container) && (!Session::isRegistered(Session::settings)):
+			case !$module->config->exists($container):
+			case $module->config->exists($container) && (count($module->config->get($container) == 0)):
+			case ($container == $module->config->container) && (!$module->config->exists(Session::settings)):
 			
 			$module->config->setEngine($module->config->engine);
 			$module->config->setType($module->config->engine, $container);
-			
-			if($module->config->engine == 'file')
-				$module->setDir($module->config->dir);
 				
-			if(Session::isRegistered(Session::current.'.'.$container))
-				static::$settings[$container] = Session::getval(Session::current.'.'.$container);
+			if($module->config->exists(Session::current.'.'.$container)) {
+				static::$settings[$container] = $module->config->get(Session::current.'.'.$container);
+			}
 			else {
 				switch(1)
 				{
-					case CacheHelper::cache()->exists('config-'.$container) && count(CacheHelper::cache()->get('config-'.$container)):
-					$config = CacheHelper::cache()->get('config-'.$container);
-					Session::set(Session::current.'.'.$container, $config);
-					break;
-					
-					case ($container == $module->config->container) && (!Session::isRegistered(Session::settings)):
+					case ($container == $module->config->container) && (!$module->config->exists(Session::settings)):
 					$config = $module->config->getConfig($module->config->engine, $container, true);
-					Session::set(Session::settings, $config);
+					$module->config->set(Session::settings, $config);
 					break;
 					
 					default:
 					$config = $module->config->getConfig($module->config->engine, $container, true);
-					CacheHelper::cache()->set('config-'.$container, $config, 120);
-					Session::set(Session::current.'.'.$container, $config);
+					$module->config->set($container, $config);
 					break;
 				}
 				static::$settings[$container] = $config;
 			}
 			break;
 		}
+		
 	}
 }
 ?>

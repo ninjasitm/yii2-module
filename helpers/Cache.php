@@ -45,13 +45,26 @@ class Cache extends Model
 	
 	public static function exists($key)
 	{
-		//return isset(static::$_cache[$key]);
-		return static::$cache->exists($key);
+		return static::cache()->exists($key);
+	}
+	
+	public static function get($key)
+	{
+		return static::cache()->get($key);
+	}
+	
+	public static function set($key, $value, $duration=300)
+	{
+		return static::cache()->set($key, $value, $duration);
+	}
+	
+	public static function delete($key)
+	{
+		return static::cache()->delete($key);
 	}
 	
 	public function deleteModel($key)
 	{
-		//echo "Deleting model for: $key<br>";
 		if(static::exists($key))
 			return static::cache()->delete($key);
 		return false;
@@ -61,7 +74,7 @@ class Cache extends Model
 	{
 		//static::$_cache[$key] = $model;
 		//echo "Setting model for: $key<br>";
-		static::$cache->set($key, $model, $duration);
+		static::cache()->set($key, $model, $duration);
 	}
 	
 	public static function setModelArray($key, $array, $duration=500)
@@ -77,8 +90,8 @@ class Cache extends Model
 	public static function getModel($key)
 	{
 		$ret_val = null;
-		if(static::$cache->exists($key))
-			$ret_val = static::$cache->get($key);
+		if(static::cache()->exists($key))
+			$ret_val = static::cache()->get($key);
 		return $ret_val;
 	}
 	
@@ -93,8 +106,8 @@ class Cache extends Model
 		//PHP Doesn't support serializing of Closure functions so using local object store
 		$array = [];
 		//switch(isset(static::$_cache[$key]))
-		if(static::$cache->exists($key))
-			$ret_val = static::$cache->get($key);
+		if(static::cache()->exists($key))
+			$ret_val = static::cache()->get($key);
 		else
 			$ret_val = [];
 		return $ret_val;
@@ -138,7 +151,7 @@ class Cache extends Model
 	public static function getCachedModel($sender, $key, $modelClass=null, $property=null, $options=[])
 	{
 		//PHP Doesn't support serializing of Closure functions so using local object store
-		//switch(static::$cache->exists($key))
+		//switch(static::cache()->exists($key))
 		$ret_val = null;
 		switch(static::exists($key))
 		{
@@ -148,7 +161,7 @@ class Cache extends Model
 				$ret_val = new $array[0](array_filter($array[1]));
 			} catch (\Exception $e) {
 			}
-			//$ret_val = static::$cache->get($key);
+			//$ret_val = static::cache()->get($key);
 			break;
 			
 			default:
@@ -185,7 +198,7 @@ class Cache extends Model
 					}
 					break;
 				}
-				//static::$cache->set($key, $ret_val, 1000);
+				//static::cache()->set($key, $ret_val, 1000);
 				static::setModel($key, [$modelClass, ArrayHelper::toArray($ret_val)]);
 				break;
 			}
@@ -203,7 +216,7 @@ class Cache extends Model
 	public static function getCachedModelArray($sender, $key, $modelClass=null, $property=null, $options=[])
 	{
 		//PHP Doesn't support serializing of Closure functions so using local object store
-		//switch(static::$cache->exists($key))
+		//switch(static::cache()->exists($key))
 		$ret_val = [];
 		switch(static::exists($key))
 		{
@@ -254,7 +267,7 @@ class Cache extends Model
 					$ret_val = $options;
 					break;
 				}
-				//static::$cache->set($key, $ret_val, 1000);
+				//static::cache()->set($key, $ret_val, 1000);
 				static::setModelArray($key, [$modelClass, ArrayHelper::toArray($ret_val)]);
 				break;
 			}

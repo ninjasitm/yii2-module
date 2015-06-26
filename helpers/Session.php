@@ -49,31 +49,43 @@ class Session extends Model
 	
 	public function __construct($dm=null, $db=null, $table=null, $compare=false, $driver=null)
 	{
-		$_SERVER['SERVER_NAME'] = (isset($_SERVER['SERVER_NAME'])) ? $_SERVER['SERVER_NAME'] : $_SESSION['SERVER_NAME'];
+		static::touchSession();
+		self::$compare = $compare;
+		static::initSession($dm);
+		if($compare == true)
+			self::register(self::comparer);
+	}
+	
+	protected static function initSession($dm=null)
+	{
+		$_SERVER['SERVER_NAME'] = (isset($_SERVER['SERVER_NAME'])) ? $_SERVER['SERVER_NAME'] : @$_SESSION['SERVER_NAME'];
 		if(!isset($_SESSION[static::sessionName()]))
 		{
-			$_SESSION[static::sessionName()] = array();
+			$_SESSION[static::sessionName()] = [];
 			if(!isset($_SESSION[static::sessionName()][self::variables]))
 			{
-				$_SESSION[static::sessionName()][self::variables] = array();
+				$_SESSION[static::sessionName()][self::variables] = [];
 			}
 			if(!isset($_SESSION[static::sessionName()][self::variables][self::reg_vars]))
 			{
-				$_SESSION[static::sessionName()][self::variables][self::reg_vars] = array();
+				$_SESSION[static::sessionName()][self::variables][self::reg_vars] = [];
 				$_SESSION[static::sessionName()][self::variables][self::reg_vars][self::object] = null;
 			}
+			if(!is_null($dm) && !isset($_SESSION[static::sessionName()][self::variables][self::csdm_var])) {
+				$_SESSION[static::sessionName()][self::variables][self::csdm_var] = 
+				$_SESSION[static::sessionName()][self::variables][self::$lock] = $dm;
+			}
 		}
-		if(!is_null($dm))
-		{
-			self::$compare = $compare;
-			$_SESSION[static::sessionName()][self::variables][self::csdm_var] = $dm;
-			$_SESSION[static::sessionName()][self::variables][self::$lock] = $dm;
-			self::register($dm);
-		}
-		if($compare == true)
-		{
-			self::register(self::comparer);
-		}
+	}
+	
+	protected static function touchSession()
+	{
+		if(session_status() != PHP_SESSION_ACTIVE)
+			if(\Yii::$app->getSession())
+				\Yii::$app->getSession()->open();
+			else
+				@session_start();
+		static::initSession(static::settings);
 	}
 	
 	public function behaviors()
@@ -85,17 +97,19 @@ class Session extends Model
 	
 	public function init()
 	{
+		static::touchSession();
 		self::$method = $_REQUEST;
 	}
 	
 	public static function sessionName()
 	{
-		static::$session = (empty(static::$session)) ? static::$sessionName.$_SERVER['SERVER_NAME'] : static::$session;
+		static::$session = (empty(static::$session)) ?  preg_replace('/[^\da-z]/i', '-', static::$sessionName.$_SERVER['SERVER_NAME']) : static::$session;
 		return static::$session;
 	}
 	
 	public static final function setCsdm($dm, $compare=false)
 	{
+		static::touchSession();
 		self::$compare = $compare;
 		$_SESSION[static::sessionName()][self::variables][self::csdm_var] = $dm;
 		$_SESSION[static::sessionName()][self::variables][self::$lock] = $dm;
@@ -105,140 +119,74 @@ class Session extends Model
 	
 	public static final function getCsdm()
 	{
-		if(isset($_SESSION[static::sessionName()][self::variables][self::csdm_var]))
-			return $_SESSION[static::sessionName()][self::variables][self::csdm_var];
-		return null;
+		static::touchSession();
+		return $_SESSION[static::sessionName()][self::variables][self::csdm_var];
 	}
 	
-	public static final function app($cIdx, $data, $compare=false)
+	public static final function app($path, $data, $compare=false)
 	{
-		return self::set($cIdx, $data, $compare, true);
+		return self::set($path, $data, $compare, true);
 	}
 	
-	public static function set($cIdx, $data, $compare=false, $array=false)
-	{		
-		$ret_val = false;
-		
-		if(is_array($cIdx) && (sizeof($data) < sizeof($cIdx)))
+	public static function set($path, $data, $compare=false, $append=false)
+	{
+		if(is_array($path) && (sizeof($data) < sizeof($path)))
 			return false;
 
 		$csdm = ($compare === true) ? self::comparer : @static::getCsdm();
-		$cIdx = (is_null($cIdx)) ? $csdm : $cIdx;
-		$cIdx = (is_array($cIdx)) ? $cIdx : array($cIdx);
+		$path = (is_null($path)) ? $csdm : $path;
 		self::$compare = $compare;
-		//echo "Setting ".json_encode($cIdx)."\n";
-		foreach($cIdx as $dx)
-		{
-			$hier = explode('.', $dx);
-			switch($hier[0])
-			{
-				case in_array($hier[0], self::$noQualifier) === true:
-				self::register($hier[0]);
-				break;
-				
-				default:
-				if($hier[0] != $csdm)
-					array_unshift($hier, $csdm);
-				break;
-			}
-			$hierarchy[] = $dx;
-			self::register($dx);
-		}
-		foreach($hierarchy as $idx=>$member)
-		{
-			$locator = $member;
-			$member = explode('.', $member);
-			switch($member[0])
-			{
-				case in_array($member[0], self::$qualifier) === true:
-				case in_array($member[0], self::$noQualifier) === true:
-				case null;
-				$csdm = $member[0];
-				break;
-				
-				default:
-				$csdm = @static::getCsdm();
-				array_unshift($member, $csdm);
-				break;
-			}
-			switch(isset($data[$idx]) && is_array($data[$idx]))
-			{
-				case true:
-				foreach($data[$idx] as $jdx=>$jvalue)
-				{
-					if(self::inSession($locator, $jvalue) === false)
-					{
-						if($array)
-							eval("\$_SESSION['".static::sessionName()."']['".Helper::splitf($member, "']['")."'][] = \$jvalue;");
-						else
-							eval("\$_SESSION['".static::sessionName()."']['".Helper::splitf($member, "']['")."'] = \$jvalue;");
-					}
-				}
-				break;
-				
-				default:
-				if(self::inSession($locator, $data) === false)
-				{
-					if($array)
-						eval("\$_SESSION['".static::sessionName()."']['".Helper::splitf($member, "']['")."'][] = \$data;");
-					else
-						eval("\$_SESSION['".static::sessionName()."']['".Helper::splitf($member, "']['")."'] = \$data;");
-				}
-				break;
-			}
-			
-		}
-		$ret_val = $data;
-		return $ret_val;
+		static::touchSession();
+		return ArrayHelper::setValue($_SESSION, static::getPath($path), $data, $append);
 	}
 	
 	//set batch ID's for misc use
 	public function setBatch($cID)
 	{
 		self::setCsdm(self::batch);
-		self::set(self::batch, $cID, true);
-		return $cID;
+		return self::set(self::batch, $cID, true);
 	}
 	//end section
 	
-	public function appBatch($cID, $cIdx=false, $clear=false)
+	public function appBatch($cID, $path=false, $clear=false)
 	{
-		$csdm = ($cIdx === false) ? self::batch : $cIdx;
-		$cIdx = ($cIdx === false) ? $csdm : $cIdx;
+		$csdm = ($path === false) ? self::batch : $path;
+		$path = ($path === false) ? $csdm : $path;
 		self::setCsdm($csdm);
 		if($clear === true)
-			self::del($cIdx);
-		self::app($cIdx, $cID, true);
+			self::delete($path);
+		self::app($path, $cID, true);
 		return $cID;
 	}
 
 	//void section
-	public final function voidBatch($cID, $cIdx=false)
+	public final function voidBatch($cID, $path=false)
 	{
 		$ret_val = $cID;
-		if($cIdx === false)
-			$cIdx = self::batch;
-		if(!self::isRegistered($cIdx))
+		if($path === false)
+			$path = self::batch;
+		if(!self::isRegistered($path))
 			$ret_val = false;
-		else
-		{
-			if(($key = @array_search($cID, self::getVal($cIdx))) !== false)
-				self::del("$cIdx.$key");
-		}
+		else if(($key = @array_search($cID, self::get($path))) !== false)
+				self::delete("$path.$key");
 		return $ret_val;
 	}
-
-	public static final function del($cIdx)
+	
+	public static function del($path)
 	{
-		$value = self::getVal($cIdx);
-		$ret_val = self::unregister($cIdx);
-		return array("item"=> $cIdx , "value" => $value, "ret_val" => $ret_val);
+		return static::delete($path);
+	}
+
+	public static final function delete($path)
+	{
+		$value = self::get($path);
+		$ret_val = self::unregister($path);
+		return ["item"=> $path , "value" => $value, "ret_val" => $ret_val];
 	}
 	
 	public static final function pop($array, $index) 
 	{
-		if(is_array($array)) 
-		{
+		if(is_array($array)) {
 			unset ($array[$index]);
 			array_unshift($array, array_shift($array));
 			return $array;
@@ -246,97 +194,121 @@ class Session extends Model
 		return false;
 	}
 	
-	public static final function clear($cIdx)
+	public static final function clear($path)
 	{
-		switch($cIdx)
+		static::touchSession();
+		switch($path)
 		{
-			case in_array($cIdx, self::$noQualifier) === true:
-			case in_array($cIdx, self::$qualifier) === true:
+			case in_array($path, self::$noQualifier) === true:
+			case in_array($path, self::$qualifier) === true:
+			$_SESSION[static::sessionName()][$path] = [];
+			break;
+			
 			case null:
-			$_SESSION[static::sessionName()][$cIdx] = array();
+			$_SESSION[static::sessionName()] = [];
 			break;
 			
 			default:
-			$_SESSION[static::sessionName()][self::getCsdm()] = array();
+			$_SESSION[static::sessionName()][self::getCsdm()] = [];
 			break;
 		}
 		return true;
 	}
 
-	public static final function getVal($cIdx, $bool=false)
-	{
-		$ret_val = null;
-		if(self::isRegistered($cIdx) !== false)
-		{
-			if(($ret_val = self::get($cIdx)) !== false)
-			{
-				$value = ($bool == true) ? self::boolVal($ret_val['value']) : $ret_val['value'];
-				$type = gettype($value);
-				switch($type)
-				{	
-					case "boolean":
-					case "integer":
-					case "double":
-					case "string":
-					case "array":
-					settype($value, $type);
-					break;
-				}
-				$ret_val = $value;
-			}
-		}
-		return $ret_val;
-	}
-
-	public static final function size($item, $size_only=true)
+	public static final function size($item, $sizeOnly=true)
 	{
 		if(!self::isRegistered($item))
 			return 0;
-		else
-		{
-			$hierarchy = explode('.', $item);
-			$access_str = "['".Helper::splitf($hierarchy, "']['")."']";
-			$csdm = @static::getCsdm();;
-			$access_str = ($csdm != null) ? (($csdm == $hierarchy[0]) ? $access_str : ((!in_array($hierarchy[0], self::$noQualifier)) ? $csdm.$access_str : $access_str)) : $access_str;
-			eval("\$size = count(\$_SESSION['".static::sessionName()."']".$access_str.");");
-			if(!$size_only)
-				$ret_val = array('value' => self::getVal($item), 'size' => $size, 'idx' => $item);
-			else
-				$ret_val = $size;
+		else {
+			$size = count(static::getValue($item));
+			$ret_val = $sizeOnly ? $size : ['value' => self::get($item), 'size' => $size, 'idx' => $item];
 			return $ret_val = (!$ret_val) ? 0 : $ret_val;
 		}
-	}/*
+	}
+	
+	public static function exists($path)
+	{
+		return static::isRegistered($path);
+	}
+	
+	/*
 	 * Using dot notation see if this path exists
-	 * @param string $cIdx
+	 * @param string $path
 	 * @return bool
 	 */
-	public static final function isRegistered($cIdx)
+	public static final function isRegistered($path)
 	{
 		$ret_val = false;
-		switch($cIdx)
+		$hierarchy = static::resolvePath($path);
+		static::touchSession();
+		$ret_val = ArrayHelper::exists($_SESSION, static::getPath($path), false);
+		return $ret_val;
+	}
+	
+	public static function getPath($path) 
+	{
+		$hierarchy = is_array($path) ? $path : static::resolvePath($path);
+		
+		if(static::getCsdm() != $hierarchy[0])
+			if(!in_array($hierarchy[0], self::$noQualifier) && !in_array($hierarchy[0], self::$qualifier))
+				array_unshift($hierarchy, static::getCsdm());
+		
+		array_unshift($hierarchy, static::sessionName());
+		return implode('.', $hierarchy);
+	}
+	
+	protected static function resolvePath($path)
+	{
+		switch($path)
 		{
-			case in_array($cIdx, self::$noQualifier) === true:
-			case in_array($cIdx, self::$qualifier) === true:
-			$ret_val = isset($_SESSION[static::sessionName()][$cIdx]);
+			case in_array($path, self::$noQualifier) === true:
+			case in_array($path, self::$qualifier) === true:
+			$ret_val = [$path];
 			break;
 			
 			default:
-			$hierarchy = explode(".", $cIdx);
-			switch($hierarchy[0])
+			$ret_val = explode(".", $path);
+			switch($ret_val[0])
 			{	
-				case in_array($hierarchy[0], self::$qualifier) === true:
-				case in_array($hierarchy[0], self::$noQualifier) === true:
-				case ($hierarchy[0] == @static::getCsdm()):
+				case in_array($ret_val[0], self::$qualifier) === true:
+				case in_array($ret_val[0], self::$noQualifier) === true:
+				case ($ret_val[0] == @static::getCsdm()):
 				break;
 				
 				default:
-				array_unshift($hierarchy, @static::getCsdm());
+				array_unshift($ret_val, @static::getCsdm());
 				break;
 			}
-			eval("\$ret_val = isset(\$_SESSION['".static::sessionName()."']['".Helper::splitf($hierarchy, "']['")."']);");
 			break;
 		}
 		return $ret_val;
+	}
+	
+	/**
+	 * An alias for get
+	 */
+	public static final function getVal($path)
+	{
+		return self::get($path, false);
+	}
+	
+	/*
+	 * Get a value
+	 * @param string|int $path
+	 */
+	public static final function get($path, $asArray = false)
+	{
+		self::$qualifier = array('adder','deleter','updater','general');
+		$val = static::getValue($path);
+		$ret_val = (($asArray === false)) ? $val : ['idx' => $path, 'value' => $val];
+		return $ret_val;
+	}
+	
+	private static function getValue($string)
+	{
+		static::touchSession();
+		//echo "Getting ".json_encode($string)." ".static::getCsdm()." ".static::getPath($string)."\n";
+		return ArrayHelper::getValue($_SESSION, static::getPath($string), null);
 	}
 	
 	/*
@@ -344,74 +316,19 @@ class Session extends Model
 	 */
 	public static final function destroy()
 	{
-		if(isset($_SESSION[static::sessionName()]))
-		{
-			foreach($_SESSION[static::sessionName()] as $member=>$val)
-			{
-				self::unregister($member);
-			}
-			$_SESSION[static::sessionName()] = array();
-		}
+		static::touchSession();
+		unset($_SESSION[static::sessionName()]);
 	}
 	
 	/*---------------------
 		Protected Functions
 	---------------------*/
 	
-	/*
-	 * Get a value
-	 * @param string|int $cIdx
-	 */
-	protected static final function get($cIdx)
-	{
-		$val = "";
-		self::$qualifier = array('adder','deleter','updater','general');
-		switch($cIdx)
-		{
-			case in_array($cIdx, self::$qualifier) === true:
-			case null;
-			$csdm = static::getCsdm();
-			$val = (self::isRegistered($csdm)) ? $_SESSION[static::sessionName()][$csdm] : null;
-			break;
-			
-			case in_array($cIdx, self::$noQualifier) === true:
-			$val = (self::isRegistered($cIdx)) ? $_SESSION[static::sessionName()][$cIdx] : null;
-			break;
-		
-			default:
-			$csdm = @static::getCsdm();
-			$hierarchy = explode('.', $cIdx);
-			switch($hierarchy[0])
-			{
-				case in_array($hierarchy[0], self::$noQualifier) === true:
-				if(self::isRegistered($cIdx) !== false)
-					eval("\$val = \$_SESSION['".static::sessionName()."']['".Helper::splitf($hierarchy, "']['")."'];");
-				else
-					$val = false;
-				break;
-				
-				default:
-				$csdm = static::getCsdm();
-				if($hierarchy[0] != $csdm)
-					array_unshift($hierarchy, $csdm);
-				if(self::isRegistered($cIdx) !== false)
-					eval("\$val = \$_SESSION['".static::sessionName()."']['".Helper::splitf($hierarchy, "']['")."'];");
-				else
-					$val = false;
-				break;
-			}
-			break;		
-		}
-		$ret_val = (($val === false)) ? false : array('idx' => $cIdx, 'value' => $val);
-		return $ret_val;
-	}
-	
 	protected static function inSession($fields, $data, $array=false, $strict=false)
 	{
+		static::touchSession();
 		if($data == null)
-		{
 			return false;
-		}
 		$ret_val = false;
 		switch($fields)
 		{
@@ -457,43 +374,25 @@ class Session extends Model
 	
 	/*
 	 * Using dot notation register this path
-	 * @param string $cIdx
+	 * @param string $path
 	 */
-	private static function register($cIdx)
+	private static function register($path)
 	{
-		if(is_null($cIdx))
-		{
+		if(is_null($path))
 			return false;
-		}
-		if(self::isRegistered($cIdx) === false)
+		
+		if(!self::isRegistered($path))
 		{
-			switch($cIdx)
+			switch($path)
 			{
-				case in_array($cIdx, self::$noQualifier) === true:
-				case in_array($cIdx, self::$qualifier) === true:
-				case in_array($cIdx, self::$batchQualifier) === true:
-				$_SESSION[static::sessionName()][$cIdx] = array();
+				case in_array($path, self::$noQualifier) === true:
+				case in_array($path, self::$qualifier) === true:
+				case in_array($path, self::$batchQualifier) === true:
+				$_SESSION[static::sessionName()][$path] = [];
 				break;
 				
 				default:
-				$hierarchy = explode('.', $cIdx);
-				switch($hierarchy[0])
-				{
-					case in_array($hierarchy[0], self::$noQualifier) === true:
-					$csdm = array_shift($hierarchy);
-					break;
-					
-					default:
-					$csdm = @static::getCsdm();
-					if($hierarchy[0] == $csdm)
-					{
-						array_shift($hierarchy);
-					}
-					break;
-				
-				}
-				$hierarchy = (sizeof($hierarchy) > 1) ? $hierarchy : @$hierarchy[0];
-				eval("\$_SESSION['".static::sessionName()."']['$csdm']['".Helper::splitf($hierarchy, "']['")."'] = '';");
+				ArrayHelper::setValue($_SESSION, static::getPath($path), '');
 				break;
 			}
 			return true;
@@ -503,62 +402,20 @@ class Session extends Model
 	
 	/*
 	 * Using dot notation unregister this path
-	 * @param string $cIdx
+	 * @param string $path
 	 * @return bool
 	 */
-	private static final function unregister($cIdx)
+	private static final function unregister($path)
 	{
 		$ret_val = false;
-		if(self::isRegistered($cIdx) !== false)
-		{
-			switch($cIdx)
-			{
-				case in_array($cIdx, self::$qualifier) === true:
-				if($cIdx == static::getCsdm())
-				{
-					unset($_SESSION[static::sessionName()][$cIdx]);
-					$ret_val = true;
-				}
-				break;
-				
-				case self::batch:
-				case in_array($cIdx, self::$noQualifier) === true:
-				unset($_SESSION[static::sessionName()][$cIdx]);
-				break;
-				
-				default:
-				$hierarchy = explode('.', $cIdx);
-				if($hierarchy[0] === @static::getCsdm())
-				{
-					$csdm = $hierarchy[0];
-					unset($hierarchy[0]);
-				}
-				else
-				{
-					switch(in_array($hierarchy[0], self::$noQualifier))
-					{
-						case true:
-						$csdm = $hierarchy[0];
-						unset($hierarchy[0]);
-						break;
-						
-						case false:
-						$csdm = static::getCsdm();
-						break;
-					}
-				}
-				self::searchDel($_SESSION[static::sessionName()][$csdm], array_values($hierarchy), self::getVal($cIdx));
-				$ret_val = true;
-				break;		
-			}
-			return $ret_val;
-		}
+		if(self::isRegistered($path) !== false)
+			return ArrayHelper::remove($_SESSION, static::getPath($path));
 			
 	}
 	
 	/*
 	 * Using dot notation get a reference to this path
-	 * @param string $cIdx
+	 * @param string $path
 	 * @return objet
 	 */
 	private static function &reference($key)
@@ -566,9 +423,9 @@ class Session extends Model
 		$ret_val = false;
 		if(!empty($key))
 		{
+			static::touchSession();
 			switch($key)
 			{
-				
 				case in_array($key, self::$qualifier) === true:
 				case null:
 				$csdm = static::getCsdm();
@@ -611,61 +468,6 @@ class Session extends Model
 					}
 				}
 				break;
-			}
-		}
-		return $ret_val;
-	}	
-	
-	/*
-	 * Search and delete values in $array
-	 * @param mixed $array
-	 * @param mixed $keys
-	 * @param mixed $data
-	 * @return bool
-	 */
-	private static function searchDel(&$array, $keys, $data)
-	{
-		$ret_val = false;
-		if(is_array($array))
-		{
-			if(is_array($keys))
-			{
-				for($i = 0; $i < sizeof($keys); $i++)
-				{
-					$key = $keys[$i];
-					if(isset($array[$key]))
-					{
-						if($array[$key] == $data)
-						{
-							unset($array[$key]);
-							unset($key);
-							$ret_val = true;
-							break;
-						}
-						elseif(is_array($array[$key]))
-						{
-							array_shift($keys);
-							if(($ret_val = self::searchDel($array[$key], $keys, $data)) === true)
-								break;
-							else
-								$ret_val = false;
-						}
-					}
-					else
-						$ret_val = false;
-				}
-			}
-			else
-			{
-				if(array_key_exists($keys, $array))
-				{
-					if($array[$keys] == $data)
-					{
-						unset($array[$keys]);
-						unset($keys);
-						$ret_val = true;
-					}
-				}
 			}
 		}
 		return $ret_val;
