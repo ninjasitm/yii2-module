@@ -121,7 +121,10 @@ class Logger extends \yii\log\Logger
 				'error_level' => 0
 			];
 			
-			$array = array_merge($baseInfo, (array)$array);
+			$keys = array_flip([
+				'message', 'level', 'internal_category', 'timestamp', 'category'
+			]);
+			$array = array_replace($keys, array_intersect_key((array)$array, $keys)) + (array)array_diff_key((array)$array, $keys) + $baseInfo;
 			
 			if(is_string($collectionName))
 				$this->messages[$collectionName.':'.uniqid()] = $array;

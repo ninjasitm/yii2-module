@@ -335,7 +335,7 @@ class Dispatcher extends \yii\base\Component
 			$this->sendNotifications();
 		}
 		
-		if(\Yii::$app->getModule('nitm')->enableLogger) {
+		if(\Yii::$app->getModule('nitm')->enableLogger && $this->_sendCount) {
 			$logger = \Yii::$app->getModule('nitm')->logger;
 			$logger->log([
 				'message' => "Sent ".$this->_sendCount." alerts to destinations.\n\nCriteria: ".json_encode($this->_data->criteria(), JSON_PRETTY_PRINT)."\n\nRecipients: ".json_encode(array_map(function (&$group) {
