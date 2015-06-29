@@ -200,35 +200,34 @@ use yii\helpers\ArrayHelper;
      * @return the loaded model
      * @throws NotFoundHttpException if the model cannot be found
      */
-    protected function findModel($className, $id, $with=null, $queryOptions=[])
+    protected function findModel($className, $id=null, $with=null, $queryOptions=[])
     {
-        if ($id !== null && ($model = $className::find()->where([$className::primaryKey()[0] => $id])) !== null) {
+		$ret_val = null;
+		if($id != null || $queryOptions != [])
+		{
+			$query = $className::find();
+			
+			if($id && is_numeric($id))
+				$query->where([array_shift($className::primaryKey()) => $id]);
+
 			$with = is_array($with) ? $with : (is_null($with) ? null : [$with]);
-			switch(is_array($with))
-			{
-				case true:
-				$model->with($with);
-				break;
-			}
-			switch(!empty($queryOptions))
-			{
-				case true:
+			if(is_array($with))
+				$query->with($with);
+			
+			if($queryOptions != [])
 				foreach($queryOptions as $type=>$options)
-				{
-					$model->$type($options);
-				}
-				break;
-			}
-			if(($ret_val = $model->one()) != null)
-            	return $model->one();
+					$query->$type($options);
+						
+			if(($ret_val = $query->one()) instanceof $className)
+            	return $ret_val;
 			else
-			{
-				if(YII_DEBUG)	
-            		throw new \yii\web\NotFoundHttpException($className."->find($id) doesn't exist");
-			}
-        } else {
-            throw new \yii\web\NotFoundHttpException('The requested page does not exist.');
-        }
+				if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))	
+            		throw new \yii\web\NotFoundHttpException((new $className)->properName()." : $id doesn't exist!");
+				return $ret_val;
+        } else
+			if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))	
+           		throw new \yii\web\NotFoundHttpException((new $className)->properName()." doesn't exist!");
+		return $ret_val;
     }
 	
 	/**

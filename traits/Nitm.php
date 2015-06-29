@@ -228,7 +228,7 @@ trait Nitm
 		{
 			case false:
 			$model = new Category([
-				'queryFilters' => [
+				'queryOptions' => [
 					'select' => ['name', 'id'],
 					'where' => 'id IN ('.new \yii\db\Expression(ParentMap::find()
 						->select('remote_id')

@@ -398,9 +398,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		static::aliasColumns($query);
 		if(is_object($model))
 		{
-			if(!empty($model->withThese))
-				$query->with($model->withThese);
-			foreach($model->queryFilters as $filter=>$value)
+			foreach($model->queryOptions as $filter=>$value)
 			{
 				switch(strtolower($filter))
 				{
@@ -409,13 +407,13 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 					case 'orderby':
 					if(is_string($value) && ($value == 'primaryKey'))
 					{
-						unset($model->queryFilters[$filter]);
+						unset($model->queryOptions[$filter]);
 						$query->$filter(static::primaryKey()[0]);
 					}
 					break;
 				}
 			}
-			static::applyFilters($query, $model->queryFilters);
+			static::applyFilters($query, $model->queryOptions);
 		}
 		return $query;
 	}

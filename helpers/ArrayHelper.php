@@ -235,17 +235,19 @@ class ArrayHelper extends BaseArrayHelper
 		$notFound = true;
 		$keys = is_array($keys) ? $keys : [$keys];
 		$key = null;
-		for($i = 0; $i < count($keys); $i++)
+		$keyCount = count($keys);
+		for($i = 0; $i < $keyCount; $i++)
 		{
 			$key = array_shift($keys);
-			if(is_array($array) && isset($array[$key]) && !is_array($array[$key])) {
+			if(is_array($array) && isset($array[$key]) && ($i == $keyCount-1)) {
 				$ret_val = $array[$key];
 				unset($array[$key]);
-				return $ret_val;	
+				return $ret_val;
 			}
 			if(is_array($array) && isset($array[$key]) && is_array($array[$key])) {
-				return static::remove($array[$key], $keys);
-			}
+				$ret_val = static::remove($array[$key], $keys);
+			} else
+				break;
 		}
 		return !$ret_val ? $default : $ret_val;
 	}

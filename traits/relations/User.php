@@ -4,6 +4,7 @@ namespace nitm\traits\relations;
 
 use dektrium\user\models\Profile;
 use nitm\helpers\Cache;
+use yii\helpers\ArrayHelper;
 
 /**
  * Traits defined for expanding active relation scopes until yii2 resolves traits issue
@@ -98,30 +99,7 @@ trait User {
 				//Fallback to dektriuk\User gravatar info
 				default:
 				$profile = $this->profile instanceof Profile ? $this->profile : Profile::find()->where(['user_id' => $this->getId()])->one();
-				switch(!is_null($profile))
-				{
-					case true:
-					switch(1)
-					{
-						case !empty($profile->gravatar_id):
-						$key = $profile->gravatar_id;
-						break;
-						
-						case !empty($profile->gravatar_email):
-						$key = $profile->gravatar_email;
-						break;
-						
-						default:
-						$key = $profile->public_email;
-						break;
-					}
-					break;
-					
-					default:
-					$key = \Yii::$app->user->identity->email;
-					break;
-				}
-				$url = "https://gravatar.com/avatar/$key";
+				$url = $this->getAvatar($profile);
 				break;
 			}
 			Cache::cache()->set('user-avatar'.$this->getId(), urlencode($url), 3600);
@@ -132,6 +110,39 @@ trait User {
 			break;
 		}
 		return $url;
+	}
+	
+	public static function getAvatar($key)
+	{
+		if(is_array($key) || is_object($key)) {
+			$user = ArrayHelper::toArray($key);
+			$profile = ArrayHelper::getValue($user, 'profile', null);
+			switch(!is_null($profile))
+			{
+				case true:
+				switch(1)
+				{
+					case !empty($profile['gravatar_id']):
+					$key = $profile['gravatar_id'];
+					break;
+					
+					case !empty($profile['gravatar_email']):
+					$key = $profile['gravatar_email'];
+					break;
+					
+					default:
+					$key = $profile['public_email'];
+					break;
+				}
+				break;
+				
+				default:
+				$key = ArrayHelper::getValue($user, 'email', null);
+				break;
+			}
+		}
+		
+		return "https://gravatar.com/avatar/$key";
 	}
 
 	

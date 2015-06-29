@@ -1,7 +1,7 @@
 <?php
 namespace nitm\traits;
 
-use yii\helpers\ArrayHelper;
+use nitm\helpers\ArrayHelper;
 use nitm\helpers\Cache as CacheHelper;
 
 /**
@@ -9,8 +9,7 @@ use nitm\helpers\Cache as CacheHelper;
  */
 trait Data {
 	
-	public $queryFilters = [];
-	public $withThese = [];
+	public $queryOptions = [];
 	
 	protected $_count;
 	protected $is;
@@ -120,7 +119,7 @@ trait Data {
 	public function addWith($with)
 	{
 		$with = is_array($with) ? $with : [$with];
-		$this->withThese = array_merge($this->withThese, $with);
+		$this->queryOptions['with'] = array_merge(ArrayHelper::getValue($this->queryOptions, 'with', []), $with);
 	}
 
     /**
@@ -133,11 +132,14 @@ trait Data {
 		$link = is_array($link) ? $link : [$primaryKey => $primaryKey];
 		$tableName = static::tableName();
 		$tableNameAlias = $tableName.'_alias';
-        return $this->hasOne(static::className(), $link)
+        $query = $this->hasOne(static::className(), $link)
 			->select([
 				'_count' => "COUNT(".$primaryKey.")",
-			])
-			->andWhere($this->queryFilters);
+			]);
+		foreach(['where', 'orwhere', 'andwhere'] as $option)
+			if(isset($this->queryOptions[$option]))
+				$query->$option($this->queryOptions[$option]);
+		return $query;
     }
 	
 	public function count()
@@ -176,7 +178,7 @@ trait Data {
 		$class = $this->locateClassForItems($options);
 			
 		$items = [];
-		$this->queryFilters = array_merge($this->queryFilters, array_merge([
+		$this->queryOptions = array_merge($this->queryOptions, array_merge([
 				'limit' => 100,
 				'select' => '*',
 			], $options));
@@ -185,7 +187,7 @@ trait Data {
 		}
 		else {
 			$query = $class::find();
-			foreach($this->queryFilters as $name=>$value)
+			foreach($this->queryOptions as $name=>$value)
 				if($query->hasMethod($name))
 					$query->$name($value);
 			$items = $query->all();
@@ -199,9 +201,9 @@ trait Data {
 	 * @param mixed $separator
 	 * @return array
 	 */
-	public function getList($label='name', $separator=null, $queryFilters=[], $key=null)
+	public function getList($label='name', $separator=null, $queryOptions=[], $key=null)
 	{
-		$class = $this->locateClassForItems($queryFilters);
+		$class = $this->locateClassForItems($queryOptions);
 		
 		$ret_val = [];
 		$separator = is_null($separator) ? ' ' : $separator;
@@ -212,7 +214,7 @@ trait Data {
 		if(CacheHelper::cache()->exists($cacheKey))
 			$ret_val = CacheHelper::cache()->get($cacheKey);
 		else {
-			$items = self::locateItems($queryFilters);
+			$items = self::locateItems($queryOptions);
 			switch(count($items) >= 1)
 			{
 				case true:

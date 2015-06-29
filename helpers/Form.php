@@ -60,8 +60,8 @@ class Form extends Behavior
 					
 					default:
 					//Get the data according to get$options['param'] functions
-					$model->requestModel->queryFilters['limit'] = 1;
-					$model->requestModel->queryFilters[$model->requestModel->primaryKey()[0]] = $model->requestModel->getId();
+					$model->requestModel->queryOptions['limit'] = 1;
+					$model->requestModel->queryOptions[$model->requestModel->primaryKey()[0]] = $model->requestModel->getId();
 					$model = array_shift($model->requestModel->getModels());
 					if(!$model)
 						$model = new $options['modelClass'](@$options['construct']);
@@ -70,7 +70,7 @@ class Form extends Behavior
 						{
 							case true:
 							call_user_func_array([$model, $options['provider']], $args);
-							$model->queryFilters['limit'] = 1;
+							$model->queryOptions['limit'] = 1;
 							$found = $model->getArrays();
 							$model = empty($found) ? $model : $found[0];
 							break;
