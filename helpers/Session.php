@@ -11,7 +11,7 @@ class Session extends Model
 
 	//setup protected data
 	protected static $session = null;
-	protected static $sessionName = "helper.";
+	protected static $sessionName = "nitm-session-";
 	protected static $noQualifier = ['active', 'settings','securer','helper','batch', 'fields', 'configer', 'comparer'];
 	protected static $qualifier = ['adder','deleter','updater','general'];
 	protected static $batchQualifier = ['batch','deleter'];
@@ -49,43 +49,40 @@ class Session extends Model
 	
 	public function __construct($dm=null, $db=null, $table=null, $compare=false, $driver=null)
 	{
-		static::touchSession();
 		self::$compare = $compare;
-		static::initSession($dm);
 		if($compare == true)
 			self::register(self::comparer);
 	}
 	
-	protected static function initSession($dm=null)
+	public static function initSession($dm=null)
 	{
 		$_SERVER['SERVER_NAME'] = (isset($_SERVER['SERVER_NAME'])) ? $_SERVER['SERVER_NAME'] : @$_SESSION['SERVER_NAME'];
-		if(!isset($_SESSION[static::sessionName()]))
+		$_SESSION[static::sessionName()] = [];
+		if(!isset($_SESSION[static::sessionName()][self::variables]))
 		{
-			$_SESSION[static::sessionName()] = [];
-			if(!isset($_SESSION[static::sessionName()][self::variables]))
-			{
-				$_SESSION[static::sessionName()][self::variables] = [];
-			}
-			if(!isset($_SESSION[static::sessionName()][self::variables][self::reg_vars]))
-			{
-				$_SESSION[static::sessionName()][self::variables][self::reg_vars] = [];
-				$_SESSION[static::sessionName()][self::variables][self::reg_vars][self::object] = null;
-			}
-			if(!is_null($dm) && !isset($_SESSION[static::sessionName()][self::variables][self::csdm_var])) {
-				$_SESSION[static::sessionName()][self::variables][self::csdm_var] = 
-				$_SESSION[static::sessionName()][self::variables][self::$lock] = $dm;
-			}
+			$_SESSION[static::sessionName()][self::variables] = [];
+		}
+		if(!isset($_SESSION[static::sessionName()][self::variables][self::reg_vars]))
+		{
+			$_SESSION[static::sessionName()][self::variables][self::reg_vars] = [];
+			$_SESSION[static::sessionName()][self::variables][self::reg_vars][self::object] = null;
+		}
+		if(!is_null($dm) && !isset($_SESSION[static::sessionName()][self::variables][self::csdm_var])) {
+			$_SESSION[static::sessionName()][self::variables][self::csdm_var] = 
+			$_SESSION[static::sessionName()][self::variables][self::$lock] = $dm;
 		}
 	}
 	
-	protected static function touchSession()
+	public static function touchSession($dm=null)
 	{
-		if(session_status() != PHP_SESSION_ACTIVE)
+		if(session_status() != PHP_SESSION_ACTIVE) {
 			if(\Yii::$app->getSession())
 				\Yii::$app->getSession()->open();
 			else
-				@session_start();
-		static::initSession(static::settings);
+				session_start();
+		}
+		if(!isset($_SESSION[static::sessionName()]))
+			static::initSession(is_null($dm) ? static::settings : $dm);
 	}
 	
 	public function behaviors()
@@ -97,8 +94,6 @@ class Session extends Model
 	
 	public function init()
 	{
-		static::touchSession();
-		self::$method = $_REQUEST;
 	}
 	
 	public static function sessionName()
@@ -109,7 +104,6 @@ class Session extends Model
 	
 	public static final function setCsdm($dm, $compare=false)
 	{
-		static::touchSession();
 		self::$compare = $compare;
 		$_SESSION[static::sessionName()][self::variables][self::csdm_var] = $dm;
 		$_SESSION[static::sessionName()][self::variables][self::$lock] = $dm;
@@ -119,8 +113,10 @@ class Session extends Model
 	
 	public static final function getCsdm()
 	{
-		static::touchSession();
-		return $_SESSION[static::sessionName()][self::variables][self::csdm_var];
+		if(isset($_SESSION[static::sessionName()][self::variables][self::csdm_var]))
+			return $_SESSION[static::sessionName()][self::variables][self::csdm_var];
+		else
+			return static::settings;
 	}
 	
 	public static final function app($path, $data, $compare=false)
@@ -136,7 +132,6 @@ class Session extends Model
 		$csdm = ($compare === true) ? self::comparer : @static::getCsdm();
 		$path = (is_null($path)) ? $csdm : $path;
 		self::$compare = $compare;
-		static::touchSession();
 		return ArrayHelper::setValue($_SESSION, static::getPath($path), $data, $append);
 	}
 	
@@ -196,7 +191,6 @@ class Session extends Model
 	
 	public static final function clear($path)
 	{
-		static::touchSession();
 		switch($path)
 		{
 			case in_array($path, self::$noQualifier) === true:
@@ -240,7 +234,6 @@ class Session extends Model
 	{
 		$ret_val = false;
 		$hierarchy = static::resolvePath($path);
-		static::touchSession();
 		$ret_val = ArrayHelper::exists($_SESSION, static::getPath($path), false);
 		return $ret_val;
 	}
@@ -306,7 +299,6 @@ class Session extends Model
 	
 	private static function getValue($string)
 	{
-		static::touchSession();
 		//echo "Getting ".json_encode($string)." ".static::getCsdm()." ".static::getPath($string)."\n";
 		return ArrayHelper::getValue($_SESSION, static::getPath($string), null);
 	}
@@ -316,8 +308,8 @@ class Session extends Model
 	 */
 	public static final function destroy()
 	{
-		static::touchSession();
-		unset($_SESSION[static::sessionName()]);
+		//static::touchSession();
+		//unset($_SESSION[static::sessionName()]);
 	}
 	
 	/*---------------------
@@ -326,7 +318,6 @@ class Session extends Model
 	
 	protected static function inSession($fields, $data, $array=false, $strict=false)
 	{
-		static::touchSession();
 		if($data == null)
 			return false;
 		$ret_val = false;

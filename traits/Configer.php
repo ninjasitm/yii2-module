@@ -56,8 +56,8 @@ trait Configer {
 			$module->config->setEngine($module->config->engine);
 			$module->config->setType($module->config->engine, $container);
 				
-			if($module->config->exists(Session::current.'.'.$container)) {
-				static::$settings[$container] = $module->config->get(Session::current.'.'.$container);
+			if($module->config->exists($container)) {
+				static::$settings[$container] = $module->config->get($container);
 			}
 			else {
 				switch(1)

@@ -64,7 +64,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	{
 		if(!$this->noDbInit)
 			parent::init();
-		if((bool)$this->initLocalConfig && (bool)static::$initClassConfig)
+		if((bool)$this->initLocalConfig && (bool)static::$initClassConfig && !isset(static::$settings[static::isWhat()]))
 			$this->initConfig(static::isWhat());
 	}
 	
@@ -398,8 +398,6 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		static::aliasColumns($query);
 		if(is_object($model))
 		{
-			if(!empty($model->withThese))
-				$query->with($model->withThese);
 			foreach($model->queryFilters as $filter=>$value)
 			{
 				switch(strtolower($filter))

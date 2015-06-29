@@ -84,6 +84,7 @@ class Configer extends Model
 		$this->backupExtention = $backupExtention;
 		$this->config('supported', $this->_supported);
 		$this->initEvents();
+		Session::initSession();
 	}
 	
 	public function behaviors()
