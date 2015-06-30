@@ -88,6 +88,8 @@ class Module extends \yii\base\Module
 		 * Aliases for nitm module
 		 */
 		\Yii::setAlias('nitm', realpath(__DIR__));
+		//Check and start the session;
+		Session::touchSession();
 	}
 	
 	public function getSearchClass($modelName)

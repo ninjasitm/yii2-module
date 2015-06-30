@@ -179,12 +179,13 @@ class Dispatcher extends \yii\base\Component
 	public static function findSpecific(array $criteria)
 	{
 		unset($criteria['user_id']);
-		return Alerts::find()->select('*')
-			->where($criteria)
-			->andWhere([
+		$query = Alerts::find()->select('*')
+			->where($criteria);
+		if(!Yii::$app->user->isGuest)
+			$query->andWhere([
 				'user_id' => \Yii::$app->user->getIdentity()->getId()
-			])
-			->indexBy('user_id')
+			]);
+		return $query->indexBy('user_id')
 			->with('user');
 	}
 	
@@ -258,13 +259,17 @@ class Dispatcher extends \yii\base\Component
 			unset($criteria['remote_id']);
 		}
 		
-		return Alerts::find()->select('*')
+		$query = Alerts::find()->select('*')
 			->orWhere($criteria)
 			->andWhere($remoteWhere)
-			->andWhere([
+			->with('user');
+		
+		if(!Yii::$app->user->isGuest)
+			$query->andWhere([
 				'not', ['user_id' => \Yii::$app->user->getIdentity()->getId()]
-			])
-			->indexBy('user_id')
+			]);
+			
+		return $query->indexBy('user_id')
 			->with('user');
 	}
 	
@@ -335,7 +340,7 @@ class Dispatcher extends \yii\base\Component
 			$this->sendNotifications();
 		}
 		
-		if(\Yii::$app->getModule('nitm')->enableLogger) {
+		if(\Yii::$app->getModule('nitm')->enableLogger && $this->_sendCount) {
 			$logger = \Yii::$app->getModule('nitm')->logger;
 			$logger->log([
 				'message' => "Sent ".$this->_sendCount." alerts to destinations.\n\nCriteria: ".json_encode($this->_data->criteria(), JSON_PRETTY_PRINT)."\n\nRecipients: ".json_encode(array_map(function (&$group) {

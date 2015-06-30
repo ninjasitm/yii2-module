@@ -64,7 +64,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	{
 		if(!$this->noDbInit)
 			parent::init();
-		if((bool)$this->initLocalConfig && (bool)static::$initClassConfig)
+		if((bool)$this->initLocalConfig && (bool)static::$initClassConfig && !isset(static::$settings[static::isWhat()]))
 			$this->initConfig(static::isWhat());
 	}
 	

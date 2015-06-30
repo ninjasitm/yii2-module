@@ -65,9 +65,6 @@ class MongoTarget extends \yii\log\DbTarget
 		
         foreach ($this->messages as $collection=>$message) {
 			$collection = is_string($collection) ? array_shift(explode(':', $collection)) : $this->logTable;
-            if (!is_string($message['message'])) {
-                $text = VarDumper::export($message['message']);
-            }
 			
 			if(!isset($currentIndexes[$collection])) {
 				$currentIndexes[$collection] = ($found = array_map(function ($key) {
@@ -85,8 +82,10 @@ class MongoTarget extends \yii\log\DbTarget
 			/**
 			 * If new indexes are introduced update the index
 			 */			 
-			if($currentIndexes[$collection] != $indexes){
-				$previous = $this->db->getCollection($collection)->dropAllIndexes();
+			if($currentIndexes[$collection] != $indexes) {
+				try {
+					$previous = $this->db->getCollection($collection)->dropAllIndexes();
+				} catch(\Exception $e){}
 				foreach($indexes as $index) {
 					if(is_numeric($message[$index]) || (is_string($message[$index]) && strlen($message[$index]) <= 32))
 					{
@@ -105,6 +104,7 @@ class MongoTarget extends \yii\log\DbTarget
 			
 			$this->db->getCollection($collection)->insert($message);
         }
+		$this->messages = [];
     }
 	
     /**
@@ -130,16 +130,20 @@ class MongoTarget extends \yii\log\DbTarget
 		/**
 		 * Now remap the keys to the messages so that insert can work properly
 		 */
-		if(is_array($values = ArrayHelper::getValue($extracted, 'values', [])))
+		if(is_array($values = ArrayHelper::getValue($extracted, 'values', null)))
 			if(is_array($filtered = $this->filterMessages($values, $this->getLevels(), $this->categories, $this->except))) {
-				$filtered = array_merge($this->messages, $filtered);
-			
-				array_walk($filtered, function ($value, $key) use(&$messages, $extracted){
-					$messages[$key] = array_combine($extracted['keys'][$key], $value);
-				});
+				$messages = [];
+				if(is_array($filtered) && $filtered != []) {
+					array_walk($filtered, function ($value, $key) use(&$messages, $extracted){
+						if(is_array($extracted) && $extracted != [])
+							$messages[$key] = array_combine($extracted['keys'][$key], $value);
+					});
+				}
 			}
+		else
+			$messages = [];
 		
-		$this->messages = $messages;
+		$this->messages = array_merge($this->messages, $messages);
 		
 		$extracted = $messages = [];
 		
