@@ -1639,7 +1639,6 @@ class Configer extends Model
 	private function container($container=null)
 	{
 		$ret_val = $this->containerModel;
-		$container = is_null($container) ? $this->container : $container;
 		switch($this->_location)
 		{
 			case 'file':
@@ -1647,7 +1646,9 @@ class Configer extends Model
 			break;
 			
 			case 'db':
-			switch(isset(static::$_cache[$container]))
+			$container = is_null($container) ? $this->container : $container;
+			$containerKey = 'config-container-'.$container;
+			switch(Cache::cache()->exists($containerKey))
 			{
 				case false:
 				switch(1)
@@ -1655,24 +1656,22 @@ class Configer extends Model
 					case !$this->containerModel instanceof Container:
 					case !is_null($container) && (is_object($this->containerModel) && !($this->containerModel->name == $container || $this->containerModel->id == $container)):
 					$where = is_numeric($container) ? ['id' => $container] : ['name' => $container];
-					$model = Container::find()
+					$ret_val = Container::find()
 						->where($where)
 						->with('sections')
 						->one();
-					switch($model instanceof Container)
+					switch($ret_val instanceof Container)
 					{
 						case true:
-						$this->containerModel = $model;
-						static::$_cache[$this->containerModel->name] = $ret_val;
-						$ret_val = $this->containerModel;
+						$this->containerModel = $ret_val;
+						Cache::setModel($containerKey, $ret_val);
 						break;
 					}
 				}
 				break;
 				
 				default:
-				$ret_val = static::$_cache[$container];
-				$this->containerModel = $ret_val;
+				$this->containerModel = $ret_val = Cache::getModel($this, $containerKey);
 				break;
 			}
 			break;
@@ -1700,12 +1699,13 @@ class Configer extends Model
 					->one();
 				$this->sectionModel = $found instanceof Section ? $found : null;
 				$ret_val = $this->sectionModel;
-				static::$_cache[$this->containerModel->name]->populateRelation('sections', array_merge(static::$_cache[$this->containerModel->name]->sections, [$section => $ret_val]));
+				$this->containerModel->populateRelation('sections', array_merge($this->containerModel>sections, [$section => $ret_val]));
+				Cache::setModel('config-container-'.$this->container()->name(), $this->containerModel);
 			}
 			break;
 				
 			default:
-			$ret_val = static::$_cache[$this->containerModel->name]->sections[$section];
+			$ret_val = $this->containerModel->sections[$section];
 			break;
 		}
 		return $ret_val;
