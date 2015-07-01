@@ -113,7 +113,17 @@ class DefaultController extends BaseController
 		
         $dataProvider = $searchModel->search($options['params']);
 		
-		$dataProvider->query->with($options['with']);
+		switch(1)
+		{
+			case $dataProvider->query instanceof \yii\elasticsearch\ActiveQuery:
+			case $dataProvider->query instanceof \yii\mongodb\ActiveQuery:
+			$dataProvider->query->with = null;
+			break;
+			
+			default:
+			$dataProvider->query->with($options['with']);
+			break;
+		}
 		
 		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
 		if((sizeof($options['params']) == 0) || !isset($options['params']['sort']))
