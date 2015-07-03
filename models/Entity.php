@@ -20,7 +20,7 @@ class Entity extends Data
 	public function init()
 	{
 		parent::init();
-		$this->initEvents();
+		//$this->initEvents();
 	}
 	
 	public function scenarios()

@@ -40,6 +40,11 @@ class Configer extends Model
 	public $dir = ["default" => 'config/ini/', "config" => null];
 	public static $config = [];
 	
+	/**
+	 * @array The global settings used by all models and the app
+	 */
+	public $settings = [];
+	
 	public $container = 'globals';
 	
 	//Form variables
@@ -69,13 +74,18 @@ class Configer extends Model
 	
 	//private data
 	private static $_containers;
-	private static $_cache;
 	private $_objects = [];
 	private $_types = ['ini' => 'cfg', 'xml' => 'xml', 'file' => 'cfg'];
 	private $_location = "file";
 	private $_supported = ["file" => "File", "db" => "Database"];
 	private $_event;
+	private $_engineIsSet;
 	private static $hasNew;
+	
+	public function __destruct()
+	{
+		$this->setExternal('nitm-settings', $this->settings, 120);
+	}
 	
 	public function init($enable_backups=true, $backupExtention='.cfg.bak')
 	{
@@ -85,6 +95,8 @@ class Configer extends Model
 		$this->config('supported', $this->_supported);
 		$this->initEvents();
 		Session::initSession();
+		$this->settings = $this->getExternal('nitm-settings');
+		
 	}
 	
 	public function behaviors()
@@ -139,95 +151,6 @@ class Configer extends Model
 		    'section' => 'Section',
 		    'what' => 'Action',
 		];
-	}
-	
-	/**
-	 * Set or get a current setting
-	 * @param string|array $name the name of the setting to get
-	 * @param mixed $value the value to set
-	 * @param boolean $append
-	 */
-	public static function config($name=null, $value=null, $append=false)
-	{
-		$name = is_array($name) ? implode('.', $name) : $name;
-		return \nitm\helpers\ArrayHelper::getOrSetValue(static::$config, $name, $value, $append);
-	}
-	
-	protected function event($name=null, $value=null, $append = false)
-	{
-		$name = is_array($name) ? implode('.', $name) : $name;
-		return \nitm\helpers\ArrayHelper::getOrSetValue($this->_event->data, $name, $value, $append);
-	}
-	
-	/**
-	 * Find out where configuration information is being stored in
-	 * @return classname of stroage adapter
-	 */	
-	protected function resolveStoredIn() 
-	{
-		switch($this->storeIn)
-		{
-			case 'cache':
-			$class = Cache::className();
-			$prefix = function ($name) {
-				return Session::getPath($name);
-			};
-			break;
-			
-			default:
-			$class = Session::className();
-			$prefix = function ($name) {
-				return $name;
-			};
-			break;
-		}
-		return [$class, $prefix];
-	}
-	
-	/**
-	 * Set a config value based on the storage location
-	 * @param string $name
-	 * @param mixed $value
-	 * @return boolean
-	 */
-	public function set($name, $value, $duration=120)
-	{
-		list($class, $prefix) = $this->resolveStoredIn();
-		return call_user_func_array([$class, 'set'], [$prefix($name), $value, $duration]);
-	}
-	
-	/**
-	 * Get a config value based on the storage location
-	 * @param string $name
-	 * @return mixed
-	 */
-	public function get($name, $asArray = false)
-	{
-		list($class, $prefix) = $this->resolveStoredIn();
-		$path = $prefix($name);
-		return call_user_func_array([$class, 'get'], [$prefix($name), $asArray]);
-	}
-	
-	/**
-	 * Remove a config value based on the storage location
-	 * @param string $name
-	 * @return boolean
-	 */
-	public function remove($name)
-	{
-		list($class, $prefix) = $this->resolveStoredIn();
-		return call_user_func_array([$class, 'delete'], [$prefix($name)]);
-	}
-	
-	/**
-	 * Doesa config value exist?
-	 * @param string $name
-	 * @return boolean
-	 */	
-	public function exists($name)
-	{
-		list($class, $prefix) = $this->resolveStoredIn();
-		return call_user_func_array([$class, 'exists'], [$prefix($name)]);
 	}
 	
 	/*
@@ -361,7 +284,6 @@ class Configer extends Model
 		$this->config('current.sections', null);
 		$this->config('current.selected_text', "selected='selected'");
 		$this->config('load.types', !is_array($this->_supported) ? false : true);
-		$this->getContainers($container);
 		switch(isset($this->config('from')[$from]))
 		{
 			case true:
@@ -404,6 +326,9 @@ class Configer extends Model
 	*/
 	public function setEngine($loc)
 	{
+		if($this->_location == $loc && $this->_engineIsSet)
+			return;
+			
 		switch($this->isSupported($loc))
 		{
 			case true:
@@ -431,6 +356,9 @@ class Configer extends Model
 			$this->set(self::dm.'.current.engine', $this->_location);
 			break;
 		}
+		if($this->settings == [])
+			$this->getContainers(null);
+		$this->_engineIsSet = true;
 	}
 	
 	public function initLogging($log_db=null, $log_table=null)
@@ -494,7 +422,6 @@ class Configer extends Model
 	 * Set the directory for the configuration. Backups will also be stroed here
 	 * @param string $dir
 	 */
-	
 	public function setDir($dir=null)
 	{
 		$this->dir['config'] = (is_dir($dir)) ? $dir : $this->dir['default'];
@@ -503,6 +430,136 @@ class Configer extends Model
 	public function getDm()
 	{
 		return self::dm;
+	}
+	
+	/**
+	 * Set or get a current setting
+	 * @param string|array $name the name of the setting to get
+	 * @param mixed $value the value to set
+	 * @param boolean $append
+	 */
+	public static function config($name=null, $value=null, $append=false)
+	{
+		$name = is_array($name) ? implode('.', $name) : $name;
+		return \nitm\helpers\ArrayHelper::getOrSetValue(static::$config, $name, $value, $append);
+	}
+	
+	protected function event($name=null, $value=null, $append = false)
+	{
+		$name = is_array($name) ? implode('.', $name) : $name;
+		return \nitm\helpers\ArrayHelper::getOrSetValue($this->_event->data, $name, $value, $append);
+	}
+	
+	/**
+	 * Find out where configuration information is being stored in
+	 * @return classname of stroage adapter
+	 */	
+	protected function resolveStoredIn() 
+	{
+		switch($this->storeIn)
+		{
+			case 'cache':
+			$class = Cache::className();
+			$prefix = function ($name) {
+				return Session::getPath($name);
+			};
+			break;
+			
+			default:
+			$class = Session::className();
+			$prefix = function ($name) {
+				return $name;
+			};
+			break;
+		}
+		return [$class, $prefix];
+	}
+	
+	/**
+	 * Set a local config value based on the storage location
+	 * @param string $name
+	 * @param mixed $value
+	 * @return boolean
+	 */
+	public function set($name, $value)
+	{
+		ArrayHelper::setValue($this->settings, $name, $value);
+	}
+	
+	/**
+	 * Get a local config value based on the storage location
+	 * @param string $name
+	 * @return mixed
+	 */
+	public function get($name, $asArray = false)
+	{
+		return ArrayHelper::getValue($this->settings, $name);
+	}
+	
+	/**
+	 * Remove a local config value based on the storage location
+	 * @param string $name
+	 * @return boolean
+	 */
+	public function remove($name)
+	{
+		return ArrayHelper::remove($this->settings, $name);
+	}
+	
+	/**
+	 * Does a local config value exist?
+	 * @param string $name
+	 * @return boolean
+	 */	
+	public function exists($name)
+	{
+		return ArrayHelper::exists($this->settings, $name);
+	}
+	
+	/**
+	 * Set a config value based on the storage location
+	 * @param string $name
+	 * @param mixed $value
+	 * @return boolean
+	 */
+	private function setExternal($name, $value, $duration=120)
+	{
+		list($class, $prefix) = $this->resolveStoredIn();
+		return call_user_func_array([$class, 'set'], [$prefix($name), $value, $duration]);
+	}
+	
+	/**
+	 * Get a config value based on the storage location
+	 * @param string $name
+	 * @return mixed
+	 */
+	private function getExternal($name, $asArray = false)
+	{
+		list($class, $prefix) = $this->resolveStoredIn();
+		$path = $prefix($name);
+		return call_user_func_array([$class, 'get'], [$prefix($name), $asArray]);
+	}
+	
+	/**
+	 * Remove a config value based on the storage location
+	 * @param string $name
+	 * @return boolean
+	 */
+	private function removeExternal($name)
+	{
+		list($class, $prefix) = $this->resolveStoredIn();
+		return call_user_func_array([$class, 'delete'], [$prefix($name)]);
+	}
+	
+	/**
+	 * Doesa config value exist?
+	 * @param string $name
+	 * @return boolean
+	 */	
+	private function existsExternal($name)
+	{
+		list($class, $prefix) = $this->resolveStoredIn();
+		return call_user_func_array([$class, 'exists'], [$prefix($name)]);
 	}
 	
 	/*
@@ -699,9 +756,9 @@ class Configer extends Model
 				 */;
 				if($force || self::hasNew()) {
 					if($this->section)
-						$ret_val = \yii\helpers\ArrayHelper::getValue($this->section($this->section), 'values');
+						$ret_val = \yii\helpers\ArrayHelper::getValue($this->section($this->section), 'values', []);
 					else
-						$ret_val = \yii\helpers\ArrayHelper::getValue($this->container($container), 'values');
+						$ret_val = \yii\helpers\ArrayHelper::getValue($this->container($container), 'values', []);
 				}
 				break;
 			}
@@ -1493,7 +1550,7 @@ class Configer extends Model
 			{
 				case false:
 				$result = Container::find()->select(['id', 'name'])->indexBy('name')->all();
-				static::$_cache = $result;
+				static::$_containers = $result;
 				array_walk($result, function ($val, $key) use(&$ret_val, $in) {
 					if($in == $val->name)
 						$this->containerModel = $val;
@@ -1648,31 +1705,41 @@ class Configer extends Model
 			case 'db':
 			$container = is_null($container) ? $this->container : $container;
 			$containerKey = 'config-container-'.$container;
-			switch(Cache::cache()->exists($containerKey))
-			{
-				case false:
+			if(isset(static::$_containers[$containerKey]))
+				$this->containerModel = $ret_val = static::$_containers[$containerKey];
+			else if(Cache::cache()->exists($containerKey)) {
+				$this->containerModel = $ret_val = static::$_containers[$containerKey] = Cache::getModel($this, $containerKey);
+			} else {
 				switch(1)
 				{
 					case !$this->containerModel instanceof Container:
 					case !is_null($container) && (is_object($this->containerModel) && !($this->containerModel->name == $container || $this->containerModel->id == $container)):
-					$where = is_numeric($container) ? ['id' => $container] : ['name' => $container];
+					
+					//Are we looking for an id or name?
 					$ret_val = Container::find()
-						->where($where)
+						->where([
+							'or',
+							'id="'.$container.'"',
+							'name="'.$container.'"',
+						])
 						->with('sections')
 						->one();
-					switch($ret_val instanceof Container)
-					{
-						case true:
-						$this->containerModel = $ret_val;
-						Cache::setModel($containerKey, $ret_val);
-						break;
+						
+					if(!($ret_val instanceof Container)) {
+						$ret_val = new Container(['name' => $container]);
+						$ret_val->populateRelation('values', []);
+						$ret_val->populateRelation('sections', []);
 					}
+					$this->containerModel = $ret_val;
+					Cache::setModel($containerKey, [
+						Container::className(),
+						array_merge(ArrayHelper::toArray($this->containerModel), [
+							'values' => ArrayHelper::toArray($this->containerModel->values),
+							'sections' => ArrayHelper::toArray($this->containerModel->sections)
+						])
+					], false, 30);
+					break;
 				}
-				break;
-				
-				default:
-				$this->containerModel = $ret_val = Cache::getModel($this, $containerKey);
-				break;
 			}
 			break;
 		 }

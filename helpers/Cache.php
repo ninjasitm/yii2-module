@@ -88,8 +88,8 @@ class Cache extends Model
 	 */
 	public static function getModel($sender, $key, $asArray=false, $modelClass=null, $property=null, $options=[])
 	{
-		//PHP Doesn't support serializing of Closure functions so using local object store
-		//switch(static::cache()->exists($key))
+		//PHP Doesn't support serializing of Closure functions
+		
 		$ret_val = [];
 		switch(static::exists($key))
 		{
@@ -118,7 +118,7 @@ class Cache extends Model
 					 }
 				}
 			} else {
-				$modelClass = is_null($modelClass) ? get_called_class() : $modelClass;
+				$modelClass = is_null($modelClass) ? $array[0] : $modelClass;
 				$ret_val = new $modelClass();
 			}
 			break;

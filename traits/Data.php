@@ -21,6 +21,14 @@ trait Data {
 		return $this->getId();
 	}
 	
+	public function setIs($is)
+	{
+		if(isset($this))
+			$this->is = $is;
+		else
+			static:: $_is = $is;
+	}
+	
 	/*
 	 * What does this claim to be?
 	 */

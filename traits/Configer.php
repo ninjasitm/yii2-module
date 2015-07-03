@@ -11,8 +11,6 @@ use nitm\helpers\ArrayHelper;
   */
 trait Configer {
 	
-	public static $settings = [];
-	
 	/**
 	 * Get a setting value 
 	 * @param string $setting the locator for the setting
@@ -35,7 +33,7 @@ trait Configer {
 			array_unshift($hierarchy, static::isWhat());
 			break;
 		}		
-		return ArrayHelper::getValue(static::$settings, implode('.', $hierarchy));
+		return \Yii::$app->getModule('nitm')->config->get(implode('.', $hierarchy));
 	}
 	
 	/*
@@ -48,7 +46,7 @@ trait Configer {
 		$container = is_null($container) ? $module->config->container : $container;
 		switch(1)
 		{
-			case !isset(static::$settings[$container]):
+			case !isset($model->config->settings[$container]):
 			case !$module->config->exists($container):
 			case $module->config->exists($container) && (count($module->config->get($container) == 0)):
 			case ($container == $module->config->container) && (!$module->config->exists(Session::settings)):
@@ -57,7 +55,7 @@ trait Configer {
 			$module->config->setType($module->config->engine, $container);
 				
 			if($module->config->exists($container)) {
-				static::$settings[$container] = $module->config->get($container);
+				$model->config->settings[$container] = $module->config->get($container);
 			}
 			else {
 				switch(1)
@@ -72,7 +70,7 @@ trait Configer {
 					$module->config->set($container, $config);
 					break;
 				}
-				static::$settings[$container] = $config;
+				$model->config->settings[$container] = $config;
 			}
 			break;
 		}
