@@ -20,7 +20,6 @@ class Entity extends Data
 	public function init()
 	{
 		parent::init();
-		//$this->initEvents();
 	}
 	
 	public function scenarios()
@@ -28,33 +27,6 @@ class Entity extends Data
 		return array_merge(parent::scenarios(), [
 			'default' => []
 		]);
-	}
-	
-	protected function initEvents()
-	{
-		//$this->on(static::EVENT_BEFORE_INSERT, [$this, 'beforeSaveEvent']);
-		//$this->on(static::EVENT_BEFORE_UPDATE, [$this, 'beforeSaveEvent']);
-		$this->on(static::EVENT_AFTER_INSERT, [$this, 'afterSaveEvent']);
-		$this->on(static::EVENT_AFTER_UPDATE, [$this, 'afterSaveEvent']);
-	}
-	
-	/*protected function beforeSaveEvent($event)
-	{
-		\Yii::$app->getModule('nitm')->trigger(Nitm::ALERT_EVENT_PREPARE, new Event(['sender' => $event->sender]));
-	}*/
-	
-	public function afterSaveEvent($event)
-	{
-		\Yii::$app->getModule('nitm')->trigger(Nitm::ALERT_EVENT_PROCESS, new Event([
-			'sender' => $event->sender,
-			'data' => $event->data
-		]));
-		//if(\Yii::$app->hasModule('nitm-search'))
-		//	\Yii::$app->getModule('nitm-search')->trigger(NitmSearch::HANDLE_RECORD_EVENT_PROCESS, new Event([
-		//		'sender' => $event->sender,
-		//		'data'  => $event->data
-		//	]));
-		return $event->handled;
 	}
 	
 	public function initalizeEventData(&$event)

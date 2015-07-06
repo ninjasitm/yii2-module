@@ -620,7 +620,11 @@ class DefaultController extends BaseController
 				break;
 			}
         }
-		$ret_val['message'] = (!$saved) ? array_map('implode', $this->model->getErrors(), ['. ']) : @$ret_val['message'];
+		if(!$saved)
+			if($this->model->getErrors())
+				$ret_val['message'] = array_map('implode', $this->model->getErrors(), ['. ']);
+			else
+				$ret_val['message'] = ArrayHelper::getValue($ret_val, 'message', 'There was an error creating a new '.$this->model->isWhat());
 		$ret_val['id'] = $this->model->getId();
 			
 		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);

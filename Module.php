@@ -70,9 +70,6 @@ class Module extends \yii\base\Module
 	 */
 	public $searchClassMap = [];
 	
-	//For Alert/Dispatcher events
-	const ALERT_EVENT_PREPARE = 'nitm.alert.prepare';
-	const ALERT_EVENT_PROCESS = 'nitm.alert.process';
 	//For Logger events
 	const LOGGER_EVENT_PREPARE = 'nitm.logger.prepare';
 	const LOGGER_EVENT_PROCESS = 'nitm.logger.process';
@@ -168,10 +165,6 @@ class Module extends \yii\base\Module
 	
 	protected function initEvents()
 	{
-		if($this->enableAlerts) {
-			$this->on(self::ALERT_EVENT_PREPARE, [$this->alerts, 'start']);
-			$this->on(self::ALERT_EVENT_PROCESS, [$this->alerts, 'process']);
-		}
 		if($this->enableLogger) {
 			$this->on(self::LOGGER_EVENT_PREPARE, [$this->logger, 'start']);
 			$this->on(self::LOGGER_EVENT_PROCESS, [$this->logger, 'process']);

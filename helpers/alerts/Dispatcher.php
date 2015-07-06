@@ -15,6 +15,8 @@ use nitm\models\Entity;
  */
 class Dispatcher extends \yii\base\Component
 {
+	use \nitm\traits\EventTraits;
+	
 	public $mode;
 	public $mailPath =' @app/mail';
 	public $mailLayoutsPath = '@nitm/mail/layouts';
@@ -51,9 +53,17 @@ class Dispatcher extends \yii\base\Component
 	const BATCH = 'batch';
 	const SINGLE = 'single';
 	
+	//For Alert/Dispatcher events
+	const EVENT_START = 'nitm.alert.start';
+	const EVENT_PROCESS = 'nitm.alert.process';
+	
 	public function init()
 	{
 		$this->_data = new DispatcherData;
+		$this->attachToEvents([
+			self::EVENT_START => [$this, 'start'],
+			self::EVENT_PROCESS => [$this, 'process']
+		]);
 	}
 	
 	public function reset()
@@ -104,7 +114,7 @@ class Dispatcher extends \yii\base\Component
 		
 		if($event->handled)
 			return;
-			
+		
 		if($event->sender->hasMethod('getAlertOptions'))
 			$event->data = array_replace_recursive($event->sender->getAlertOptions($event), (array)$event->data);
 		
@@ -118,13 +128,14 @@ class Dispatcher extends \yii\base\Component
 				//First check to see if this specific alert exits
 				if(count($this->_event->data))
 					$this->sendAlerts($this->_event->data, ArrayHelper::getValue($this->_event->data, 'owner_id', null));
-				$event->handled = true;
 			} else 
 				if((defined('YII_ENV') && YII_ENV == 'dev') && (defined('YII_DEBUG') && YII_DEBUG))
 					throw new \yii\base\Exception("No alert preparation was done!");
 		} else
 			if((defined('YII_ENV') && YII_ENV == 'dev') && (defined('YII_DEBUG') && YII_DEBUG))
 				throw new \yii\base\Exception("Need an action to process the alert");
+				
+		$event->handled = true;
 	}
 	
 	public function prepare($event)
@@ -549,6 +560,8 @@ class Dispatcher extends \yii\base\Component
 		$alertAttributes = null;
 		if(is_array($user) && count($user)) {
 			$alert = ArrayHelper::getValue($this->_alerts, $user['id'], null);
+		} else {
+			$alert = [];
 		}
 			
 		return nl2br($original.$this->getFooter($scope, $alert));
