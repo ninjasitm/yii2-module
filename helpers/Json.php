@@ -8,7 +8,7 @@ class Json
 {
 	public static function isJson($value)
 	{
-		return is_string($value) && ($value[0] == '{' && $value[strlen($value)] == '}');
+		return is_string($value) && ($value[0] == '{' && $value[strlen($value)-1] == '}');
 	}
 	
 	/**

@@ -9,6 +9,7 @@ use nitm\helpers\Cache as CacheHelper;
  */
 trait Data {
 	
+	public $noDbInit = false;
 	public $queryOptions = [];
 	
 	protected $_count;

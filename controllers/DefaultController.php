@@ -129,9 +129,9 @@ class DefaultController extends BaseController
 		if((sizeof($options['params']) == 0) || !isset($options['params']['sort']))
 			if(!$dataProvider->query->orderBy)
 				$dataProvider->query->orderBy([
-					$searchModel->primaryModel->primaryKey()[0] => 'desc'
+					$searchModel->primaryModel->primaryKey()[0] => SORT_DESC
 				]);
-		
+
 		$createOptions = isset($options['createOptions']) ? $options['createOptions'] : [];
 		
 		$filterOptions = isset($options['filterOptions']) ? $options['filterOptions'] : [];

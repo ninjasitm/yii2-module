@@ -32,7 +32,6 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	\nitm\traits\Data;
 	
 	//public members
-	public $noDbInit = false;
 	public $initLocalConfig = true;
 	public $unique;
 	public $requestModel;

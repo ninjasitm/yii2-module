@@ -3,6 +3,9 @@
 namespace nitm\helpers;
 use yii\base\Model;
 
+if(!isset($_SESSION))
+	session_start();
+
 //class that sets up and retrieves, deletes and handles modifying of contact data
 class Session extends Model
 {
@@ -44,7 +47,6 @@ class Session extends Model
 	const variables = 'helper-variables';
 	const reg_vars = "reg-vars";
 	const name = "name";
-	const object = 'oHelper';
 	const csdm_var = 'csdm';
 	
 	public function __construct($dm=null, $db=null, $table=null, $compare=false, $driver=null)
@@ -65,7 +67,6 @@ class Session extends Model
 		if(!isset($_SESSION[static::sessionName()][self::variables][self::reg_vars]))
 		{
 			$_SESSION[static::sessionName()][self::variables][self::reg_vars] = [];
-			$_SESSION[static::sessionName()][self::variables][self::reg_vars][self::object] = null;
 		}
 		if(!is_null($dm) && !isset($_SESSION[static::sessionName()][self::variables][self::csdm_var])) {
 			$_SESSION[static::sessionName()][self::variables][self::csdm_var] = 
@@ -241,12 +242,18 @@ class Session extends Model
 	public static function getPath($path) 
 	{
 		$hierarchy = is_array($path) ? $path : static::resolvePath($path);
+		$size = count($hierarchy);
 		
-		if(static::getCsdm() != $hierarchy[0])
+		if($hierarchy[0] == static::sessionName()) {
+			if($size >= 2 && !in_array($hierarchy[1], self::$noQualifier) && !in_array($hierarchy[1], self::$qualifier))
+				array_splice($hierarchy, 1, 0, static::getCsdm());
+		} else if(static::getCsdm() != $hierarchy[0])
 			if(!in_array($hierarchy[0], self::$noQualifier) && !in_array($hierarchy[0], self::$qualifier))
 				array_unshift($hierarchy, static::getCsdm());
 		
-		array_unshift($hierarchy, static::sessionName());
+		if($hierarchy[0] != static::sessionName())
+			array_unshift($hierarchy, static::sessionName());
+			
 		return implode('.', $hierarchy);
 	}
 	
@@ -262,7 +269,10 @@ class Session extends Model
 			default:
 			$ret_val = explode(".", $path);
 			switch($ret_val[0])
-			{	
+			{
+				case static::sessionName():
+				break;
+					
 				case in_array($ret_val[0], self::$qualifier) === true:
 				case in_array($ret_val[0], self::$noQualifier) === true:
 				case ($ret_val[0] == @static::getCsdm()):
@@ -299,7 +309,6 @@ class Session extends Model
 	
 	private static function getValue($string)
 	{
-		//echo "Getting ".json_encode($string)." ".static::getCsdm()." ".static::getPath($string)."\n";
 		return ArrayHelper::getValue($_SESSION, static::getPath($string), null);
 	}
 	
@@ -464,7 +473,4 @@ class Session extends Model
 		return $ret_val;
 	}
 }
-
-if(!isset($_SESSION))
-	\Yii::$app->getSession()->open();
 ?>

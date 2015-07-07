@@ -94,7 +94,7 @@ class Configer extends Model
 		$this->backups = $enable_backups;
 		$this->backupExtention = $backupExtention;
 		$this->initEvents();
-		Session::initSession();
+		//Session::initSession();
 		$this->settings = $this->getExternal('nitm-settings');
 		$this->config('supported', $this->_supported);
 		
@@ -467,11 +467,22 @@ class Configer extends Model
 			default:
 			$class = Session::className();
 			$prefix = function ($name) {
-				return $name;
+				if($name == 'nitm-settings')
+					return Session::settings;
+				else
+					return $name;
 			};
 			break;
 		}
 		return [$class, $prefix];
+	}
+	
+	public function getPath($for) 
+	{
+		$for = explode('.', $for);
+		if($for[0] == Session::settings)
+			$for[0] = 'globals';
+		return implode('.', $for);
 	}
 	
 	/**
@@ -482,7 +493,7 @@ class Configer extends Model
 	 */
 	public function set($name, $value)
 	{
-		ArrayHelper::setValue($this->settings, $name, $value);
+		ArrayHelper::setValue($this->settings, $this->getPath($name), $value);
 	}
 	
 	/**
@@ -492,7 +503,7 @@ class Configer extends Model
 	 */
 	public function get($name, $asArray = false)
 	{
-		return ArrayHelper::getValue($this->settings, $name);
+		return ArrayHelper::getValue($this->settings, $this->getPath($name));
 	}
 	
 	/**
@@ -502,7 +513,7 @@ class Configer extends Model
 	 */
 	public function remove($name)
 	{
-		return ArrayHelper::remove($this->settings, $name);
+		return ArrayHelper::remove($this->settings, $this->getPath($name));
 	}
 	
 	/**
@@ -512,7 +523,7 @@ class Configer extends Model
 	 */	
 	public function exists($name)
 	{
-		return ArrayHelper::exists($this->settings, $name);
+		return ArrayHelper::exists($this->settings, $this->getPath($name));
 	}
 	
 	/**
@@ -535,7 +546,6 @@ class Configer extends Model
 	private function getExternal($name, $asArray = false)
 	{
 		list($class, $prefix) = $this->resolveStoredIn();
-		$path = $prefix($name);
 		return call_user_func_array([$class, 'get'], [$prefix($name), $asArray]);
 	}
 	
