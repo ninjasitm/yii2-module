@@ -89,8 +89,9 @@ class User extends \dektrium\user\models\User
 			switch(is_null($sessionActivity))
 			{
 				case true:
-				$user = \Yii::$app->user->identity;
-				$ret_val = !$user->getId() ? strtotime('now') : $user->logged_in_at;
+				$user = \Yii::$app->user->getUser();
+				if($user)
+					$ret_val = !$user->getId() ? strtotime('now') : $user->logged_in_at;
 				break;
 				
 				default:
