@@ -93,4 +93,18 @@ class Container extends BaseConfiger
 		->orderBy(['name' => SORT_ASC])
 		->indexBy('unique_id');
 	}
+	
+	public function setValues($values) 
+	{
+		$this->populateRelation('values', array_map(function ($value) {
+			return $value instanceof Value ? $value : new Value($value);
+		}, $values));
+	}
+	
+	public function setSections($sections) 
+	{
+		$this->populateRelation('sections', array_map(function ($section) {
+			return $section instanceof Section ? $section : new Section($section);
+		}, $sections));
+	}
 }

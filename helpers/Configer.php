@@ -96,7 +96,7 @@ class Configer extends Model
 		$this->initEvents();
 		Session::initSession();
 		$this->settings = $this->getExternal('nitm-settings');
-		$this->config(self::dm.'.supported', $this->_supported);
+		$this->config('supported', $this->_supported);
 		
 	}
 	
@@ -160,7 +160,7 @@ class Configer extends Model
 	public function initEvents()
 	{
 		$this->on("afterCreate", function($e) {
-			$this->config(self::dm.'.current.section', $this->event('section'));
+			$this->config('current.section', $this->event('section'));
 			
 			$value = Json::isJson($this->event('value')) ? Json::decode($this->event('value')) : $this->event('value');
 			if($this->container == \Yii::$app->getModule('nitm')->config->container)
@@ -187,7 +187,7 @@ class Configer extends Model
 				$value = $section;
 				break;
 			}
-			$this->config(self::dm.'.current.section', $this->event('section'));
+			$this->config('current.section', $this->event('section'));
 			$this->remove($this->uriOf($this->event('key'), true), true);
 			
 			if($this->container == \Yii::$app->getModule('nitm')->config->container)
@@ -247,24 +247,24 @@ class Configer extends Model
 			$this->setEngine($engine);
 			$this->setType($engine, $container);
 			//if the selected config is not loaded then load it
-			if(($this->get(self::dm.'.current.config') != $this->_location.'.'.$container) || ($this->get(self::dm.'.current.engine') != $this->_location)) {
-				$this->config(self::dm.'.current.config', $this->getConfig($engine, $container, $getValues, true));
-				$this->set(self::dm.'.'.$this->_location.'.config', $this->config(self::dm.'.current.config'));
-				$this->config(self::dm.'.current.sections', array_merge(["" => "Select section..."], $this->getSections()));
+			if(($this->get('current.config') != $this->_location.'.'.$container) || ($this->get('current.engine') != $this->_location)) {
+				$this->config('current.config', $this->getConfig($engine, $container, $getValues, true));
+				$this->set(''.$this->_location.'.config', $this->config('current.config'));
+				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
 			//otherwise just get the current loaded config
 			else {
-				$this->config(self::dm.'.current.config', $this->get(self::dm.'.'.$this->_location.'.config'));
-				$this->config(self::dm.'.current.sections', array_merge(["" => "Select section..."], $this->getSections()));
+				$this->config('current.config', $this->get(''.$this->_location.'.config'));
+				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
 			
 			if(!$getValues)
-				$this->config(self::dm.'.current.config', null);
+				$this->config('current.config', null);
 				
-			$this->config(self::dm.'.load.current', (bool)count($this->config(self::dm.'.current.config'))>=1);
-			$this->config(self::dm.'.load.sections', (bool)count($this->config(self::dm.'.current.sections'))>=1);
+			$this->config('load.current', (bool)count($this->config('current.config'))>=1);
+			$this->config('load.sections', (bool)count($this->config('current.sections'))>=1);
 				
-			$this->config(self::dm.'.current.config', $this->_location.'.'.$container);
+			$this->config('current.config', $this->_location.'.'.$container);
 			break;
 		}
 	}
@@ -274,49 +274,48 @@ class Configer extends Model
 	 * @param string $engine
 	 * @param string $container
 	 * @param string $from
-     * @return mixed $this->config
      */	
 	public function setType($engine, $container=null, $from='default')
 	{
-		$this->config(self::dm.'.surround', []);
-		$this->config(self::dm.'.current.type', $engine);
-		$this->config(self::dm.'.current.type_text', 'a section');
-		$this->config(self::dm.'.current.container', $container);
-		$this->config(self::dm.'.current.sections', []);
-		$this->config(self::dm.'.current.selected_text', "selected='selected'");
-		$this->config(self::dm.'.load.types', !is_array($this->_supported) ? false : true);
-		switch(isset($this->config(self::dm.'.from')[$from]))
+		$this->config('surround', []);
+		$this->config('current.type', $engine);
+		$this->config('current.type_text', 'a section');
+		$this->config('current.container', $container);
+		$this->config('current.sections', []);
+		$this->config('current.selected_text', "selected='selected'");
+		$this->config('load.types', !is_array($this->_supported) ? false : true);
+		switch(isset($this->config('from')[$from]))
 		{
 			case true:
 			switch(1)
 			{
-				case in_array('xml', $this->config(self::dm.'.from')[$from]['types']) !== false:
+				case in_array('xml', $this->config('from')[$from]['types']) !== false:
 				//$fb::$compatible = ['text' => '.xml');
 				//$freswitch_base = '/usr/local/freswitch/conf/';
-				$this->config(self::dm.'.current.container', $engine);
-				$this->config(self::dm.'.current.from.'.$engine.'.selected',  "selected='selected'");
-				$this->config(self::dm.'.current.path', $this->config(self::dm.'.from')[$from]['dir']);
-				$this->config(self::dm.'.current.type', 'xml');
-				$this->config(self::dm.'.current.surround', ['open' => "<code>", "close" => "</code>"]);
-				$this->config(self::dm.'.current.type_text', 'an xml file');
+				$this->config('current.container', $engine);
+				$this->config('current.from.'.$engine.'.selected',  "selected='selected'");
+				$this->config('current.path', $this->config('from')[$from]['dir']);
+				$this->config('current.type', 'xml');
+				$this->config('current.surround', ['open' => "<code>", "close" => "</code>"]);
+				$this->config('current.type_text', 'an xml file');
 				break;
 			
 				default:
-				switch(in_array($container, $this->config(self::dm.'.containers')))
+				switch(in_array($container, $this->config('containers')))
 				{
 					case true:
-					$this->config(self::dm.'.current.container', $container);
-					$this->config(self::dm.'.current.path', "@$container");
+					$this->config('current.container', $container);
+					$this->config('current.path', "@$container");
 					break;
 				
 					default:
-					$this->config(self::dm.'.current.container', "globals");
-					$this->config(self::dm.'.current.path', '@globals');
+					$this->config('current.container', "globals");
+					$this->config('current.path', '@globals');
 					break;
 				}
 				break;
 			}
-			$this->container = $this->config(self::dm.'.current.container');
+			$this->container = $this->config('current.container');
 			break;
 		}
 	}
@@ -352,9 +351,9 @@ class Configer extends Model
 			//clear any other unused engine data
 			foreach(array_diff_key($this->_supported, [$this->_location => ucfirst($this->_location)]) as $clear=>$key)
 			{
-				$this->remove(self::dm.'.'.$clear);
+				$this->remove(''.$clear);
 			}
-			$this->set(self::dm.'.current.engine', $this->_location);
+			$this->set('current.engine', $this->_location);
 			break;
 		}
 		$this->getContainers(null);
@@ -648,7 +647,7 @@ class Configer extends Model
 					to save memory/space and to not allow any new changes to be made
 				*/
 				$this->setBase($container);
-				$this->set(self::dm.'.'.$this->_location.'.'.$this->container, $data);
+				$this->set(''.$this->_location.'.'.$this->container, $data);
 				break;
 			}
 			break;
@@ -671,21 +670,21 @@ class Configer extends Model
 		switch($engine)
 		{
 			case 'xml':
-			$xml_files = $this->_objects['directory']->getFilesMatching($this->config(self::dm.'.current.path').$this->method['in'], false, ['.xml'], true, false, null, $this->config(self::dm.'.current.path'));
+			$xml_files = $this->_objects['directory']->getFilesMatching($this->config('current.path').$this->method['in'], false, ['.xml'], true, false, null, $this->config('current.path'));
 			foreach($xml_files[$this->method['in']] as $container)
 			{
-				$ret_val = [$container => '"'.file_get_contents($this->config(self::dm.'.path').$this->method['in'].DIRECTORY_SEPARATOR.$container).'"'];
+				$ret_val = [$container => '"'.file_get_contents($this->config('path').$this->method['in'].DIRECTORY_SEPARATOR.$container).'"'];
 			}
 			break;
 			
 			case 'file':
-			$ret_val = $this->readFrom($this->loadFrom($this->config(self::dm.'.current.path'), false, true), 
+			$ret_val = $this->readFrom($this->loadFrom($this->config('current.path'), false, true), 
 				null, 'json', $updating, $engine);
 			break;
 			
 			
 			case 'db':
-			$ret_val = $this->readFrom($this->loadFrom($this->config(self::dm.'.current.container'), false, true), 
+			$ret_val = $this->readFrom($this->loadFrom($this->config('current.container'), false, true), 
 				null, 'json', $updating, $engine);
 			break;
 		}
@@ -715,7 +714,7 @@ class Configer extends Model
 			$ret_val['message'] = "Converted $container from $from to $to";
 			$ret_val['success'] = true;
 			$ret_val['action'] = 'convert';
-			$this->config(self::dm.'.current.action', $ret_val);
+			$this->config('current.action', $ret_val);
 			$this->setEngine($old_engine);
 			break;
 		}
@@ -745,7 +744,7 @@ class Configer extends Model
 				
 				case 'file':
 				$this->setBase($container);
-				$container = $this->resolveDir($this->config(self::dm.'.current.path'));
+				$container = $this->resolveDir($this->config('current.path'));
 				$container = $container.'.'.$this->_types[$this->_location];
 				$ret_val = $this->_objects['file']->load($container, $force);
 				break;
@@ -926,8 +925,8 @@ class Configer extends Model
 			break;
 			
 			case 'file':
-			$container = $this->resolveDir($this->config(self::dm.'.current.path'));
-			$this->setCsdm(self::dm.'.'.$this->_location);
+			$container = $this->resolveDir($this->config('current.path'));
+			$this->setCsdm(''.$this->_location);
 			switch(sizeof($hierarchy))
 			{
 				///we might be creating a container
@@ -975,7 +974,7 @@ class Configer extends Model
 			break;
 		}
 		$ret_val['action'] = 'create';
-		$this->config(self::dm.'.current.action', $ret_val);
+		$this->config('current.action', $ret_val);
 		$this->set(Configer::dm.'.action', $ret_val);
 	}
 	
@@ -1026,7 +1025,7 @@ class Configer extends Model
 			break;
 			
 			case 'file':
-			$container = $this->resolveDir($this->config(self::dm.'.current.path'));
+			$container = $this->resolveDir($this->config('current.path'));
 			switch(1)
 			{
 				case !$container:
@@ -1060,7 +1059,7 @@ class Configer extends Model
 		}
 		$ret_val['action'] = 'update';
 		$ret_val['value'] = rawurlencode($value);
-		$this->config(self::dm.'.current.action', $ret_val);
+		$this->config('current.action', $ret_val);
 		$this->set(Configer::dm.'.action', $ret_val);
 	}
 	
@@ -1106,7 +1105,7 @@ class Configer extends Model
 			break;
 			
 			case 'file':
-			$container = $this->resolveDir($this->config(self::dm.'.current.path'));
+			$container = $this->resolveDir($this->config('current.path'));
 			switch(1)
 			{
 				case !$container:
@@ -1139,7 +1138,7 @@ class Configer extends Model
 			break;
 		}
 		$ret_val['action'] = 'delete';
-		$this->config(self::dm.'.current.action', $ret_val);
+		$this->config('current.action', $ret_val);
 		$this->set(Configer::dm.'.action', $ret_val);
 	}
 	
@@ -1198,7 +1197,7 @@ class Configer extends Model
 			}
 			break;
 		}
-		$this->config(self::dm.'.current.action', $ret_val);
+		$this->config('current.action', $ret_val);
 	}
 	
 	/*---------------------
@@ -1384,7 +1383,7 @@ class Configer extends Model
 			
 			case 'file':
 			$args = [];
-			$container = $this->resolveDir($this->config(self::dm.'.current.path'));
+			$container = $this->resolveDir($this->config('current.path'));
 			switch(sizeof($hierarchy))
 			{
 				//we're updating a section
@@ -1473,7 +1472,7 @@ class Configer extends Model
 			
 			case 'file':
 			$args = [];
-			$container = $this->resolveDir($this->config(self::dm.'.current.path'));
+			$container = $this->resolveDir($this->config('current.path'));
 			switch(sizeof($hierarchy))
 			{
 				//are we deleting a value/line?
@@ -1557,20 +1556,20 @@ class Configer extends Model
 					$ret_val[$val->name] = $val->name;
 				});
 				static::$_containers = $ret_val;
-				$this->config(self::dm.'.containers', $ret_val);
-				$this->config(self::dm.'.load.containers', true);
+				$this->config('containers', $ret_val);
+				$this->config('load.containers', true);
 				break;
 				
 				default:
-				$this->config(self::dm.'.containers', static::$_containers);
-				$this->config(self::dm.'.load.containers', true);
+				$this->config('containers', static::$_containers);
+				$this->config('load.containers', true);
 				break;
 			}
 			break;
 			
 			case 'file':
-			$this->config(self::dm.'.containers', $this->_objects['file']->getFiles($in, $objectsOnly));
-			$this->config(self::dm.'.load.containers', (bool)count($this->config(self::dm.'.containers'))>=1);
+			$this->config('containers', $this->_objects['file']->getFiles($in, $objectsOnly));
+			$this->config('load.containers', (bool)count($this->config('containers'))>=1);
 			break;
 		}
 		return $ret_val;
@@ -1609,14 +1608,14 @@ class Configer extends Model
 			array_walk($result, function ($val, $key) use(&$ret_val) {
 				$ret_val[$val->name] = $val->name;
 			});
-			$this->config(self::dm.'.sections', $ret_val);
-			$this->config(self::dm.'.load.sections', true);
+			$this->config('sections', $ret_val);
+			$this->config('load.sections', true);
 			break;
 			
 			case 'file':
 			$in = ($in == null) ? $this->dir['config'] : $in;
-			$this->config(self::dm.'.sections', $this->_objects['file']->getNames($in));
-			$this->config(self::dm.'.load.sections', (bool)count($this->config(self::dm.'.sections'))>=1);
+			$this->config('sections', $this->_objects['file']->getNames($in));
+			$this->config('load.sections', (bool)count($this->config('sections'))>=1);
 			break;
 		}
 		return $ret_val;
@@ -1699,7 +1698,7 @@ class Configer extends Model
 		switch($this->_location)
 		{
 			case 'file':
-			$ret_val = [$this->resolveDir($this->config(self::dm.'.current.path'))];
+			$ret_val = [$this->resolveDir($this->config('current.path'))];
 			break;
 			
 			case 'db':
@@ -1716,12 +1715,9 @@ class Configer extends Model
 					case !is_null($container) && (is_object($this->containerModel) && !($this->containerModel->name == $container || $this->containerModel->id == $container)):
 					
 					//Are we looking for an id or name?
+					$where = is_numeric($container) ? ['id' => $container] : ['name' => $container];
 					$ret_val = Container::find()
-						->where([
-							'or',
-							'id="'.$container.'"',
-							'name="'.$container.'"',
-						])
+						->where($where)
 						->with('sections')
 						->one();
 						

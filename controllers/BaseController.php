@@ -293,7 +293,7 @@ class BaseController extends Controller
 	public static function getNavHtml($navigation=null, $encapsulate=null)
 	{
 		$ret_val = array();
-		$navigation = !is_array($navigation) ? static::loadNav('navigation') : $navigation;
+		$navigation = !is_array($navigation) ? static::loadNav(is_string($navigation) ? $navigation : 'navigation') : $navigation;
 		$top = ($navigation === null) ? true : false;
 		foreach($navigation as $idx=>$options)
 		{
