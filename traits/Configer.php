@@ -54,23 +54,9 @@ trait Configer {
 			$module->config->setEngine($module->config->engine);
 			$module->config->setType($module->config->engine, $container);
 				
-			if($module->config->exists($container)) {
-				$model->config->settings[$container] = $module->config->get($container);
-			}
-			else {
-				switch(1)
-				{
-					case ($container == $module->config->container) && (!$module->config->exists(Session::settings)):
-					$config = $module->config->getConfig($module->config->engine, $container, true);
-					$module->config->set(Session::settings, $config);
-					break;
-					
-					default:
-					$config = $module->config->getConfig($module->config->engine, $container, true);
-					$module->config->set($container, $config);
-					break;
-				}
-				$model->config->settings[$container] = $config;
+			if(!$module->config->exists($container)) {
+				$config = $module->config->getConfig($module->config->engine, $container, true);
+				$module->config->set($container, $config);
 			}
 			break;
 		}

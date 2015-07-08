@@ -796,7 +796,7 @@ class Configer extends Model
 			switch(!is_array($contents))
 			{
 				case true:
-				$contents = !$this->container($contents) ? [] : $this->container($contents)->getValues()->all();
+				$contents = !$this->container($contents) ? [] : $this->container($contents)->getValues()->asArray()->all();
 				break;
 			}
 			switch(is_array($contents))
@@ -804,16 +804,14 @@ class Configer extends Model
 				case true:
 				foreach($contents as $idx=>$data) 
 				{
-					$section = $data->section_name;
-					$val_key = $data->name;
-					switch(isset($ret_val[$section]))
-					{
-						case false:
+					$section = $data['section_name'];
+					$val_key = $data['name'];
+					
+					if(!isset($ret_val[$section]))
 						$ret_val[$section] = [];
-						break;
-					}
+					
 					//set the value
-					$ret_val[$section][$val_key] = $data;
+					$ret_val[$section][$val_key] = ArrayHelper::toArray($data);
 				}
 				break;
 				
@@ -845,47 +843,53 @@ class Configer extends Model
 					switch($dec)
 					{
 						case 'json':
-						array_walk_recursive($ret_val, function (&$v) use ($updating) {
-							switch(1)
+						foreach($ret_val as $sectionName=>$section)
+						{
+							foreach($section as $name=>$v)
 							{
-								case is_array($v->value):
-								continue;
-								break;
-								
-								case substr($v->value, 0, strlen(self::NO_DEC)) == self::NO_DEC:
-								$v->value = substr($v->value, strlen(self::NO_DEC), strlen($v->value));
-								break;
-								
-								case((@$v->value[0] == "{") && ($v->value[strlen($v->value)-1] == "}")) && ($updating === false):
-								$v->value = ((!is_null($data = json_decode(trim($v->value), true))) ? $data : $v->value);
-								break;
+								switch(1)
+								{
+									case is_array($v) && isset($v['value']) && is_array($v['value']):
+									continue;
+									break;
+									
+									case is_array($v) && substr($v['value'], 0, strlen(self::NO_DEC)) == self::NO_DEC:
+									$v['value'] = substr($v['value'], strlen(self::NO_DEC), strlen($v['value']));
+									break;
+									
+									case((@$v['value'][0] == "{") && ($v['value'][strlen($v['value'])-1] == "}")) && ($updating === false):
+									$v['value'] = ((!is_null($data = json_decode(trim($v['value']), true))) ? $data : $v['value']);
+									break;
+								}
+								switch($updating)
+								{
+									case false:
+									$v = $v['value'];
+									break;
+									
+									default:
+									$v = array_merge($v, array_intersect_key($v, array_flip([
+											'section_name',
+											'container_name',
+											'unique_id',
+											'unique_name'
+										])
+									));
+									break;
+								}
+								$section[$name] = $v;
 							}
-							switch($updating)
-							{
-								case false:
-								$v = $v->value;
-								break;
-								
-								default:
-								$model = $v;
-								$v = array_merge($model->getAttributes(), array_intersect_key(get_object_vars($model), array_flip([
-										'section_name',
-										'container_name',
-										'unique_id',
-										'unique_name'
-									])
-								));
-								break;
-							}
-						});
+							ksort($section);
+							$ret_val[$sectionName] = $section;
+						}
 						break;
 						
 						case 'csv':
 						array_walk_recursive($ret_val, function (&$v) {
-							switch((@$v->value[0] == "{") && ($v->value[strlen($v->value)-1] == "}") && ($updating === false))
+							switch((@$v['value'][0] == "{") && ($v['value'][strlen($v['value'])-1] == "}") && ($updating === false))
 							{
 								case true:
-								$v->value = explode(',', $v->value);
+								$v['value'] = explode(',', $v['value']);
 								break;
 							}
 						});
