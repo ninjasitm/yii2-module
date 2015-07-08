@@ -126,11 +126,6 @@ class DefaultController extends BaseController
 		}
 		
 		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
-		if((sizeof($options['params']) == 0) || !isset($options['params']['sort']))
-			if(!$dataProvider->query->orderBy)
-				$dataProvider->query->orderBy([
-					$searchModel->primaryModel->primaryKey()[0] => SORT_DESC
-				]);
 
 		$createOptions = isset($options['createOptions']) ? $options['createOptions'] : [];
 		
