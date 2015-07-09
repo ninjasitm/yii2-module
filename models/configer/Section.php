@@ -90,6 +90,7 @@ class Section extends BaseConfiger
 			"(SELECT name FROM ".static::tableName()." WHERE id=sectionid) AS section_name", 
 			"(SELECT name FROM ".Container::tableName()." WHERE id=containerid) AS container_name"
 		])
+		->asArray()
 		->orderBy(['name' => SORT_ASC]);
     }
 }

@@ -9,6 +9,7 @@ class Statuses
 	 */
 	protected static $indicators = [
 		'error' => 'bg-danger',
+		'critical' => 'bg-danger',
 		'danger' => 'bg-danger',
 		'resolved' => 'bg-resolved',
 		'duplicate' => 'bg-duplicate',
@@ -24,6 +25,7 @@ class Statuses
 	 */
 	protected static $listIndicators = [
 		'error' => 'list-group-item list-group-item-danger',
+		'critical' => 'list-group-item list-group-item-danger',
 		'danger' => 'list-group-item list-group-item-danger',
 		'default' => 'list-group-item',
 		'success' => 'list-group-item  list-group-item-success',

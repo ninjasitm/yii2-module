@@ -16,6 +16,7 @@ use yii\widgets\ActiveField;
         <div class="pull-left">
         <?php 
             $form = ActiveForm::begin(['id' => 'show_section',
+				'method' => 'get',
 				'action' => '/configuration/get',
 				'options' => ['class' => 'form-inline'],
 				'enableAjaxValidation' => false,
