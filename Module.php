@@ -33,12 +33,7 @@ class Module extends \yii\base\Module
 	/**
 	 * Should the importing engine be loaded?
 	 */
-	public $enableImporter = true;
-	
-	/**
-	 * The log collections that can be displayed
-	 */
-	public $logCollections = ['nitm-log'];
+	public $enableImporter = false;
 	
 	/**
 	 * Should the alerts engine be loaded?
@@ -54,6 +49,11 @@ class Module extends \yii\base\Module
 	 * @var array options for nitm\models\Logger
 	 */
 	public $logger;
+	
+	/**
+	 * The log collections that can be displayed
+	 */
+	public $logCollections = ['nitm-log'];
 	
 	/*
 	 * @var array options for nitm\models\Alerts
