@@ -99,7 +99,7 @@ trait User {
 				//Fallback to dektriuk\User gravatar info
 				default:
 				$profile = $this->profile instanceof Profile ? $this->profile : Profile::find()->where(['user_id' => $this->getId()])->one();
-				$url = $this->getAvatar($profile);
+				$url = $this->getAvatar($this->email, $profile);
 				break;
 			}
 			Cache::cache()->set('user-avatar'.$this->getId(), urlencode($url), 3600);
@@ -112,14 +112,12 @@ trait User {
 		return $url;
 	}
 	
-	public static function getAvatar($key)
+	public static function getAvatar($key, $profile=null)
 	{
 		if(is_array($key) || is_object($key)) {
-			$user = ArrayHelper::toArray($key);
-			$profile = ArrayHelper::getValue($user, 'profile', null);
-			switch(!is_null($profile))
+			$profile = ArrayHelper::toArray($profile);
+			if(is_array($profile))
 			{
-				case true:
 				switch(1)
 				{
 					case !empty($profile['gravatar_id']):
@@ -135,14 +133,10 @@ trait User {
 					break;
 				}
 				break;
-				
-				default:
-				$key = ArrayHelper::getValue($user, 'email', null);
-				break;
 			}
 		}
 		
-		return "https://gravatar.com/avatar/$key";
+		return "https://gravatar.com/avatar/".md5($key);
 	}
 
 	

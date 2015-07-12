@@ -16,8 +16,9 @@ trait ControllerActions {
 	public function afterAction($action, $result)
 	{
 		$result = parent::afterAction($action, $result);
-		if(\Yii::$app->getModule('nitm')->enableLogger)
-			$this->commitLog();
+		$module = \Yii::$app->getModule('nitm');
+		if($module)
+			$module->commitLog();
 		return $result;
 	}
 	
