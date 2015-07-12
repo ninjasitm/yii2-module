@@ -32,8 +32,12 @@ trait Relations {
 	
 	protected function getCachedUserModel($idKey, $className=null)
 	{
-		$className = is_null($className) ? \Yii::$app->user->identityClass : \nitm\models\User::className();
-		return $this->getCachedRelation($idKey, $className, [], false, \nitm\helpers\Helper::getCallerName(), 'user');
+		$className = is_null($className) ? \Yii::$app->user->identityClass : $className;
+		if(\Yii::$app->getModule('nitm')->useModelCache)
+		{
+			return $this->getCachedRelation($idKey, $className, [], false, \nitm\helpers\Helper::getCallerName(), 'user');
+		}  else
+			return \nitm\helpers\Relations::getRelatedRecord(\nitm\helpers\Helper::getCallerName(), $this, $className, [], false);
 	}
 	 
     /**
@@ -167,13 +171,17 @@ trait Relations {
 		$options['with'] = isset($options['with']) ? $options['select'] : [];
 		$options['orderBy'] = isset($options['orderBy']) ? $options['orderBy'] : ['name' => SORT_DESC];
 		return $this->getRelationQuery($className, $link, $options, $many);
-	}	
+	}		
 	
 	protected function getCachedCategoryModel($idKey, $className=null, $relation=null, $many=false)
 	{
 		$className = is_null($className) ? \nitm\widgets\models\Category::className() : $className;
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
-		return $this->getCachedRelation($idKey, $className, [], $many, $relation);
+		if(\Yii::$app->getModule('nitm')->useModelCache)
+		{
+			return $this->getCachedRelation($idKey, $className, [], $many, $relation);
+		}  else
+			return \nitm\helpers\Relations::getRelatedRecord($relation, $this, $className, [], $many);
 	}
 
     /**

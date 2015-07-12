@@ -21,12 +21,18 @@ class Module extends \yii\base\Module
 	public $useFullnames;
 	
 	/**
+	 * Model caching options
+	 */
+	public $useModelCache = true;
+	
+	/**
 	 * Should the configuration engine be loaded?
 	 */
 	public $enableConfig = true;
 	
 	/**
 	 * Should the logging engine be loaded?
+	 * Disable this if using a slower caching system
 	 */
 	public $enableLogger = true;
 	
