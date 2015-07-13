@@ -51,6 +51,13 @@ class Entity extends Data
 				'priority' => 'normal',
 				'remote_type' => $event->sender->isWhat(),
 				'remote_for' => 'any'
+			],
+			'variables' => [
+				'%createdAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('created_at')),
+				'%udpatedAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('updatedAt')),
+				'%resolvedAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('resolvedAt')),
+				'%completedAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('completed_at')),
+				'%disabledAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('disabled_at')),
 			]
 		];
 			

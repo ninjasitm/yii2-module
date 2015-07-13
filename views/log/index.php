@@ -25,6 +25,9 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <?= GridView::widget([
 		'filterUrl' => '/log',
+		'options' => [
+			'id' => 'log-entries'
+		],
         'dataProvider' => $dataProvider,
         'filterModel' => $searchModel,
 		'striped' => false,
@@ -91,40 +94,38 @@ $this->params['breadcrumbs'][] = $this->title;
 					var $elem = $("#'.$model->isWhat().'row'.$model->getId().'");
 					var $target = $("#'.$model->isWhat().'message'.$model->getId().'");
 					//Do this before showing the message
-					if($target.css("display") != "none") {
+					if(!$target.hasClass("hidden")) {
 						$elem.css("box-shadow", "").removeClass("bg-primary").addClass($elem.data("old-class"));
 						$target.css("box-shadow", "").removeClass("bg-primary").addClass($target.data("old-class"));
 					}
 					else {
-						$elem.data("old-class", $elem.attr("class")).attr("class", "");
-						$target.data("old-class", $elem.attr("class")).attr("class", "");
+						$elem.data("old-class", $elem.attr("class"));
+						$target.data("old-class", $elem.attr("class"));
 						$elem.css("box-shadow", "0 -4px 10px -8px #000").addClass("bg-primary");
 						$target.css("box-shadow", "0 4px 10px -8px #000").addClass("bg-primary");
 					}
-					$target.slideToggle("fast");
+					$target.toggleClass("hidden");
 				})(event)'
 			];
 		},
 		'afterRow' => function ($model, $key, $index, $grid) {
 			return Html::tag('tr',
 				Html::tag('td',
-					Html::tag('pre', $model->message, ['class' => 'pre-scrollable']), 
-					[
+					Html::tag('pre', $model->message, ['class' => 'pre-scrollable']), [
 					'colspan' => 10
-				]),
-			[
+				]), [
 				'id' => $model->isWhat().'message'.$model->getId(),
-				"class" => 'item '.\nitm\helpers\Statuses::getIndicator($model->getStatus()),
-				'style' => 'display:none; border:none'
+				"class" => 'item hidden',
+				'style' => 'border:none'
 			]);
 		},
 		'pager' => [
 			'class' => \nitm\widgets\ias\ScrollPager::className(),
 			'overflowContainer' => '#'.$isWhat.'-ias-container',
-			'container' => '#'.$isWhat,
+			'container' => '#log-entries',
 			'item' => ".item",
-			'negativeMargin' => 150,
-			'delay' => 500,
+			'negativeMargin' => 250,
+			'delay' => 250,
 		]
     ]); ?>
 

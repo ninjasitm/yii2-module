@@ -89,7 +89,7 @@ trait User {
 		switch(Cache::cache()->exists('user-avatar'.$this->getId()))
 		{
 			case false:
-			switch($this->hasAttribute('avatar') && !empty($this->avatar))
+			switch($this->hasAttribute('avatar') && !empty($this->avatar) && file_exists($this->avatar))
 			{
 				case true:
 				//Support for old NITM avatar/local avatar
@@ -115,7 +115,10 @@ trait User {
 	public static function getAvatar($key, $profile=null)
 	{
 		if(is_array($key) || is_object($key)) {
-			$profile = ArrayHelper::toArray($profile);
+			if(is_null($profile))
+				$profile = $key['profile'];
+			else
+				$profile = ArrayHelper::toArray($profile);
 			if(is_array($profile))
 			{
 				switch(1)
@@ -135,7 +138,6 @@ trait User {
 				break;
 			}
 		}
-		
 		return "https://gravatar.com/avatar/".md5($key);
 	}
 

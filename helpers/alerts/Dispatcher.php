@@ -17,6 +17,8 @@ class Dispatcher extends \yii\base\Component
 {
 	use \nitm\traits\EventTraits;
 	
+	//The interrval for allowing push alerts to be sent
+	public $pushInterval = 3600;
 	public $mode;
 	public $mailPath =' @app/mail';
 	public $mailLayoutsPath = '@nitm/mail/layouts';
@@ -140,7 +142,7 @@ class Dispatcher extends \yii\base\Component
 	
 	public function prepare($event)
 	{
-		$this->_data->processEventData($this->_event->data, $this);
+		$this->_data->processEventData($event->data, $this);
 		$basedOn = array_merge(
 			(array)ArrayHelper::remove($this->_alertStack, $this->_data->getKey($this->_event->sender)), 
 			(array)$this->_event->data
@@ -149,7 +151,7 @@ class Dispatcher extends \yii\base\Component
 		if(is_array($basedOn))
 		{
 			$basedOn['action'] = ArrayHelper::getValue($basedOn, 'action', ($this->_event->sender->isNewRecord === true ? 'create' : 'update'));
-			$this->_data->reportedAction = $basedOn['action'].'d';
+			$this->_data->reportedAction = ArrayHelper::getValue($basedOn, 'reportedAction', $basedOn['action'].'d');
 			
 			$this->_data->criteria(array_intersect_key(ArrayHelper::getValue($basedOn, 'criteria', []), array_flip($this->matchCriteria)));
 			
@@ -303,9 +305,10 @@ class Dispatcher extends \yii\base\Component
 			->with('user');
 	}
 	
-	public function sendAlerts($compose, $ownerId)
+	public function sendAlerts($compose, $ownerId, $alerts=null)
 	{
-		$alerts = $this->findAlerts($ownerId);
+		if(!is_array($alerts))
+			$alerts = $this->findAlerts($ownerId);
 		
 		$to = [
 			'global' => [],
@@ -336,7 +339,7 @@ class Dispatcher extends \yii\base\Component
 					break;
 					
 					default:
-					$to['individual'] = array_merge_recursive($to['individual'], $this->_data->getAddresses($alert['methods'], $alert['user']));;
+					$to['individual'] = array_merge_recursive($to['individual'], $this->_data->getAddresses($alert['methods'], $alert['user']));
 					break;
 				}
 			}
@@ -353,7 +356,7 @@ class Dispatcher extends \yii\base\Component
 		
 		if(\Yii::$app->getModule('nitm')->enableLogger && $this->_sendCount) {
 			$logger = \Yii::$app->getModule('nitm')->logger;
-			$logger->log([
+			$logger->log(array_merge($this->_data->criteria(), [
 				'message' => "Sent ".$this->_sendCount." alerts to destinations.\n\nCriteria: ".json_encode($this->_data->criteria(), JSON_PRETTY_PRINT)."\n\nRecipients: ".json_encode(array_map(function (&$group) {
 					return array_map(function ($recipients) {
 						return array_map(function($recipient) {
@@ -367,7 +370,7 @@ class Dispatcher extends \yii\base\Component
 				'timestamp' => time(),
 				'action' => 'dispatch-alerts', 
 				'table' => Alerts::tableName(),
-			], 'nitm-alerts-log');
+			]), 'nitm-alerts-log');
 			$logger->flush(true);
 		}
 			
@@ -401,7 +404,7 @@ class Dispatcher extends \yii\base\Component
 	 * @return boolean
 	 */
 	protected function sendAs($scope, $types, $compose)
-	{
+	{	
 		$ret_val = false;
 		switch(is_array($types))
 		{

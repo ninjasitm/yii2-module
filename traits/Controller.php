@@ -200,9 +200,11 @@ use yii\helpers\ArrayHelper;
      * @return the loaded model
      * @throws NotFoundHttpException if the model cannot be found
      */
-    protected function findModel($className, $id=null, $with=null, $queryOptions=[])
+    protected function findModel($className=null, $id=null, $with=null, $queryOptions=[])
     {
 		$ret_val = null;
+		if($className == null)
+			$className = $this->model->className();
 		if($id != null || $queryOptions != [])
 		{
 			$query = $className::find();
