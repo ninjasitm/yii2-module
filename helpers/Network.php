@@ -65,7 +65,7 @@ class Network extends Behavior
 	* @param array $options for cURL
 	* @return string
 	*/ 
-	public static function getCurlXml($url, array $get=NULL, array $options=array())
+	public static function getCurlXml($url, $get=[], $options=[])
 	{
 		$ret_val = '';
 		$response = static::getCurlData($url, $get, $options);
@@ -89,7 +89,7 @@ class Network extends Behavior
 	* @param array $options for cURL
 	* @return string
 	*/ 
-	public static function getCurlData($url, array $get=NULL, array $options=array())
+	public static function getCurlData($url, $get=[], $options=[])
 	{
 		$ret_val = false;
 		$defaults = [
@@ -104,8 +104,6 @@ class Network extends Behavior
 		switch($response)
 		{
 			case false:
-			print_r($ch);
-			exit;
 			trigger_error(curl_error($ch));
 			print_r(curl_error($ch));
 			print_r(curl_errno($ch));
