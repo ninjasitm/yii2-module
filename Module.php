@@ -21,6 +21,12 @@ class Module extends \yii\base\Module
 	public $useFullnames;
 	
 	/**
+	 * Model caching options
+	 * Disable this if using a slower caching system
+	 */
+	public $useModelCache = true;
+	
+	/**
 	 * Should the configuration engine be loaded?
 	 */
 	public $enableConfig = true;
@@ -33,7 +39,7 @@ class Module extends \yii\base\Module
 	/**
 	 * Should the importing engine be loaded?
 	 */
-	public $enableImporter = false;
+	public $enableImporter = true;
 	
 	/**
 	 * Should the alerts engine be loaded?
