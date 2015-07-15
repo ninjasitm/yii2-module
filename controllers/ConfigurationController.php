@@ -58,14 +58,14 @@ class ConfigurationController extends DefaultController
 	function beforeAction($action)
 	{
 		$beforeAction = parent::beforeAction($action);
-		switch(isset($_GET['engine']))
-		{
-			case true:
-			$this->model->engine = $_GET['engine'];
-			$this->model->container = @$_GET['container'];
-			break;
-		}
+		
+		if(isset($_GET['engine']))
+			$this->model->setEngine($_GET['engine']);
+		if(isset($_GET['container']))
+			$this->model->container = $_GET['container'];	
+			
 		$this->model->load($_REQUEST);
+		
 		switch(1)
 		{
 			case $_SERVER['REQUEST_METHOD'] == 'POST':
@@ -79,24 +79,13 @@ class ConfigurationController extends DefaultController
 		}
 		
 		$dm = $this->model->getDm();
-		$container = Session::getVal($dm.'.current.config');
-		$engine = Session::getVal($dm.'.current.engine');
-		//set the engine
-		$this->model->engine = !$this->model->engine ? (!$engine ? \Yii::$app->getModule('nitm')->config->engine : $engine) : $this->model->engine;
+		$container = Session::getVal($dm.'.current.container');
 		
-		$this->model->setEngine($this->model->engine);
-		
-		switch($this->model->engine)
-		{
-			case 'file':
-			$this->model->setDir(\Yii::$app->getModule('nitm')->config->dir);
-			break;
-		}
 		//determine the correct container
-		$this->model->container = empty($this->model->container) ? (empty($container) ? \Yii::$app->getModule('nitm')->config->container : $container) : $this->model->container;
+		$this->model->container = $container ? $container : $this->model->container;
 		
 		//if we're not requesting a specific section then only load the sections and no values
-		$this->model->prepareConfig($this->model->engine, $this->model->container, $this->model->getValues);
+		$this->model->prepareConfig($this->model->container, $this->model->getValues);
 		return $beforeAction;
 	}
 	
@@ -225,14 +214,26 @@ class ConfigurationController extends DefaultController
 				}
 				$ret_val["success"] = true;
 				$ret_val["section"] = $this->model->section;
-				switch(@$_REQUEST['__format'])
+				switch(Response::getFormat())
 				{
-					case true:
+					case 'html':
+					case 'modal';
 					$ret_val['data'] = $this->renderAjax('values/index', [
 						"model" => $this->model,
 						"values" => $this->model->config('current.config'),
 						"parent" => $this->model->section
 					]);
+					break;
+					
+					case 'json':
+					if(\Yii::$app->request->get("getHtml"))
+						$ret_val['data'] = $this->renderAjax('values/index', [
+							"model" => $this->model,
+							"values" => $this->model->config('current.config'),
+							"parent" => $this->model->section
+					]);
+					else
+						$ret_val['data'] = $this->model->config('current.config');
 					break;
 				
 					default:

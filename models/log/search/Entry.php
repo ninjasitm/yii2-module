@@ -11,7 +11,6 @@ use yii\data\ActiveDataProvider;
  */
 class Entry extends \nitm\search\BaseMongo
 {
-	
 	public static $namespace = '\nitm\models\log';
 	public static $collectionName = 'nitm-log';
 	public $engine = 'mongo';

@@ -71,6 +71,11 @@ class Module extends \yii\base\Module
 	 */
 	public $importer;
 	
+	/**
+	 * Use this to map the carious types to their appropriate classes
+	 */
+	public $classMap = [];
+	
 	/*
 	 * @var array The arrap mapping for search classes
 	 */
@@ -104,21 +109,20 @@ class Module extends \yii\base\Module
 	{
 		if($this->enableConfig)
 			$this->config = \Yii::createObject(array_merge([
-				'class' => '\nitm\helpers\Configer',
-				'dir' => ['config' => './config/ini/'],
+				'class' => '\nitm\components\Configer',
 				'engine' => 'db',
 				'container' => 'globals'
 			], (array)$this->config));
 		
 		if($this->enableLogger)
 			$this->logger = \Yii::createObject(array_merge([
-				'class' => '\nitm\log\Logger',
+				'class' => '\nitm\components\Logger',
 				'dbName' => DB::getDefaultDbName(),
 			], (array)$this->logger));
 		
 		if($this->enableAlerts)
 			$this->alerts = \Yii::createObject(array_merge([
-				'class' => '\nitm\helpers\alerts\Dispatcher',
+				'class' => '\nitm\components\Dispatcher',
 			], (array)$this->alerts));
 		
 		if($this->enableImporter)

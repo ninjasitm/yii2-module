@@ -97,20 +97,23 @@ class Cache extends Model
 			$array = static::get($key);
 			if(($array != []) && (class_exists($array[0])) && (is_array($array[1]) && count(array_filter($array[1])) >= 1))
 			{
+		
 				$array[1] = is_array(current($array[1])) ? $array[1] : [$array[1]];
 				try {
-					foreach($array[1] as $attributes)
+					foreach($array[1] as $attributes) {
 						$ret_val[] = new $array[0]($attributes);
+					}
 				} catch (\Exception $e) {
 					/**
 					 * Most likely $array[1] is a single array with attributes
 					 */
-					 foreach($array[1] as $attributes)
-					 {
-						 $ret_val = new $array[0];
-						 foreach($attributes as $attribute=>$value)
-						 	if($ret_val->hasMethod('get'.$attribute))
+					$ret_val = new $array[0];
+					foreach($array[1] as $attributes)
+					{
+						foreach($attributes as $attribute=>$value)
+							if($ret_val->hasMethod('get'.$attribute)) {
 								$ret_val->populateRelation($attribute, $value);
+							}
 							else if($ret_val->hasAttribute($attribute))
 								$ret_val->setAttribute($attribute, $value);
 							else if($ret_val->hasProperty($attribute))
@@ -162,7 +165,6 @@ class Cache extends Model
 			static::set($key, [$modelClass, ArrayHelper::toArray($ret_val)], 300);
 			break;
 		}
-		
 		if(is_array($ret_val) && (count($ret_val)) == 1 && !$asArray)
 			$ret_val = current($ret_val);
 		else if($asArray)

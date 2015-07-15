@@ -156,27 +156,6 @@ trait Data {
 		return \nitm\helpers\Relations::getRelatedRecord('count', $this, static::className(), [
 			'_count' => 0
 		])->_count;
-	}
-	
-	public function getLastAlertSent()
-	{
-		return $this->hasOne(\nitm\models\log\search\Entry::className(), ['remote_id' => 'id'])
-			->select(['timestamp', 'remote_type', 'remote_id'])
-			->where([
-				'remote_type' => $this->isWhat()
-			]);
-	}
-	
-	public function lastAlertSent()
-	{
-		return \nitm\helpers\Relations::getRelatedRecord('lastAlertSent', $this, \nitm\models\log\search\Entry::className(), [
-			'timestamp' => strtotime('now')
-		]);
-	}
-	
-	public function canSendPushAlert()
-	{
-		return (strtotime('now') - $this->lastAlertSent()->timestamp) > \Yii::$app->getModule('nitm')->alerts->pushInterval;
 	}	
 
 	/*

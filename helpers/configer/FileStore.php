@@ -3,8 +3,6 @@
 namespace nitm\helpers;
 
 use Yii;
-use yii\web\Application;
-use yii\base\Event;
 use yii\base\Component;
 use nitm\helpers\Session;
 use nitm\helpers\Cache;
@@ -14,24 +12,13 @@ use nitm\models\configer\Container;
 use nitm\models\configer\Section;
 use nitm\models\configer\Value;
 use nitm\models\configer\File;
-use nitm\models\DB;
 
 /**
- * Class Configer
- * @package nitm\components
- *
- * @property integer $id
- * @property string $name
- * @property string $value
- * @property string $section
- * @property string $container
- * @property string $what
- * @property string $engine
- * @property string $comment
- * @property string $getValues
+ * Filestore handler for Configer
+ * @package nitm\components\configer
  */
 
-class Configer extends Component
+class FileStore extends Component
 {
 	//public data
 	public $storeIn = 'session';

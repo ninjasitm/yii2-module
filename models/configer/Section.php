@@ -91,6 +91,7 @@ class Section extends BaseConfiger
 			"(SELECT name FROM ".Container::tableName()." WHERE id=containerid) AS container_name"
 		])
 		->asArray()
-		->orderBy(['name' => SORT_ASC]);
+		->orderBy(['name' => SORT_ASC])
+		->indexBy('unique_id');
     }
 }

@@ -5,7 +5,7 @@
  * @license http://www.ninjasitm.com/license/
  */
 
-namespace yii\log;
+namespace nitm\components\log;
 
 use Yii;
 use yii\base\InvalidConfigException;

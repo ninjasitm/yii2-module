@@ -1,6 +1,6 @@
 <?php
 
-namespace nitm\helpers\alerts;
+namespace nitm\components;
 
 use Yii;
 use yii\helpers\Html;
@@ -9,6 +9,7 @@ use yii\base\Event;
 use nitm\helpers\Cache;
 use nitm\models\Alerts;
 use nitm\models\Entity;
+use nitm\components\alerts\DispatcherData;
 
 /**
  * This is the alert dispatcher class.
@@ -17,9 +18,16 @@ class Dispatcher extends \yii\base\Component
 {
 	use \nitm\traits\EventTraits;
 	
-	//The interrval for allowing push alerts to be sent
-	public $pushInterval = 3600;
+	/**
+	 * The interrval for allowing push alerts to be sent in minutes
+	 */
+	public $pushInterval = 720;
+
+	/**
+	 * The mail send mode. Either single or group
+	 */
 	public $mode;
+	
 	public $mailPath =' @app/mail';
 	public $mailLayoutsPath = '@nitm/mail/layouts';
 	public $mailViewsPath = '@nitm/views/alerts';

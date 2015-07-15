@@ -1,6 +1,6 @@
 <?php
 
-namespace nitm\log;
+namespace nitm\components;
 
 use yii\base\Model;
 use yii\helpers\ArrayHelper;

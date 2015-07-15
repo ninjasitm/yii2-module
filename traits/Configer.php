@@ -15,25 +15,26 @@ trait Configer {
 	 * Get a setting value 
 	 * @param string $setting the locator for the setting
 	 */
-	public static function setting($setting=null)
+	public function setting($setting='@')
 	{
 		$module = \Yii::$app->getModule('nitm');
 		if($module && $module->enableConfig)
 		{
 			$hierarchy = explode('.', $setting);
+			$isWhat = isset($this) ? $this->isWhat() : static::isWhat();
 			switch($hierarchy[0])
 			{
 				case '@':
 				array_pop($hierarchy[0]);
 				break;
 				
-				case static::isWhat():
+				case $isWhat:
 				case null:
-				$hierarchy = sizeof($hierarchy) == 1 ? static::isWhat() : $hierarchy;
+				$hierarchy = sizeof($hierarchy) == 1 ? $isWhat : $hierarchy;
 				break;
 				
 				default:
-				array_unshift($hierarchy, static::isWhat());
+				array_unshift($hierarchy, $isWhat);
 				break;
 			}		
 			return $module->config->get(implode('.', $hierarchy));
@@ -56,12 +57,9 @@ trait Configer {
 				case !$module->config->exists($container):
 				case $module->config->exists($container) && (count($module->config->get($container) == 0)):
 				case ($container == $module->config->container) && (!$module->config->exists(Session::settings)):
-				
-				$module->config->setEngine($module->config->engine);
-				$module->config->setType($module->config->engine, $container);
-					
+				$module->config->setType($container);
 				if(!$module->config->exists($container)) {
-					$config = $module->config->getConfig($module->config->engine, $container, true);
+					$config = $module->config->getConfig($container, true);
 					$module->config->set($container, $config);
 				}
 				break;

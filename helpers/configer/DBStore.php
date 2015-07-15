@@ -18,20 +18,10 @@ use nitm\models\DB;
 
 /**
  * Class Configer
- * @package nitm\components
- *
- * @property integer $id
- * @property string $name
- * @property string $value
- * @property string $section
- * @property string $container
- * @property string $what
- * @property string $engine
- * @property string $comment
- * @property string $getValues
+ * @package nitm\components\configer
  */
 
-class Configer extends Component
+class DBStore extends Component
 {
 	//public data
 	public $storeIn = 'session';

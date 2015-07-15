@@ -5,7 +5,7 @@
  * @license http://www.ninjasitm.com/license/
  */
 
-namespace nitm\log;
+namespace nitm\components\log;
 
 /**
  * DbTarget stores log messages in a database table.

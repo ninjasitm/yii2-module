@@ -5,7 +5,7 @@
  * @license http://www.yiiframework.com/license/
  */
 
-namespace nitm\log;
+namespace nitm\components\log;
 
 use Yii;
 use yii\mongodb\Connection;

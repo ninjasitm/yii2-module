@@ -95,6 +95,7 @@ function NitmEntity () {
 						var $elem = $(this);
 						e.preventDefault();
 						var proceed = true;
+						
 						if($elem.attr('role').indexOf(self.actions.deleteAction) != -1)
 							if(!confirm("Are you sure you want to delete this?"))
 								proceed = false;
@@ -102,19 +103,22 @@ function NitmEntity () {
 						if(proceed === true)
 						{
 							$nitm.startSpinner($elem);
-							var successFunc = $elem.data('data-success-callback') == undefined ? function (result) {
+							var successFunc = $elem.data('success-callback') == undefined ? function (result) {
 								$nitm.stopSpinner($elem);
 								self.afterAction(result.action, result, currentIndex, $elem.get(0));
-							} : $elem.data('data-success-callback');
+								var afterCallback = $elem.data('after-callback').parseFunction();
+								if(afterCallback && typeof afterCallback == 'function')
+									(function (elem) {afterCallback.call(elem)})($elem.get(0));
+							} : $elem.data('success-callback').parseFunction();
 							
-							var errorFunc = $elem.data('data-error-callback') == undefined ? function (xhr, text, error) {
+							var errorFunc = $elem.data('error-callback') == undefined ? function (xhr, text, error) {
 								$nitm.stopSpinner($elem);
 								var message = "An error occurred while reading the data!\nThe error was:<i> "+text+"</i>";
 								if($nitm.debug == true)
 									message += "<br><br>Detailed error is: <br><br><i>"+error+"</i>";
 									
 								$nitm.notify(message, 'danger');
-							} : $elem.data('data-error-callback');
+							} : $elem.data('error-callback').parseFunction();
 							
 							if($elem.attr('href') || $elem.data('url')) {
 								var url = !$elem.attr('href') ? $elem.attr('url') : $elem.attr('href');
@@ -123,7 +127,7 @@ function NitmEntity () {
 									url: url, 
 									success: successFunc, 
 									error: errorFunc,
-									dataType: $elem.data('data-type') != undefined ? $elem.data('data-type') : 'json',
+									dataType: $elem.data('type') != undefined ? $elem.data('type') : 'json',
 								});
 							}
 						}

@@ -1,6 +1,6 @@
 <?php
 
-namespace nitm\helpers\alerts;
+namespace nitm\components\alerts;
 
 use nitm\helpers\ArrayHelper;
 use nitm\helpers\Cache;

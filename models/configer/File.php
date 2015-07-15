@@ -4,64 +4,65 @@ namespace nitm\models\configer;
 
 use Yii;
 use nitm\helpers\Directory;
+use nitm\helpers\FileHelper;
+use nitm\helpers\ArrayHelper;
+use nitm\models\configer\formats\JsonFile;
+use nitm\models\configer\formats\PlainFile;
 
 /**
- * Text fiale parser for configer
+ * Text file parser for configer
  */
-class File extends \yii\helpers\FileHelper
+class File extends \yii\base\Model
 {
-	public $sections;
+	public $type = 'json';
+	/**
+	 * These value allow the file to interprest a Container, Section or Value
+	 */
+	public $container_id;
+	public $section_id;
+	
+	public $sections = [];
+	public $values = [];
+	
+	public $container;
+	public $value;
+	public $name;
+	public $id;
 	
 	protected $canWrite;
 	protected $contents;
+	protected $dir;
 	
 	private $filemode = 0775;
 	private $handle = false;
+	private $_parser;
+	
+	public function init()
+	{
+		if(array_key_exists($this->type, $this->types())) {
+			$class = $this->types($this->type);
+			$this->_parser = new $class();
+		} else
+			throw new \yii\base\InvalidConfigException(__CLASS__.": Unsupported type ".$this->type);
+	}
+	
+	protected function types($type=null)
+	{
+		$types = [
+			'json' => formats\JsonFile::className(),
+			'plain' => formats\PlainFile::className()
+		];
+		return ArrayHelper::getValue($types, $type, $types);
+	}
 	
 	public function canWrite()
 	{
 		return $this->canWrite;
 	}
 	
-	public function prepare()
+	public function getId()
 	{
-		$this->canWrite = false;
-		array_multisort($data, SORT_ASC);
-		$container = stripslashes($container);
-		if((file_exists($container)) && (sizeof($data) > 0))
-		{
-			foreach ($data as $key => $item)
-			{
-				if (is_array($item))
-				{
-					$sections .= "\n[{$key}]\n";
-					foreach ($item as $key2 => $item2)
-					{
-						if (is_numeric($item2) || is_bool($item2))
-						{
-							$sections .= "{$key2} = {$item2}\n";
-						}
-						else
-						{
-							$sections .= "{$key2} = {$item2}\n";
-						}
-					}     
-				}
-				else
-				{
-					if(is_numeric($item) || is_bool($item))
-					{
-						$this->contents .= "{$key} = {$item}\n";
-					}
-					else
-					{
-						$this->contents .= "{$key} = {$item}\n";
-					}
-				}
-			}
-			$this->contents .= $sections;
-			$this->canWrite = true;
-		}
+		return basename($this->file);
 	}
 	
 	public function write($container, $backups=false)
@@ -76,7 +77,7 @@ class File extends \yii\helpers\FileHelper
 		if($this->backups && !empty($this->contents))
 		{
 			$backup_dir = "/backup/".date("F-j-Y")."/";
-			$container_backup = ($container[0] == '@') ? $this->dir['default'].$backup_dir.substr($container, 1, strlen($container)) : dirname($container).$backup_dir.basename($container);
+			$container_backup = ($container[0] == '@') ? $this->defaultDir.$backup_dir.substr($container, 1, strlen($container)) : dirname($container).$backup_dir.basename($container);
 			$container_backup .= '.'.date("D_M_d_H_Y", strtotime('now')).$this->backupExtention;
 			if(!is_dir(dirname($container_backup)))
 			{
@@ -91,64 +92,6 @@ class File extends \yii\helpers\FileHelper
 			$this->close();
 		}
 		return $ret_val;
-	}
-	 
-	public function read($contents, $commentchar=';')
-	{
-		switch(!empty($this->contents))
-		{
-			case true:
-			$section = '';
-			$this->contents = array_filter((is_null($this->contents)) ? $contents : $this->contents);
-			$commentchar = is_null($commentchar) ? ';' : $commentchar;
-			$this->config['current']['sections'] = ['' => "Select section"];
-			if(is_array($this->contents) && (sizeof($this->contents) > 0))
-			{
-				foreach($this->contents as $filedata) 
-				{
-					$dataline = trim($filedata);
-					$firstchar = substr($dataline, 0, 1);
-					if($firstchar!= $commentchar && $dataline != '') 
-					{
-						//It's an entry (not a comment and not a blank line)
-						if($firstchar == '[' && substr($dataline, -1, 1) == ']') 
-						{
-							//It's a section
-							$section = substr($dataline, 1, -1);
-							$this->config['current']['sections'][$section] = $section;
-							$ret_val[$section] = [];
-						}
-						else
-						{
-							$model = new Value(["value" => $value, "comment" => @$comment, 'sectionid' => $section, "name" => $key, "unique_name" => "$section.$key"]);
-							//It's a key...
-							$delimiter = strpos($dataline, '=');
-							if($delimiter > 0) 
-							{
-								//...with a value
-								$key = trim(substr($dataline, 0, $delimiter));
-								$value = trim(substr($dataline, $delimiter + 1));
-								if(substr($value, 1, 1) == '"' && substr($value, -1, 1) == '"') 
-								{ 
-									$value = substr($value, 1, -1); 
-								}
-								$model->value = $value;
-								//$ret_val[$section][$key] = stripslashes($value);
-								//we may return comments if we're updating
-								$ret_val[$section][$key] = $model;
-							}
-							else
-							{
-								//we may return comments if we're updating
-								//...without a value
-								$ret_val[$section][trim($dataline)] = $model;
-							}
-						}
-					}
-				}
-			}
-			break;
-		}
 	}
 	
 	public function getNames($in)
@@ -233,53 +176,50 @@ class File extends \yii\helpers\FileHelper
 		return $ret_val;
 	}
 	
+	public function prepare($data)
+	{
+		$this->content = $this->_parser->prepare($data);
+	}
+	 
+	public function read($contents, $commentchar='#')
+	{
+		return $this->_parser->read($contents);
+	}
+	
 	public function createSection($name)
 	{
-		$args['command'] = "sed -i '\$a\\\n\\n[%s]' ";
-		return $this->command($command, [$name]);
+		return $this->_parser->createSection($section, $name);
 	}
 	
 	public function createValue($section, $name, $value)
 	{
-		$args['command'] = "sed -i '/\[%s\]/a %s = %s' ";
-		return $this->command($command, [$section, $name, $value]);
+		return $this->_parser->createValue($section, $name, $value);
 	}
 	
 	public function updateSection($section, $name)
 	{
-		$args['command'] = 'sed -i -e "s/^\[%s\]/%s/" ';
-		return $this->command($command, [$section, $name]);	
+		return $this->_parser->updateSection($section, $name);
 	}
 	
 	public function updateValue($section, $name, $value)
 	{
-		$args['command'] = 'sed -i -e "/^\[%s\]/,/^$/{s/%s =.*/%s = %s/}" ';
-		return $this->command($command, [$section, $name, $name, $value]);	
+		return $this->_parser->updateValue($section, $name, $value);	
 	}
 	
 	public function deleteSection($section, $name)
-	{
-		$args['command'] = "sed -i '/^\[%s\]/,/^$/d' ";
-		return $this->command($command, [$section, $name]);	
+	{	
+		return $this->_parser->deleteSection($section, $name);
 	}
 	
 	public function deleteValue($section, $name, $value)
 	{
-		$args['command'] = "sed -i '/^\[%s\]/,/^$/{/^%s =.*/d}' ";
-		return $this->command($command, [$section, $name, $name, $value]);	
+		return $this->_parser->deleteValue($section, $name, $value);
 	}
 	
 	public function deleteFile($file)
 	{
 		$args['command'] = "rm -f '%s'";
-		return $this->command($command, [$file]);	
-	}
-	
-	private function command($comand, $args=null)
-	{
-		$args['command'] = vsprintf($args['command'], array_map(function ($v) {return preg_quote($v, DIRECTORY_SEPARATOR);}, $args['args'])).' "'.$container.'.'.$this->types[$this->location].'"';
-		exec($args['command'], $output, $cmd_ret_val);
-		return $cmd_ret_val;
+		return $this->_parser->command($command, [$file]);	
 	}
 	
 	public function createFile($name)
@@ -312,7 +252,7 @@ class File extends \yii\helpers\FileHelper
 		$flmode = null;
 		switch($rw)
 		{
-			case 'this->canWrite':
+			case $this->canWrite:
 			$mode = 'w';
 			switch(file_exists($container))
 			{
