@@ -99,7 +99,7 @@ abstract class BaseStore extends \yii\base\Object
 	 * @param string|int $container
 	 * @return mixed
 	 */
-	abstract public function update(int $id, $key, $value, $container);
+	abstract public function update($id, $key, $value, $container);
 	
 	/*
 	 * Handle deleting in DB or in file to simplify delete function
@@ -108,7 +108,7 @@ abstract class BaseStore extends \yii\base\Object
 	 * @param string|int $container
 	 * @return mixed
 	 */
-	abstract public function delete(int $id, $key, $container);
+	abstract public function delete($id, $key, $container);
 	
 	/**
 	 * Create a container: file, db entry...etc
@@ -138,7 +138,7 @@ abstract class BaseStore extends \yii\base\Object
 	 * @param string|int $section
 	 * @return \nitm\models\confier\Section
 	 */
-	abstract public function section($section, $container=null);
+	abstract public function section($section, $container=null, $asArray=true);
 	
 	/*
 	 * Get a value
@@ -146,7 +146,7 @@ abstract class BaseStore extends \yii\base\Object
 	 * @param string|int $id
 	 * @return \nitm\models\confier\Value
 	 */
-	abstract public function value($section, $id);
+	abstract public function value($section, $id, $key=null, $asArray=true);
 	
 	/*
 	 * Get the configuration containers: file or database
@@ -160,23 +160,25 @@ abstract class BaseStore extends \yii\base\Object
 	protected function resolveNameAndSection($key, $updating=false)
 	{
 		$hierarchy = is_array($key) ? $key : explode('.', $key);
+		$size = count($hierarchy);
+		$name = $size == 5 ? $hierarchy[4] : ($size == 3 ? $hierarchy[2] : null);
 		
-		if($updating) {
-			$name = isset($hierarchy[4]) ? $hierarchy[4] : (sizeof($hierarchy) == 3 ? $hierarchy[2] : null);
-			$sectionName = isset($hierarchy[4]) ? $hierarchy[3] : $hierarchy[1];
-		} else {
-			$name = isset($hierarchy[4]) ? $hierarchy[4] : (sizeof($hierarchy) == 3 ? $hierarchy[2] : null);
-			$sectionName = isset($hierarchy[3]) ? $hierarchy[3] : $hierarchy[1];
-		}	
+		if($updating)
+			$sectionName = $size == 5 ? $hierarchy[3] : $hierarchy[1];
+		else
+			$sectionName = $size == 4 ? $hierarchy[3] : $hierarchy[1];
+			
 		$isSection = $this->isSection($hierarchy);	
 		return [
-			'name' => $name, 'sectionName' => $sectionName, 'hierarchy' => $hierarchy,
+			'name' => $name, 
+			'sectionName' => $sectionName, 
+			'hierarchy' => $hierarchy,
 			'isSection' => $isSection,
 			'isValue' => !$isSection
 		];
 	}
 	
-	protected function isSection($herarchy)
+	protected function isSection($hierarchy)
 	{
 		return count($hierarchy) == 2 || count($hierarchy) == 4;
 	}

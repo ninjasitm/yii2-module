@@ -162,7 +162,7 @@ class FileStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function update(int $id, $key, $value, $container)
+	public function update($id, $key, $value, $container)
 	{
 		$args = [];
 		$ret_val = ['success' => false];
@@ -212,7 +212,7 @@ class FileStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function delete(int $id, $key, $container)
+	public function delete($id, $key, $container)
 	{	
 		$args = [];
 		
@@ -337,7 +337,7 @@ class FileStore extends BaseStore
 		}
 	}
 	
-	public function section($section, $container=null)
+	public function section($section, $container=null, $asArray=true)
 	{
 		$ret_val = null;
 		if(!$this->containerModel)
@@ -365,9 +365,9 @@ class FileStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function value($section, $id)
+	public function value($section, $id, $key=null, $asArray=true)
 	{
-		return ArrayHelper::getValue($this->containerModel, 'sections.'.$section.'.'.$id, null);
+		return ArrayHelper::getValue($this->containerModel, 'sections.'.$section.'.'.$id, ArrayHelper::getValue($this->containerModel, 'sections.'.$section.'.'.$key, null));
 	}
 	
 	public function getSections($in=null)

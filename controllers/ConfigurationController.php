@@ -125,8 +125,8 @@ class ConfigurationController extends DefaultController
 		switch(isset($_REQUEST[$this->model->formName()]))
 		{
 			case true:
-			$this->model->setScenario($this->action->id.ucfirst($_REQUEST[$this->model->formName()]['what']));
-			$this->model->load($_REQUEST);
+			$this->model->setScenario($this->action->id.ucfirst($_POST[$this->model->formName()]['what']));
+			$this->model->load($_POST);
 			switch(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
 			{
 				case true:
@@ -256,8 +256,8 @@ class ConfigurationController extends DefaultController
 		switch(isset($_REQUEST[$this->model->formName()]))
 		{
 			case true:
-			$this->model->setScenario($this->action->id.ucfirst($_REQUEST[$this->model->formName()]['what']));
-			$this->model->load($_REQUEST);
+			$this->model->setScenario($this->action->id.ucfirst($_POST[$this->model->formName()]['what']));
+			$this->model->load($_POST);
 			switch(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
 			{
 				case true:
@@ -297,11 +297,11 @@ class ConfigurationController extends DefaultController
 	
 	public function actionUpdate()
 	{
-		switch(isset($_REQUEST[$this->model->formName()]))
+		switch(isset($_POST[$this->model->formName()]))
 		{
 			case true:
-			$this->model->setScenario($this->action->id.ucfirst($_REQUEST[$this->model->formName()]['what']));
-			$this->model->load($_REQUEST);
+			$this->model->setScenario($this->action->id.ucfirst($_POST[$this->model->formName()]['what']));
+			$this->model->load($_POST);
 			switch(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
 			{
 				case true:

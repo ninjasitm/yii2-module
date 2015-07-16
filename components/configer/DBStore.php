@@ -102,31 +102,30 @@ class DBStore extends BaseStore
 	{
 		$ret_val = ['success' => false];
 		
-		
-		list($name, $section, $hierarchy, $isSection, $isValue) = $this->resolveNameAndSection($key, true);
-		
+		list($name, $section, $hierarchy, $isSection, $isValue) = array_values($this->resolveNameAndSection($key, true));
+		$containerId = $this->container($container)->id;
 		switch(1)
 		{
 			//We're creating a section
 			case $isSection:
 			$value = [
-				'containerid' => $container->id,
+				'containerid' => $containerId,
 				'name' => $section,
 			];
 			$model = new Section($value);
-			$message = "Added section ".$section;
+			$message = "Added new section '".$section."'";
 			break;
 			
 			//We're creating a value
 			case $isValue:
 			$value = [
-				'containerid' => $container->id,
-				'sectionid' => $this->section($section)->id,
+				'containerid' => $containerId,
+				'sectionid' => $this->section($section, $containerId, false)->id,
 				'value' => $originalValue,
 				'name' => $name
 			];
 			$model = new Value($value);
-			$message = "Added $name to section $section";
+			$message = "Added value '$name' to section '$section'";
 			break;
 		}
 		$model->setScenario('create');
@@ -137,7 +136,7 @@ class DBStore extends BaseStore
 			$ret_val['id'] = $model->id;
 			$ret_val['container_name'] = $this->container($container)->name;
 			$ret_val['unique_id'] = $key;
-			$ret_val['section_name'] = $this->section($section);
+			$ret_val['section_name'] = $section;
 			$ret_val = array_merge($ret_val, $value);
 			$ret_val['success'] = true;
 			$ret_val['message'] = $message;
@@ -151,45 +150,44 @@ class DBStore extends BaseStore
 		}
 		return $ret_val;
 	}
-	public function update(int $id, $key, $value, $container)
+	public function update($id, $key, $value, $container)
 	{
 		$ret_val = ['success' => false];
 		
-		list($name, $section, $hierarchy, $isSection, $isValue) = $this->resolveNameAndSection($key, true);
+		list($name, $section, $hierarchy, $isSection, $isValue) = array_values($this->resolveNameAndSection($key, true));
 		
 		switch(1)
 		{
 			//we're updating a section
 			case $isSection:
 			$message = "Updated the section name to $value";
-			$values = ['value' => $value];
-			$model = $this->section($key);
+			$value = ['value' => $value];
+			$model = $this->section($id, $container, false);
 			break;
 		
 			//we're updating a value
 			case $isValue:
-			$message = "Updated the value [$key] from ".@$old_value['value']." to ".$value;
-			$values = ['value' => $value];
+			$value = ['value' => $value];
 			$ret_val['name'] = $name;
-			$model = $this->value($section, $key);
+			$model = $this->value($section, $id, $key, false);
 			break;
 		}
 		switch(is_object($model))
 		{
 			case true:
+			$oldValue = $model->value;
 			$model->setScenario('update');
-			$model->load([$model->formName() => $values]);
+			$model->load([$model->formName() => $value]);
 			switch($model->save())
 			{
 				case true:
-				$ret_val['value'] = rawurlencode($originalValue);
 				$ret_val['id'] = $model->id;
 				$ret_val['container_name'] = $this->container($container)->name;
 				$ret_val['unique_id'] = $key;
-				$ret_val['section_name'] = $this->section($section);
+				$ret_val['section_name'] = $section;
 				$ret_val = array_merge($ret_val, $value);
 				$ret_val['success'] = true;
-				$ret_val['message'] = $message;
+				$ret_val['message'] = "Updated the value [$key] from '".$oldValue."' to '".$model->value."'";
 				break;
 				
 				default:
@@ -203,17 +201,17 @@ class DBStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function delete(int $id, $key, $container)
+	public function delete($id, $key, $container)
 	{
 		$ret_val = ['success' => false];
 		
-		list($name, $section, $hierarchy, $isSection, $isValue) = $this->resolveNameAndSection($key, true);
+		list($name, $section, $hierarchy, $isSection, $isValue) = array_values($this->resolveNameAndSection($key, true));
 		
 		switch(1)
 		{
 			//we're deleting a section
 			case $isSection:
-			$model = $this->section(!$id);
+			$model = $this->section(!$id, $container, false);
 			$message = "Deleted the section: $key";
 			$delete['process'] = true;
 			break;
@@ -222,7 +220,7 @@ class DBStore extends BaseStore
 			case $isValue:
 			$ret_val['name'] = $id;
 			$message = "Deleted the value: $key";
-			$model = $this->value($section, !$id);
+			$model = $this->value($section, $id, $key, false);
 			break;
 		}
 		switch(is_object($model) && $model->delete())
@@ -366,7 +364,7 @@ class DBStore extends BaseStore
 		return $ret_val;
 	}
 	 
-	public function section($section, $container=null)
+	public function section($section, $container=null, $asArray=true)
 	{
 		$ret_val = null;
 		if(is_null($container))
@@ -374,6 +372,7 @@ class DBStore extends BaseStore
 				$container = $this->containerModel->name;
 			else
 				throw new \yii\base\IException("The container has not been instanciated nor was one passed");
+		
 		switch(isset($this->container($container)->sections[$section]))
 		{
 			case false:
@@ -394,25 +393,36 @@ class DBStore extends BaseStore
 			$ret_val = $this->containerModel->sections[$section];
 			break;
 		}
+		if(!$asArray && is_array($ret_val))
+			$ret_val = new Section($ret_val);
 		return $ret_val;
 	}
 
-	public function value($section, $id)
+	public function value($section, $id, $key=null, $asArray=true)
 	{
 		$ret_val = null;
-		$sectionModel = $this->section($section);
+		$sectionModel = $this->section($section, null, false);
 		
-		if(!$sectionModel instanceof Section)
+		if(!($sectionModel instanceof Section))
 			return null;
-		else
+		else if(isset($this->containerModel->values[$id])) {
+			$ret_val = $this->containerModel->values[$id];
+		} else if(isset($this->containerModel->values[$key])) {
+			$ret_val = $this->containerModel->values[$key];
+		} else {
 			$where = is_numeric($id) ? ['id' => $id] : ['name' => $id];
 		
-		$where['sectionid'] = $sectionModel->getId();
-		$where['containerid'] = $sectionModel->containerid;
-		$ret_val = Value::find()
-			->where($where)
-			->one();
+			$where['sectionid'] = $sectionModel->getId();
+			$where['containerid'] = $sectionModel->containerid;
+			$query = Value::find()
+				->where($where);
+			if($asArray)
+				$query->asArray();
+			$ret_val = $query->one();
+		}
 		
+		if(!$asArray && is_array($ret_val))
+			$ret_val = new Value($ret_val);
 		return $ret_val;
 	}
 	 

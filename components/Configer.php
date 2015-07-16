@@ -147,13 +147,13 @@ class Configer extends Model
 		$this->on("afterCreate", function($e) {
 			$this->config('current.section', $this->event('section'));
 			$this->set($this->event('key'), $this->event('value'));
-			$this->config($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
+			$this->config($this->uriOf(self::dm.'.'.$this->event('key'), true), $this->event('value'));
 			$this->trigger('logData');
 		});
 		
 		$this->on("afterUpdate", function($e) {
 			$this->set($this->event('key'), $this->event('value'));
-			$this->config($this->uriOf($this->event('key'), true).'.value', $this->event('value'));
+			$this->config($this->uriOf(self::dm.'.'.$this->event('key'), true), $this->event('value'));
 			$this->trigger('logData');
 		});
 		
@@ -165,7 +165,7 @@ class Configer extends Model
 				break;
 			}
 			$this->config('current.section', $this->event('section'));
-			$this->remove($this->uriOf($this->event('key'), true), true);
+			$this->remove($this->uriOf(self::dm.'.'.$this->event('key'), true), true);
 			
 			if($this->container == \Yii::$app->getModule('nitm')->config->container)
 				$this->remove(Session::settings.'.'.$this->event('key'));
@@ -224,16 +224,16 @@ class Configer extends Model
 			$this->setType($container);
 			//if the selected config is not loaded then load it
 			$key = $this->_store->is.'.'.$container;
-			if($this->get($this->getDm().'.current.location') != $key || $this->get($this->getDm().'.current.container') != $container) {
+			if($this->get(self::dm.'.current.location') != $key || $this->get(self::dm.'.current.container') != $container) {
 				//echo "Getting config from db!!\n";
 				$this->config('current.config', $this->getConfig($container, $getValues, true));
-				$this->set($this->_store->is.'.config', $this->config('current.config'));
+				$this->set(self::dm.'.'.$this->_store->is.'.config', $this->config('current.config'));
 				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
 			//otherwise just get the current loaded config
 			else {
 				//echo "Getting config from cache!!\n";
-				$this->config('current.config', $this->get($this->_store->is.'.config'));
+				$this->config('current.config', $this->get(self::dm.'.'.$this->_store->is.'.config'));
 				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
 			
@@ -242,8 +242,8 @@ class Configer extends Model
 				
 			$this->config('load.current', (bool)count($this->config('current.config'))>=1);
 			$this->config('load.sections', (bool)count($this->config('current.sections'))>=1);
-			$this->set($this->getDm().'.current.location', $key);
-			$this->set($this->getDm().'.current.container', $container);
+			$this->set(self::dm.'.current.location', $key);
+			$this->set(self::dm.'.current.container', $container);
 			break;
 		}
 	}
@@ -336,7 +336,7 @@ class Configer extends Model
 			{
 				$this->remove(''.$clear);
 			}
-			$this->set('current.engine', $this->_store->is);
+			$this->set(self::dm.'.current.engine', $this->_store->is);
 			$this->getContainers(null);
 			$this->engine = $loc;
 			$this->_engineIsSet = true;
@@ -357,12 +357,10 @@ class Configer extends Model
 		{
 			case self::dm:
 			array_shift($key);
-			switch($key[0] == $this->container)
-			{
-				case false;
+			if($key == [$this->_store->is, 'config'])
+					array_unshift($key, self::dm);
+			else if($key[0] != $this->container)
 				array_unshift($key, self::dm, $this->_store->is, 'config');
-				break;
-			}
 			break;
 			
 			default:
@@ -374,6 +372,8 @@ class Configer extends Model
 			else
 				if($this->container == 'globals' && $key[0] == 'globals')
 					$key[0] = Session::settings;
+				else if($key[0] != $this->container)
+					array_unshift($key, $this->container);
 			break;
 		}
 		return implode('.', $key);
@@ -729,7 +729,7 @@ class Configer extends Model
 		$this->setBase($container);	
 		$this->container($container);
 		
-		$result = $this->_store->create($key, $value, $container);
+		$result = $this->_store->create($uriOf, $value, $container);
 		
 		if($result['success']) {
 			$ret_val = array_merge($ret_val, $result, [
@@ -744,7 +744,7 @@ class Configer extends Model
 		}
 		
 		$this->config('current.action', $ret_val);
-		$this->set(Configer::dm.'.action', $ret_val);
+		$this->set(self::dm.'.action', $ret_val);
 	}
 	
 	/*
@@ -763,16 +763,17 @@ class Configer extends Model
 			debug_print_backtrace();
 			exit;
 		}
-		$old_value = $this->get($uriOf);
+		$oldValue = $this->config('current.config.'.$key.'.value');
 		$ret_val = [
 			'success' => false,
-			'old_value' => json_encode($old_value),
+			'oldValue' => json_encode($oldValue),
 			'value' => rawurlencode($value),
 			'container' => stripslashes($uriOf),
 			'key' => $uriOf,
 			'message' => "Unable to update value ".$value
 		];
-		$result = $this->_store->update((!$this->id ? $key : $this->id), $key, $value, $container);
+		
+		$result = $this->_store->update(($this->id ? $this->id : $key), $uriOf, $value, $container);
 		if($result['success'])
 		{
 			$ret_val = array_merge($ret_val, $result, [
@@ -783,14 +784,14 @@ class Configer extends Model
 				'key' => $key,
 				'value' => $value,
 				'action' => "Update Config",
-				'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." updated value ($key from '".var_export($ret_val['old_value'], true)."' to '".var_export($value, true)."') in ".$container
+				'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." updated value ($key from '".var_export($ret_val['oldValue'], true)."' to '".var_export($value, true)."') in ".$container
 			]));
 			$this->trigger('afterUpdate');
 		}		
 		$ret_val['action'] = 'update';
 		$ret_val['value'] = rawurlencode($value);
 		$this->config('current.action', $ret_val);
-		$this->set(Configer::dm.'.action', $ret_val);
+		$this->set(self::dm.'.action', $ret_val);
 	}
 	
 	/*
@@ -814,7 +815,7 @@ class Configer extends Model
 			"class" => $this->classes["failure"]
 		];
 		
-		$result = array_merge($ret_val, $this->_store->delete((!$this->id ? $key : $this->id)), $key, $this->container);
+		$result = array_merge($ret_val, $this->_store->delete((!$this->id ? $key : $this->id)), $uriOf, $this->container);
 		if($result['success'])
 		{
 			$ret_val = array_merge($ret_val, $result, [
@@ -831,7 +832,7 @@ class Configer extends Model
 			$this->trigger('afterDelete');
 		}
 		$this->config('current.action', $ret_val);
-		$this->set(Configer::dm.'.action', $ret_val);
+		$this->set(self::dm.'.action', $ret_val);
 	}
 	
 	/**
