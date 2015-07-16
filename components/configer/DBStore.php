@@ -420,10 +420,10 @@ class DBStore extends BaseStore
 	{
 		if(!isset(self::$hasNew))
 		{
-			self::$hasNew = Value::find()
+			self::$hasNew = current(Value::find()
 				->select("('".static::getLastChecked()."' < MAX(updated_at)) AS hasNew")
 				->asArray()
-				->one()['hasNew'] ? true : false;
+				->one()) ? true : false;
 			static::setLastChecked();
 		}
 		return self::$hasNew;
