@@ -144,7 +144,8 @@ trait Data {
         $query = $this->hasOne(static::className(), $link)
 			->select([
 				'_count' => "COUNT(".$primaryKey.")",
-			]);
+			])
+			->asArray();
 		foreach(['where', 'orwhere', 'andwhere'] as $option)
 			if(isset($this->queryOptions[$option]))
 				$query->$option($this->queryOptions[$option]);
@@ -155,7 +156,7 @@ trait Data {
 	{
 		return \nitm\helpers\Relations::getRelatedRecord('count', $this, static::className(), [
 			'_count' => 0
-		])->_count;
+		])['_count'];
 	}	
 
 	/*

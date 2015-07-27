@@ -96,9 +96,6 @@ class Relations
 		$key = Cache::cacheKey($model, $idKey, $relation, $many);
 		
 		if(Cache::exists($key)) {
-			//Disabled due to Yii framework inability to return statistical relations
-			//if(static::className() != $className)
-				//$ret_val->with(['count', 'newCount']);
 			$ret_val = Cache::getModel($this, $key, $many, $modelClass, $relation, $options);
 		}
 		else {
@@ -134,6 +131,19 @@ class Relations
 		$modelClass = is_null($modelClass) ? $model->getRelation($relation)->modelClass : $modelClass;
 		
 		return Cache::setModel(Cache::cacheKey($model, $idKey, $relation, $many), $related, $modelClass, $duration);
+	}
+	
+	/**
+	 * Delete a cached relation. Either a model or array of models
+	 * @param Object $model The model this relation is attached to
+	 * @param string|array $idKey The properties that makeup the cacheKey
+	 * @param string $relation The name of the relation
+	 * @param boolean $many Is this an array of models?
+	 * @param return boolean value was deleted
+	 */
+	public function deleteCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, &$model=null)
+	{		
+		return Cache::delete(Cache::cacheKey($model, $idKey, $relation, $many));
 	}
 }
 

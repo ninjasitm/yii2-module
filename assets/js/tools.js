@@ -109,9 +109,10 @@ function Tools ()
 			return basedOnGetUrl && basedOnRemoteOnce;
 		}
 		
+		this.target = $nitm.getObj($object.data('id'));
+		
 		if(getRemote())
 		{
-			this.target = $nitm.getObj($object.data('id'));
 			this.success = ($object.data('success') != undefined) ? $object.data('success') : null;
 			this.url = $object.data('url') ? $object.data('url') : $object.attr('href');
 			var ret_val = $.ajax({
@@ -128,6 +129,12 @@ function Tools ()
 		$($nitm).trigger('nitm-animate-submit-stop', [object]);
 		
 		$nitm.handleVis($object.data('id'));
+		
+		if($object.data('toggle-inputs')) {
+			this.target.find(':input').prop('disabled', function(i, v) { return !v; });
+			console.log($(this).data());
+		}
+		
 		return false;
 	}
 	
@@ -711,7 +718,6 @@ function Tools ()
 	}
 	
 	this.initConfirm = function () {
-		console.log("Binding for confirm");
 		$(document).ready(function () {
 			$('[data-confirm]').on('click', function (event) {
 				if(!confirm($(this).data('confirm'))) {
@@ -731,9 +737,11 @@ function Tools ()
 	 * Off tooltip support
 	 */
 	this.initToolTips = function () {
-		$(document).ready(function() {
-			$("body").tooltip({ selector: '[data-toggle=tooltip]' });
-		});
+		try {
+			$(document).ready(function() {
+				$("body").tooltip({ selector: '[data-toggle=tooltip]' });
+			});
+		} catch (error) {}
 	}
 }
 

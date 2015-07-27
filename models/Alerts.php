@@ -90,7 +90,7 @@ class Alerts extends Entity
 	
 	public function filterMethods($value)
 	{
-		return \nitm\helpers\alerts\DispatcherData::filterMethods($value);
+		return \nitm\components\alerts\DispatcherData::filterMethods($value);
 	}
 	
 	public function filterPriority($value)

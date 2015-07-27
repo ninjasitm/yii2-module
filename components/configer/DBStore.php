@@ -322,9 +322,24 @@ class DBStore extends BaseStore
 
 	public function container($container=null)
 	{
-		$ret_val = $this->containerModel;
 		if(is_object($container))
 			throw new \yii\base\Exception("Container is an object");
+			
+		switch(1)
+		{
+			case $container == null:
+			case $this->containerModel instanceof Container && $container == $this->containerModel->name:
+			$ret_val = $this->containerModel;
+			break;
+			
+			default:
+			$ret_val = new Container([
+				'name' => $container
+			]);
+			$ret_val->populateRelation('values', []);
+			break;
+		}
+		
 		$containerKey = $this->containerKey($container);
 		$hasNew = static::hasNew();
 		
@@ -336,7 +351,7 @@ class DBStore extends BaseStore
 			switch(1)
 			{
 				case !$this->containerModel instanceof Container:
-				case !is_null($container) && (is_object($this->containerModel) && !($this->containerModel->name == $container || $this->containerModel->id == $container)):
+				case (is_object($this->containerModel) && !($this->containerModel->name == $container || $this->containerModel->id == $container)):
 				
 				//Are we looking for an id or name?
 				$where = is_numeric($container) ? ['id' => $container] : ['name' => $container];

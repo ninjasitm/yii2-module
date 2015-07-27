@@ -329,15 +329,13 @@ class Configer extends Model
 			}
 			break;
 		}
-		if(!empty($this->_store->is))
+		if($this->_store->is)
 		{
+			$this->getContainers(null);
 			//clear any other unused engine data
 			foreach(array_diff_key($this->_supported, [$this->_store->is => ucfirst($this->_store->is)]) as $clear=>$key)
-			{
 				$this->remove(''.$clear);
-			}
 			$this->set(self::dm.'.current.engine', $this->_store->is);
-			$this->getContainers(null);
 			$this->engine = $loc;
 			$this->_engineIsSet = true;
 		} else 
@@ -352,10 +350,10 @@ class Configer extends Model
 	
 	public function uriOf($key, $internal=false)
 	{
-		$key = explode('.', $key);		
-		switch($key[0])
+		$key = $originalKey = explode('.', $key);		
+		switch(1)
 		{
-			case self::dm:
+			case $key[0] == self::dm:
 			array_shift($key);
 			if($key == [$this->_store->is, 'config'])
 					array_unshift($key, self::dm);
@@ -370,9 +368,9 @@ class Configer extends Model
 				else
 					array_unshift($key, self::dm, $this->_store->is, 'config', $this->container);
 			else
-				if($this->container == 'globals' && $key[0] == 'globals')
+				if($this->container == 'globals' && $key[0] == 'globals' || $key[0] == Session::settings)
 					$key[0] = Session::settings;
-				else if($key[0] != $this->container)
+				else if($key[0] != $this->container && !in_array($key[0], $this->config('containers')))
 					array_unshift($key, $this->container);
 			break;
 		}
@@ -480,6 +478,19 @@ class Configer extends Model
 		return ArrayHelper::exists($this->settings, $this->getPath($this->uriOf($name)));
 	}
 	
+	public function containerExists($container)
+	{
+		$ret_val = true;
+		switch(1)
+		{
+			case !isset($this->settings[$container]):
+			case isset($this->settings[$container]) && (count(isset($this->settings[$container]) == 0)):
+			$ret_val = false;
+			break;
+		}
+		return $ret_val;
+	}
+	
 	/**
 	 * Set a config value based on the storage location
 	 * @param string $name
@@ -556,17 +567,14 @@ class Configer extends Model
      */
 	public function getConfig($container=null, $getValues=false, $updating=false)
 	{
-		$container = !empty($container) ? $container : $this->container;
+		$container = is_null($container) ? $this->container : $container;
 		switch($this->_store->is)
 		{
 			case 'file':
 			$container = $this->config('current.path');
 			break;
-			
-			case 'db':
-			$container = $this->container;
-			break;
 		}
+		$this->config('containers', [$container => $container], true);
 		return $this->readFrom($this->loadFrom($container, false, true), 'json', $updating);
 	}	
 	

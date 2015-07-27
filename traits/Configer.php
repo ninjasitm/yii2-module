@@ -51,18 +51,11 @@ trait Configer {
 		if($module && $module->enableConfig)
 		{
 			$container = is_null($container) ? $module->config->container : $container;
-			switch(1)
+			if(!$module->config->containerExists($container))
 			{
-				case !isset($model->config->settings[$container]):
-				case !$module->config->exists($container):
-				case $module->config->exists($container) && (count($module->config->get($container) == 0)):
-				case ($container == $module->config->container) && (!$module->config->exists(Session::settings)):
 				$module->config->setType($container);
-				if(!$module->config->exists($container)) {
-					$config = $module->config->getConfig($container, true);
-					$module->config->set($container, $config);
-				}
-				break;
+				$config = $module->config->getConfig($container, true);
+				$module->config->set($container, $config);
 			}
 		}
 	}

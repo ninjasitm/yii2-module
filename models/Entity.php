@@ -51,15 +51,16 @@ class Entity extends Data
 				'priority' => 'normal',
 				'remote_type' => $event->sender->isWhat(),
 				'remote_for' => 'any'
-			],
-			'variables' => [
-				'%createdAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('created_at')),
-				'%udpatedAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('updatedAt')),
-				'%resolvedAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('resolvedAt')),
-				'%completedAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('completed_at')),
-				'%disabledAt%' => @\Yii::$app->formatter->asDatetime($event->sender->getAttribute('disabled_at')),
 			]
 		];
+		foreach(['created_at', 'updated_at', 'resolved_at', 'completed_at', 'disabled_at'] as $dateAttribute)
+		{
+			if($event->sender->hasAttribute($dateAttribute)) {
+				$attribute = '%'.\nitm\models\Data::properName($dateAttribute).'%';
+				$date = $event->sender->$dateAttribute instanceof \yii\db\Expression ? strtotime('now') : $event->sender->$dateAttribute;
+				$options['variables'][$attribute] = \Yii::$app->formatter->asDatetime($date);
+			}
+		}
 			
 		switch($event->sender->getScenario())
 		{
