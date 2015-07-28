@@ -57,10 +57,9 @@ class Relations
 					default:
 					if(is_array($attributes) && (!is_array(current($attributes)) && !is_object(current($attributes))))
 						$ret_val = current($attributes);
-					if(is_object($attributes) && $attributes->className() == $className)
+					if(is_object($attributes))
 						$ret_val = $attributes;
-					else
-					{
+					else if(is_array($attributes)) {
 						$construct = ArrayHelper::getValue($attributes, 'construct', []);
 						$ret_val = is_string($className) ? new $className($construct) : $attributes;
 					}

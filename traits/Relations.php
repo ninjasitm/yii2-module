@@ -178,9 +178,8 @@ trait Relations {
 		$className = is_null($className) ? \nitm\widgets\models\Category::className() : $className;
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 		if(\Yii::$app->getModule('nitm')->useModelCache)
-		{
 			return $this->getCachedRelation($idKey, $className, [], $many, $relation);
-		}  else
+		else
 			return \nitm\helpers\Relations::getRelatedRecord($relation, $this, $className, [], $many);
 	}
 
