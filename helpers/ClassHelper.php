@@ -21,6 +21,17 @@ class ClassHelper extends Model
 	}
 	
 	/*
+	 * Return a string imploded with ucfirst characters with no spaces
+	 * @param string $name
+	 * @return string
+	 */
+	public static function properFormName($value)
+	{
+		$ret_val = preg_replace('/[\-\_]/', " ", $value);
+		return implode('', array_map('ucfirst', explode(' ', $ret_val)));
+	}
+	
+	/*
 	 * Return a string imploded with ucfirst characters
 	 * @param string $name
 	 * @return string

@@ -96,13 +96,13 @@ class DefaultController extends BaseController
      */
     public function actionIndex($className, $options=[])
     {
-		$options = array_merge([
+		$options = array_replace_recursive([
 			'params' => \Yii::$app->request->get(),
 			'with' => [], 
 			'viewOptions' => [], 
 			'construct' => [
 				'inclusiveSearch' => true,
-				'exclusiveSearch' => true,
+				'exclusiveSearch' => false,
 				'forceExclusiveBooleanSearch' => false,
 				'booleanSearch' => true,
 				'queryOptions' => []

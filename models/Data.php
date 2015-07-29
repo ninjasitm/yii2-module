@@ -86,6 +86,13 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		];
 	}
 	
+	public function attributes()
+	{
+		return array_merge(parent::attributes(), [
+			'_count', '_newCount'
+		]);
+	}
+	
 	public function behaviors()
 	{
 		$behaviors = [

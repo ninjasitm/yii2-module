@@ -36,9 +36,9 @@ class Relations
 			default:
 			if(isset($className) && class_exists((string)$className))
 			{
-				if($model->hasAttribute($name) || $model->hasProperty($name) && (count($options) == 0))
+				if($model->hasAttribute($name) || $model->hasProperty($name) && (count($options) == 0)) {
 					$attributes = $model->$name;
-				else
+				} else
 					$attributes = $options;
 				switch($array === true)
 				{
@@ -57,12 +57,13 @@ class Relations
 					default:
 					if(is_array($attributes) && (!is_array(current($attributes)) && !is_object(current($attributes))))
 						$ret_val = current($attributes);
-					if(is_object($attributes))
-						$ret_val = $attributes;
-					else if(is_array($attributes)) {
+					if(is_array($attributes)) {
 						$construct = ArrayHelper::getValue($attributes, 'construct', []);
 						$ret_val = is_string($className) ? new $className($construct) : $attributes;
-					}
+					} else if(is_object($attributes))
+						$ret_val = $attributes;
+					else
+						$ret_val = new $className;
 					break;
 				}
 			}
@@ -143,6 +144,24 @@ class Relations
 	public function deleteCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, &$model=null)
 	{		
 		return Cache::delete(Cache::cacheKey($model, $idKey, $relation, $many));
+	}
+	
+	/**
+	 * Resolve a cached relation. Either a model or array of models
+	 * @param string|array $idKey  The properties that makeup the cacheKey
+	 * @param boolean $many Is this an array of models?
+	 * @param string $modelClass The string name of the class
+	 * @param string $relation The name of the relation
+	 * @param Object $model The model this relation is attached to
+	 * @param return array|object of class modelClass
+	 */
+	public function resolveRelation($idKey, $modelClass, $useCache=false, $many=false, $options=[], $relation=null)
+	{
+		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
+		if($useCache)
+			return self::getCachedRelation($idKey, $many, $modelClass, $relation, [], $this, 120);
+		else
+			return self::getRelatedRecord($relation, $this, $modelClass, [], $many);
 	}
 }
 

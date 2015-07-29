@@ -344,5 +344,11 @@ trait Relations {
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 		return RelationsHelper::deleteCachedRelation($idKey, $many, $modelClass, $relation, $this);
 	}
+	
+	public function resolveRelation($idKey, $modelClass, $useCache=false, $options=[], $many=false, $relation=null)
+	{
+		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
+		return RelationsHelper::resolveRelation($idKey, $modelClass, $useCache, $many, $options, $relation);
+	}
  }
 ?>

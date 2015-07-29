@@ -12,7 +12,6 @@ trait Data {
 	public $noDbInit = false;
 	public $queryOptions = [];
 	
-	protected $_count;
 	protected $is;
 	protected static $_is;
 	protected static $tableName;
@@ -74,6 +73,20 @@ trait Data {
 		else
 			$value = is_null($value) ?  static::isWhat() : $value;
 		return \nitm\helpers\ClassHelper::properName($value);
+	}
+	
+	/*
+	 * Return a string imploded with ucfirst characters
+	 * @param string $name
+	 * @return string
+	 */
+	public function properFormName($value=null)
+	{
+		if(isset($this))
+			$value = is_null($value) ? $this->isWhat() : $value;
+		else
+			$value = is_null($value) ?  static::isWhat() : $value;
+		return \nitm\helpers\ClassHelper::properFormName($value);
 	}
 	
 	/*
@@ -144,8 +157,7 @@ trait Data {
         $query = $this->hasOne(static::className(), $link)
 			->select([
 				'_count' => "COUNT(".$primaryKey.")",
-			])
-			->asArray();
+			]);
 		foreach(['where', 'orwhere', 'andwhere'] as $option)
 			if(isset($this->queryOptions[$option]))
 				$query->$option($this->queryOptions[$option]);
@@ -153,7 +165,7 @@ trait Data {
     }
 	
 	public function count()
-	{
+	{		
 		return \nitm\helpers\Relations::getRelatedRecord('count', $this, static::className(), [
 			'_count' => 0
 		])['_count'];
