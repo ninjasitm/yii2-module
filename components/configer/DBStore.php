@@ -150,6 +150,7 @@ class DBStore extends BaseStore
 		}
 		return $ret_val;
 	}
+	
 	public function update($id, $key, $value, $container)
 	{
 		$ret_val = ['success' => false];
@@ -201,9 +202,60 @@ class DBStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function delete($id, $key, $container)
+	public function comment($id, $key, $value, $container)
 	{
 		$ret_val = ['success' => false];
+		
+		list($name, $section, $hierarchy, $isSection, $isValue) = array_values($this->resolveNameAndSection($key, true));
+		
+		switch(1)
+		{
+			//we're updating a section
+			case $isSection:
+			$message = "Updated the comment name to $value";
+			$value = ['comment' => $value];
+			$model = $this->section($id, $container, false);
+			break;
+		
+			//we're updating a value
+			case $isValue:
+			$value = ['comment' => $value];
+			$ret_val['name'] = $name;
+			$model = $this->value($section, $id, $key, false);
+			break;
+		}
+		switch(is_object($model))
+		{
+			case true:
+			$oldValue = $model->value;
+			$model->setScenario('update');
+			$model->load([$model->formName() => $value]);
+			switch($model->save())
+			{
+				case true:
+				$ret_val['id'] = $model->id;
+				$ret_val['container_name'] = $this->container($container)->name;
+				$ret_val['unique_id'] = $key;
+				$ret_val['section_name'] = $section;
+				$ret_val = array_merge($ret_val, $value);
+				$ret_val['success'] = true;
+				$ret_val['message'] = "Updated the comment for $key";
+				break;
+				
+				default:
+				$ret_val['message'] = implode('<br>', array_map(function ($value) {
+					return array_shift($value);
+				}, $model->getErrors()));
+				break;
+			}
+			break;
+		}
+		return $ret_val;
+	}
+	
+	public function delete($id, $key, $container)
+	{
+		$ret_val = ['success' => false, 'value' => null];
 		
 		list($name, $section, $hierarchy, $isSection, $isValue) = array_values($this->resolveNameAndSection($key, true));
 		
@@ -226,6 +278,10 @@ class DBStore extends BaseStore
 		switch(is_object($model) && $model->delete())
 		{
 			case true:
+			if($model instanceof Value)
+				$ret_val['value'] = $model->value;
+			else
+				$ret_val['isSection'] = true;
 			$ret_val['success'] = true;
 			$ret_val['message'] = $message;
 			break;

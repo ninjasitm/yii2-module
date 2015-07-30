@@ -24,7 +24,7 @@ function Configuration()
 			'deleteSection', 
 			'deleteValue',
 		],
-		allowCreate: ['createNewValue'],
+		allowCreate: ['createNewValue', 'saveComment'],
 		actions : {
 			create: '/configuration/create',
 			del: '/configuration/delete',
@@ -246,24 +246,20 @@ function Configuration()
 	
 	this.afterDelete = function(result, currentIndex, form) {
 		var newClass = $nitm.classes.warning;
+		
+		if(result.success)
+			newClass = $nitm.classes.success;
+			
+		$nitm.notify(result.message, newClass, self.views.alerts);
 		if(result.success)
 		{
-			newClass = $nitm.classes.success;
-		}
-		$nitm.notify(result.message, newClass, self.views.alerts);
-		switch(result.success)
-		{
-			case true:
 			var _form = $(form);
-			switch(result.value)
-			{
-				//We just deleted a section
-				case null:
+			if(result.isSection) {
 				$nitm.getObj('#'+self.views.containers.showSection).find("select :selected").remove();
-				break;
-				
-				default:
-				_form.find(':submit').removeClass().addClass('btn btn-warning').html('undel').attr('title', "Are you sure you want to undelete this value?");
+				$nitm.getObj('#'+self.views.containers.valueList).html('');
+			}
+			else {
+				_form.find(':submit').removeClass().addClass('btn btn-warning').text('undel').attr('title', "Are you sure you want to undelete this value?");
 				_form.attr('action', self.forms.actions.undelete);
 				_form.attr('role', 'undeleteValue');
 				_form.append("<input type='hidden' name='Configer[value\]' id='configer-value' value='"+$nitm.getObj(result.container+'.div').html()+"'/>");
@@ -281,9 +277,7 @@ function Configuration()
 						break;
 					}
 				});
-				break;
 			}
-			break;
 		}
 	}
 	

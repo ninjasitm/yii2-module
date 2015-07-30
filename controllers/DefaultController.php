@@ -183,7 +183,7 @@ class DefaultController extends BaseController
     {
 		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
         $this->model =  isset($options['model']) ? $options['model'] : $this->findModel($modelClass, $id, @$options['with']);
-		$view = isset($options['view']) ? $options['view'] : '/'.$this->model->isWhat().'/view';
+		$view = isset($options['view']) ? $options['view'] : '/'.$this->id.'/view';
 		$args = isset($options['args']) ? $options['args'] : [];
 		
 		Response::viewOptions(null, $options);

@@ -122,6 +122,7 @@ class Configer extends Model
 			'deleteValue' => ['section', 'name', 'what', 'id'],
 			'deleteSection' => ['name', 'container', 'what', 'id'],
 			'removeContainer' => ['value', 'what', 'id'],
+			'updateComment' => ['comment'],
 			'getSection' => ['what', 'container', 'section', 'getValues'],
 			'convert' => ['convert', 'engine']
 		 ];
@@ -194,7 +195,13 @@ class Configer extends Model
 			'db_name' => $this->event('db'),
 			'table_name' => $this->event('table'),
 			'action' => $this->event('action'),
-			'message' => $this->event('message')
+			'message' => implode(' ', [
+				"On",
+				date("F j, Y @ g:i a"),
+				"user",
+				$this->get('securer.username'),
+				$this->event('message')
+			])
 		];
 	}
 	
@@ -224,23 +231,21 @@ class Configer extends Model
 			$this->setType($container);
 			//if the selected config is not loaded then load it
 			$key = $this->_store->is.'.'.$container;
-			if($this->get(self::dm.'.current.location') != $key || $this->get(self::dm.'.current.container') != $container) {
-				//echo "Getting config from db!!\n";
+			if($this->get(self::dm.'.current.location') != $key || $this->get(self::dm.'.current.container') != $container || !$this->existsExternal(self::dm.'.'.$this->_store->is.'.config')) {
 				$this->config('current.config', $this->getConfig($container, $getValues, true));
-				$this->set(self::dm.'.'.$this->_store->is.'.config', $this->config('current.config'));
+				$this->setExternal(self::dm.'.'.$this->_store->is.'.config', $this->config('current.config'));
 				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
 			//otherwise just get the current loaded config
 			else {
-				//echo "Getting config from cache!!\n";
-				$this->config('current.config', $this->get(self::dm.'.'.$this->_store->is.'.config'));
+				$this->config('current.config', $this->getExternal(self::dm.'.'.$this->_store->is.'.config'));
 				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
 			
 			if(!$getValues)
 				$this->config('current.config', null);
 				
-			$this->config('load.current', (bool)count($this->config('current.config'))>=1);
+			$this->config('load.current', $this->section && (bool)count($this->config('current.config.'.$this->section))>=1);
 			$this->config('load.sections', (bool)count($this->config('current.sections'))>=1);
 			$this->set(self::dm.'.current.location', $key);
 			$this->set(self::dm.'.current.container', $container);
@@ -605,7 +610,7 @@ class Configer extends Model
 			$this->setEngine($old_engine);
 			break;
 		}
-	} 
+	}
 	
 	/*
 	 * Load the configuration
@@ -718,18 +723,61 @@ class Configer extends Model
 	}
 	
 	/*
+	 * Comment on a value
+	 * @param string $key
+	 * @param string $comment
+	 */
+	public function comment($key=null, $comment=null)
+	{
+		extract($this->getParams([
+			'key' => $key,
+			'comment' => $comment
+		]));
+		$uriOf = $this->uriOf($key);
+		$ret_val = [
+			"success" => true, 
+			"message" => "Updated comment successfully"
+		];
+		
+		$result = $this->_store->comment(($id ? $id : $key), $uriOf, $value, $container);
+		if($result['success'])
+		{
+			$ret_val = array_merge($ret_val, $result, [
+				'data' => [$key, $value],
+				'class' => $this->classes['success']
+			]);
+			$this->setEventData(array_merge($ret_val, [
+				'key' => $key,
+				'value' => $value,
+				'action' => "Update Config Comment",
+				'message' => "updated comment ($key to '".var_export($value, true)."') in ".$container
+			]));
+			$this->trigger('afterUpdate');
+		}		
+		$ret_val['action'] = 'update';
+		$ret_val['value'] = rawurlencode($value);
+		$this->config('current.action', $ret_val);
+		$this->set(self::dm.'.action', $ret_val);
+	} 
+	
+	/*
 	 * Create a value to the configuration
 	 * @param string $key
 	 * @param string $container
 	 * @param string sess_member
 	 * @return mixed created value and success flag
 	 */
-	public function create($key, $value, $container)
+	public function create($key=null, $value=null, $container=null)
 	{
+		extract($this->getParams([
+			'key' => $key,
+			'value' => $value,
+			'container' => $container
+		]));
 		$uriOf = $this->uriOf($key);
 		$ret_val = [
 			"success" => false, 
-			"message" => "Couldn't perform the create: [$key], [$value], [$container]", 
+			"message" => "Couldn't create: $key [$value] in $container", 
 			"action" => 'create', 
 			"class" => $this->classes["failure"]
 		];
@@ -746,7 +794,7 @@ class Configer extends Model
 			]);
 			$this->setEventData(array_merge($ret_val, [
 				'action' => 'Create Config',
-				'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username') ." created new key->value ($key -> ".var_export($value, true).") to in ".$container
+				'message' => "created new key->value ($key -> ".var_export($value, true).") to in ".$container
 			]));
 			$this->trigger('afterCreate');
 		}
@@ -762,8 +810,13 @@ class Configer extends Model
 	 * @param string sess_member
 	 * @return mixed updated value and success flag
 	 */
-	public function update($key, $value, $container, $sess_member=null)
+	public function update($key=null, $value=null, $container=null)
 	{
+		extract($this->getParams([
+			'key' => $key,
+			'value' => $value,
+			'container' => $container
+		]));
 		$uriOf = $this->uriOf($key);
 		$value = is_array($value) ? json_encode($value) : $value;
 		
@@ -781,7 +834,7 @@ class Configer extends Model
 			'message' => "Unable to update value ".$value
 		];
 		
-		$result = $this->_store->update(($this->id ? $this->id : $key), $uriOf, $value, $container);
+		$result = $this->_store->update(($id ? $id : $key), $uriOf, $value, $container);
 		if($result['success'])
 		{
 			$ret_val = array_merge($ret_val, $result, [
@@ -792,7 +845,7 @@ class Configer extends Model
 				'key' => $key,
 				'value' => $value,
 				'action' => "Update Config",
-				'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." updated value ($key from '".var_export($ret_val['oldValue'], true)."' to '".var_export($value, true)."') in ".$container
+				'message' => "updated value ($key from '".var_export($ret_val['oldValue'], true)."' to '".var_export($value, true)."') in ".$container
 			]));
 			$this->trigger('afterUpdate');
 		}		
@@ -808,34 +861,37 @@ class Configer extends Model
 	 * @param string $container
 	 * @return mixed deleted value and success flag
 	 */
-	public function delete($key, $container)
+	public function delete($key=null, $container=null)
 	{
+		extract($this->getParams([
+			'key' => $key,
+			'container' => $container
+		]));
+		
 		$uriOf = $this->uriOf($key);
 		$this->setBase($container);
 		
 		$ret_val = [
 			'success' => false,
 			'container' => $container,
-			'value' => $this->get($uriOf),
 			'key' => $uriOf,
 			'message' => "Unable to delete ".$uriOf,
 			"action" => 'delete', 
 			"class" => $this->classes["failure"]
 		];
 		
-		$result = array_merge($ret_val, $this->_store->delete((!$this->id ? $key : $this->id)), $uriOf, $this->container);
+		$result = array_merge($ret_val, $this->_store->delete((!$id ? $key : $id), $uriOf, $container));
 		if($result['success'])
 		{
-			$ret_val = array_merge($ret_val, $result, [
+			$ret_val = array_replace($ret_val, $result, [
 				'data' => [$key, $value],
 				'class' => $this->classes['success']
 			]);
-			$this->setEventData(array_merge($ret_val, [
+			$this->setEventData(array_replace($ret_val, [
 				'key' => $key,
 				'value' => $value,
-				'section' => $ret_val['section'],
 				'action' => "Delete Config",
-				'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." deleted value ($key -> '".var_export($value, true)."') from config ".$this->_store->is.": ".$container
+				'message' => "deleted value ($key -> '".var_export($value, true)."') from config ".$this->_store->is.": ".$container
 			]));
 			$this->trigger('afterDelete');
 		}
@@ -858,7 +914,7 @@ class Configer extends Model
 		{
 			$this->setEventData([
 				'action' => 'Create Config File',
-				'message' => "On ".date("F j, Y @ g:i a")." user ".$this->get('securer.username')." created a new config container: ".$name
+				'message' => "created a new config container: ".$name
 			]);
 			$this->trigger('afterCreate');
 			$ret_val['class'] = $this->classes['success'];
@@ -965,6 +1021,32 @@ class Configer extends Model
 	private static function hasNew()
 	{
 		return $this->_store->hasNew();
+	}
+	
+	private function getParams($params=[])
+	{
+		$ret_val = [
+			'id' => $this->id,
+			'key' => $this->name,
+			'value' => $this->value,
+			'comment' => $this->comment,
+			'container' => $this->container
+		];
+		switch($this->what)
+		{
+			case 'value':
+			$ret_val['key'] = $this->name;
+			break;
+			
+			case 'section':
+			$ret_val['key'] = $this->section;
+			break;
+			
+			case 'container':
+			$ret_val['key'] = $this->container;
+			break;
+		}
+		return array_merge(array_filter($params), $ret_val);
 	}
 }
 ?>

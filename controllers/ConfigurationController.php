@@ -100,7 +100,7 @@ class ConfigurationController extends DefaultController
 	public function actionConvert()
 	{
 		$this->model->setScenario($this->action->id);
-		$this->model->load($_REQUEST);
+		$this->model->load($_POST);
 		switch($this->model->convert['do'])
 		{
 			case true:
@@ -112,31 +112,26 @@ class ConfigurationController extends DefaultController
 	
 	public function actionUndelete()
 	{
-		$section = explode('.', $_REQUEST[$this->model->formName()]['name']);
-		$name = explode('.', $_REQUEST[$this->model->formName()]['name']);
-		$_REQUEST[$this->model->formName()]['section'] = array_shift($section);
-		$_REQUEST[$this->model->formName()]['name'] = array_pop($name);
+		$section = explode('.', $_POST[$this->model->formName()]['name']);
+		$name = explode('.', $_POST[$this->model->formName()]['name']);
+		$_POST[$this->model->formName()]['section'] = array_shift($section);
+		$_POST[$this->model->formName()]['name'] = array_pop($name);
 		$this->action->id = 'create';
 		return $this->actionCreate();
 	}
 	
 	public function actionCreate()
 	{
-		switch(isset($_REQUEST[$this->model->formName()]))
+		if(isset($_POST[$this->model->formName()]))
 		{
-			case true:
 			$this->model->setScenario($this->action->id.ucfirst($_POST[$this->model->formName()]['what']));
 			$this->model->load($_POST);
-			switch(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
-			{
-				case true:
-				$this->setResponseFormat('json');
+			
+			if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
 				return \yii\widgets\ActiveForm::validate($this->model);
-				break;
-			}
-			switch($this->model->validate())
+				
+			if($this->model->validate())
 			{
-				case true:
 				switch($this->model->getScenario())
 				{
 					case 'createContainer':
@@ -144,12 +139,7 @@ class ConfigurationController extends DefaultController
 					break;
 					
 					case 'createValue':
-					$view['data']['data'] = $this->model->create($this->model->section.'.'.$this->model->name,
-							$this->model->value,
-							$this->model->container,
-							null,
-							$this->model->engine);
-					$this->model->config('current.config', Session::getVal($this->model->uriOf($this->model->config('current.action.key'))));
+					$view['data']['data'] = $this->model->create($this->model->section.'.'.$this->model->name);
 					$view = [
 						'view' => 'values/value',
 						'data' => [
@@ -161,11 +151,7 @@ class ConfigurationController extends DefaultController
 					break;
 					
 					case 'createSection':
-					$this->model->create($this->model->value,
-							null,
-							$this->model->container,
-							null,
-							$this->model->engine);
+					$this->model->create();
 					$view = [
 						'view' => 'values/index',
 						'data' => [
@@ -175,9 +161,7 @@ class ConfigurationController extends DefaultController
 					];
 					break;
 				}
-				break;
 			}
-			break;
 		}
 		switch($this->model->config('current.action.success') && \Yii::$app->request->isAjax && (Helper::boolval(@$_REQUEST['getHtml']) === true))
 		{
@@ -202,43 +186,42 @@ class ConfigurationController extends DefaultController
 			switch($this->model->what)
 			{
 				case 'section':
-				switch($this->model->section && !is_null($section = $this->model->config(['current', 'config', $this->model->section])))
-				{
-					case true:
-					$this->model->config('current.config', (array)$section);
-					break;
+				if($this->model->section)
+				{			
+					$ret_val["success"] = true;
+					$ret_val["section"] = $this->model->section;
 					
-					default:
-					$this->model->config('current.config', []);
-					break;
-				}
-				$ret_val["success"] = true;
-				$ret_val["section"] = $this->model->section;
-				switch(Response::getFormat())
-				{
-					case 'html':
-					case 'modal';
-					$ret_val['data'] = $this->renderAjax('values/index', [
-						"model" => $this->model,
-						"values" => $this->model->config('current.config'),
-						"parent" => $this->model->section
-					]);
-					break;
-					
-					case 'json':
-					if(\Yii::$app->request->get("getHtml"))
+					if($this->model->section)
+						$values = $this->model->config('current.config.'.$this->model->section);
+					else
+						$values = $this->model->config('current.config');
+						
+					switch(Response::getFormat())
+					{
+						case 'html':
+						case 'modal';
 						$ret_val['data'] = $this->renderAjax('values/index', [
 							"model" => $this->model,
-							"values" => $this->model->config('current.config'),
+							"values" => $values,
 							"parent" => $this->model->section
-					]);
-					else
-						$ret_val['data'] = $this->model->config('current.config');
-					break;
-				
-					default:
-					$ret_val['data'] = $this->model->config('current.config');
-					break;
+						]);
+						break;
+						
+						case 'json':
+						if(\Yii::$app->request->get("getHtml"))
+							$ret_val['data'] = $this->renderAjax('values/index', [
+								"model" => $this->model,
+								"values" => $values,
+								"parent" => $this->model->section
+						]);
+						else
+							$ret_val['data'] = $values;
+						break;
+					
+						default:
+						$ret_val['data'] = $values;
+						break;
+					}
 				}
 				break;
 			}
@@ -258,37 +241,23 @@ class ConfigurationController extends DefaultController
 			case true:
 			$this->model->setScenario($this->action->id.ucfirst($_POST[$this->model->formName()]['what']));
 			$this->model->load($_POST);
-			switch(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
+			
+			if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
+				return \yii\widgets\ActiveForm::validate($this->model);
+				
+			if($this->model->validate())
 			{
-				case true:
-				return $this->model->validate();
-				break;
-			}
-			switch($this->model->validate())
-			{
-				case true:
 				switch($this->model->getScenario())
 				{
 					case 'deleteContainer':
-					//$this->model->update_container($this->model->value);
+					$this->model->deleteContainer($this->model->value, null, $this->model->engine);
 					break;
 					
 					case 'deleteValue':
-					$this->model->delete($this->model->name,
-							$this->model->container,
-							null,
-							$this->model->engine);
-					$this->model->config('current.config', Session::getVal($this->model->uriOf($this->model->config('current.action.key'))));
-					break;
-					
 					case 'deleteSection':
-					$this->model->delete($this->model->section,
-							$this->model->container,
-							null,
-							$this->model->engine);
+					$this->model->delete();
 					break;
 				}
-				break;
 			}
 			break;
 		}
@@ -302,41 +271,24 @@ class ConfigurationController extends DefaultController
 			case true:
 			$this->model->setScenario($this->action->id.ucfirst($_POST[$this->model->formName()]['what']));
 			$this->model->load($_POST);
-			switch(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
+			
+			if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
+				return \yii\widgets\ActiveForm::validate($this->model);
+				
+			if($this->model->validate())
 			{
-				case true:
-				return $this->model->validate();
-				break;
-			}
-			switch($this->model->validate())
-			{
-				case true:
 				switch($this->model->getScenario())
-				{
+				{					
 					case 'updateContainer':
-					//$this->model->update_container($this->model->value);
-					break;
-					
 					case 'updateValue':
-					/*if (is_array($this->model->container)) 
-					{
-						print_r($this->model->container); 
-						exit;
-					}*/
-					$this->model->update($this->model->name,
-							$this->model->value,
-							$this->model->container,
-							null,
-							$this->model->engine);
+					case 'updateSection':
+					$this->model->update();
 					break;
 					
-					case 'updateSection':
-					/*$this->model->create($this->model->value,
-							null,
-							$this->model->container);*/
+					case 'updateComment':
+					$this->model->comment();
 					break;
 				}
-				break;
 			}
 			break;
 		}

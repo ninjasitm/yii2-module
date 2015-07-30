@@ -340,7 +340,7 @@ class Helper extends Model
 					}
 					else if(is_object($model) && $model->hasMethod($attribute)) {
 						return call_user_func([$model, $attribute], $model);
-					} else {
+					} else if ($attribute && $model->hasAttribute($attribute)) {
 						return \yii\helpers\ArrayHelper::getValue($model, $attribute, ($discardEmpty ? null : $attribute));
 					}
 				}, (array)$attributes));

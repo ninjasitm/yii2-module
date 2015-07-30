@@ -2,18 +2,16 @@
 <?php
 	if($model->config('load.current'))
 	{
-		foreach($model->config('current.config') as $section=>$values)
-		{
+		$section = $model->section;
 ?>
-		<div class="list-group hidden" id="show_<?= $section ?>_div">
-			<?= $this->render('../values/index',  [
-				"model" => $model,
-				"values" => $values,
-				"parent" => $section
-			]);?>
-		</div>
+	<div class="list-group hidden" id="show_<?= $section ?>_div">
+		<?= $this->render('../values/index',  [
+			"model" => $model,
+			"values" => $model->config('current.config.'.$section),
+			"parent" => $section
+		]);?>
+	</div>
 <?php
-		}
 	}
 ?>
 </div>

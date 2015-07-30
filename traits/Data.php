@@ -1,6 +1,7 @@
 <?php
 namespace nitm\traits;
 
+use yii\helpers\Inflector;
 use nitm\helpers\ArrayHelper;
 use nitm\helpers\Cache as CacheHelper;
 
@@ -9,8 +10,11 @@ use nitm\helpers\Cache as CacheHelper;
  */
 trait Data {
 	
-	public $noDbInit = false;
+	public $noDbInit = true;
 	public $queryOptions = [];
+	
+	public $slugIs = [];
+	public static $_slugIs = [];
 	
 	protected $is;
 	protected static $_is;
@@ -24,7 +28,7 @@ trait Data {
 	public function setIs($is)
 	{
 		if(isset($this))
-			$this->is = $is;
+			$this->is = static::$_is = $is;
 		else
 			static:: $_is = $is;
 	}
@@ -32,23 +36,43 @@ trait Data {
 	/*
 	 * What does this claim to be?
 	 */
-	public function isWhat()
+	public function isWhat($pluralize=false)
 	{
-		$purify = function ($value) {
+		$slugify = function ($value) {
 			$stack = explode('\\', $value);
-			return strtolower(implode('-', preg_split('/(?=[A-Z])/', array_pop($stack), -1, PREG_SPLIT_NO_EMPTY)));
+			return Inflector::slug(implode(' ', preg_split('/(?=[A-Z])/', array_pop($stack), -1, PREG_SPLIT_NO_EMPTY)));
 		};
-		if(isset($this)){
-			$class = isset($this->is) ? $this->is : $this->className();
-			//If it's a model then get the instantiated $is value
-			return $purify($class);
-		} else {
+		
+		if(isset($this)) {
+			$class = $this->className();
+			if(isset($this->is))
+				return $this->is;
+			else
+				$ret_val = $this->className();
 			//Otherwise get the static class value
+		} else {
 			$class = get_called_class();
-			if(!isset($class::$_is))
-				$class::$_is = $purify($class);
-			return $class::$_is;
+			if(isset($class::$_is))
+				return $class::$_is;
+			else
+				$ret_val = $class;
 		}
+
+		$inflector = $pluralize ? 'pluralize' : 'singularize';
+		if(isset($this)) {
+			if(!isset($this->slugIs[$inflector]) && isset($class::$_slugIs[$inflector]))
+				$ret_val = $this->is = $this->slugIs[$inflector] = $class::$_slugIs[$inflector];
+			else if(!isset($this->slugIs[$inflector]))
+				$ret_val = $this->is = $class::$_slugIs[$inflector] = $this->slugIs[$inflector] = Inflector::$inflector($slugify($ret_val));
+			else
+				$ret_val = $this->is = $this->slugIs[$inflector];
+		} else {
+			if(!isset(static::$_slugIs[$inflector]))
+				$ret_val = $class::$_is = $class::$_slugIs[$inflector] = Inflector::$inflector($slugify($ret_val));
+			else
+				$ret_val = $class::$_is = $class::$_slugIs[$inflector];
+		}
+		return $ret_val;
 	}
 	
 	/**
