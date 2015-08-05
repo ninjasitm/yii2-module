@@ -47,11 +47,11 @@ class Dispatcher extends \yii\base\Component
 	protected static $_subject;
 	protected static $_body;
 	
-	protected $_data = [];
 	protected $_originUserId;
 	protected $_message;
 	protected $_notifications = [];
 	protected $_sendCount = 0;
+	protected $_store;
 	
 	private $_event;
 	private $_prepared = false;
@@ -69,22 +69,34 @@ class Dispatcher extends \yii\base\Component
 	
 	public function init()
 	{
-		$this->_data = new DispatcherData;
 		$this->attachToEvents([
 			self::EVENT_START => [$this, 'start'],
 			self::EVENT_PROCESS => [$this, 'process']
 		]);
 	}
 	
+	public function store()
+	{
+		if(!$this->_store instanceof DispatcherData)
+			$this->_store = new DispatcherData;
+		return $this->_store;
+	}
+	
 	public function reset()
 	{
-		$this->_data = new DispatcherData;
+		$this->_store = new DispatcherData;
 		$this->_prepared = false;
 		$this->resetMailerLayout();
 		$this->_message = null;
 		$this->_sendCount = 0;
 	}
 	
+	/**
+	 * Add events to the stack
+	 * @param \yii\base\Event $event object
+	 * @param string $for
+	 * @param strinrg $priority
+	 */
 	public function start($event, $for='any', $priority='any')
 	{
 		if(!\Yii::$app->getModule('nitm')->enableAlerts)
@@ -95,9 +107,9 @@ class Dispatcher extends \yii\base\Component
 
 		$this->_event = $event;
 
-		$this->_data->processEventData($this->_event->data, $this);
+		$this->store()->processEventData($this->_event->data, $this);
 		
-		$this->_alertStack[$this->_data->getKey($this->_event->sender)] = [
+		$this->_alertStack[$this->store()->getKey($this->_event->sender)] = [
 			'remote_type' => $this->_event->sender->isWhat(),
 			'remote_for' => $for,
 			'priority' => $priority,
@@ -131,8 +143,8 @@ class Dispatcher extends \yii\base\Component
 		$this->_event = $event;
 		$this->prepare($event);
 		
-		$this->_data->criteria('remote_id', $this->_event->sender->getId());
-		if($this->_data->criteria('action')) {
+		$this->store()->criteria('remote_id', $this->_event->sender->getId());
+		if($this->store()->criteria('action')) {
 			$this->prepare($event);
 			if($this->isPrepared()) {
 				//First check to see if this specific alert exits
@@ -148,26 +160,34 @@ class Dispatcher extends \yii\base\Component
 		$event->handled = true;
 	}
 	
+	/**
+	 * Prepare an event 
+	 * @param \yii\base\Event $event
+	 */
 	public function prepare($event)
 	{
-		$this->_data->processEventData($event->data, $this);
+		$this->store()->processEventData($event->data, $this);
 		$basedOn = array_merge(
-			(array)ArrayHelper::remove($this->_alertStack, $this->_data->getKey($this->_event->sender)), 
+			(array)ArrayHelper::remove($this->_alertStack, $this->store()->getKey($this->_event->sender)), 
 			(array)$this->_event->data
 		);
 		
 		if(is_array($basedOn))
 		{
 			$basedOn['action'] = ArrayHelper::getValue($basedOn, 'action', ($this->_event->sender->isNewRecord === true ? 'create' : 'update'));
-			$this->_data->reportedAction = ArrayHelper::getValue($basedOn, 'reportedAction', $basedOn['action'].'d');
+			$this->store()->reportedAction = ArrayHelper::getValue($basedOn, 'reportedAction', $basedOn['action'].'d');
 			
-			$this->_data->criteria(array_intersect_key(ArrayHelper::getValue($basedOn, 'criteria', []), array_flip($this->matchCriteria)));
+			$this->store()->criteria(array_intersect_key(ArrayHelper::getValue($basedOn, 'criteria', []), array_flip($this->matchCriteria)));
 			
 			$this->_event->data = array_diff_key($basedOn, array_flip($this->matchCriteria));
 			$this->_prepared = true;
 		}
 	}
 	
+	/**
+	 * Is the alert prepared?
+	 * @return boolean
+	 */
 	public function isPrepared()
 	{
 		return $this->_prepared === true;
@@ -182,10 +202,10 @@ class Dispatcher extends \yii\base\Component
 	{
 		$this->_originUserId = $originUserId;
 		
-		return $this->findSpecific($this->_data->criteria())
-			->union($this->findOwner($this->_originUserId, $this->_data->criteria()))
-			->union($this->findListeners($this->_data->criteria()))
-			->union($this->findGlobal($this->_data->criteria()))
+		return $this->findSpecific($this->store()->criteria())
+			->union($this->findOwner($this->_originUserId, $this->store()->criteria()))
+			->union($this->findListeners($this->store()->criteria()))
+			->union($this->findGlobal($this->store()->criteria()))
 			->indexBy('user_id')
 			->with('user')
 			->asArray()
@@ -218,7 +238,7 @@ class Dispatcher extends \yii\base\Component
 	public static function findSelf($author_id, array $criteria)
 	{
 		$criteria['user_id'] = $author_id;
-		$criteria['action'] = 'i_'.$this->_data->criteria('action');
+		$criteria['action'] = 'i_'.$this->store()->criteria('action');
 		$criteria['remote_type'] = array_unique([ArrayHelper::getValue($criteria, 'remote_type', 'any'), 'any']);
 		$criteria['remote_for'] = array_unique([ArrayHelper::getValue($criteria, 'remote_for', 'any'), 'any']);
 		$criteria['priority'] = array_unique([ArrayHelper::getValue($criteria, 'priority', 'any'), 'any']);
@@ -313,6 +333,13 @@ class Dispatcher extends \yii\base\Component
 			->with('user');
 	}
 	
+	/**
+	 * Send out the alerts based ont he dispatch method
+	 * @param array $compose
+	 * @param int $ownerId
+	 * @param array|null $alerts
+	 * @return boolean
+	 */
 	public function sendAlerts($compose, $ownerId, $alerts=null)
 	{
 		if(!is_array($alerts))
@@ -338,16 +365,16 @@ class Dispatcher extends \yii\base\Component
 					 * Only send global emails based on what the user preferrs in their profile. 
 					 * For specific alerts those are based ont he alert settings
 					 */
-					$users = $this->_data->getUsers();
-					$to['global'] = array_merge_recursive($to['global'], $this->_data->getAddresses($alert['methods'], $users, true));
+					$users = $this->store()->getUsers();
+					$to['global'] = array_merge_recursive($to['global'], $this->store()->getAddresses($alert['methods'], $users, true));
 					break;
 					
 					case $alert['user']['id'] == $this->_originUserId:
-					$to['owner'] = array_merge_recursive($to['owner'], $this->_data->getAddresses($alert['methods'], $alert['user']));
+					$to['owner'] = array_merge_recursive($to['owner'], $this->store()->getAddresses($alert['methods'], $alert['user']));
 					break;
 					
 					default:
-					$to['individual'] = array_merge_recursive($to['individual'], $this->_data->getAddresses($alert['methods'], $alert['user']));
+					$to['individual'] = array_merge_recursive($to['individual'], $this->store()->getAddresses($alert['methods'], $alert['user']));
 					break;
 				}
 			}
@@ -364,8 +391,8 @@ class Dispatcher extends \yii\base\Component
 		
 		if(\Yii::$app->getModule('nitm')->enableLogger && $this->_sendCount) {
 			$logger = \Yii::$app->getModule('nitm')->logger;
-			$logger->log(array_merge($this->_data->criteria(), [
-				'message' => "Sent ".$this->_sendCount." alerts to destinations.\n\nCriteria: ".json_encode($this->_data->criteria(), JSON_PRETTY_PRINT)."\n\nRecipients: ".json_encode(array_map(function (&$group) {
+			$logger->log(array_merge($this->store()->criteria(), [
+				'message' => "Sent ".$this->_sendCount." alerts to destinations.\n\nCriteria: ".json_encode($this->store()->criteria(), JSON_PRETTY_PRINT)."\n\nRecipients: ".json_encode(array_map(function (&$group) {
 					return array_map(function ($recipients) {
 						return array_map(function($recipient) {
 							return ArrayHelper::getValue($recipient, 'user', []);
@@ -386,6 +413,9 @@ class Dispatcher extends \yii\base\Component
 		return true;
 	}
 	
+	/**
+	 * Change the mailer layout
+	 */
 	protected function setMailerLayout()
 	{
 		foreach($this->_supportedLayouts as $layout)
@@ -396,6 +426,9 @@ class Dispatcher extends \yii\base\Component
 		}
 	}
 	
+	/**
+	 * Reset the mailer layout
+	 */
 	protected function resetMailerLayout()
 	{
 		foreach($this->_oldLayouts as $layout=>$path)
@@ -421,11 +454,11 @@ class Dispatcher extends \yii\base\Component
 			//Send the emails/mobile alerts
 			
 			//Get the subject
-			static::$_subject = $this->_data->extractParam('view', ArrayHelper::getValue($compose, 'subject', $this->defaultSubject));
+			static::$_subject = $this->store()->extractParam('view', ArrayHelper::getValue($compose, 'subject', $this->defaultSubject));
 			
 			foreach($types as $type=>$unmappedAddresses)
 			{
-				$addresses = $this->_data->getAddressNameMap($unmappedAddresses);
+				$addresses = $this->store()->getAddressNameMap($unmappedAddresses);
 				switch($this->mode)
 				{
 					case 'single':
@@ -449,23 +482,31 @@ class Dispatcher extends \yii\base\Component
 		return $ret_val;
 	}
 	
+	/**
+	 * Format the message being sent
+	 * @param string $type
+	 * @param string $scope
+	 * @param mixed $message
+	 * @param array $address
+	 * @param \nitm\models\User | null
+	 */
 	protected function formatMessage($type, $scope, $message, $address, $user=null)
 	{
 		$params = [
 			"subject" => self::$_subject,
-			"content" => @$this->_data->extractParam('view', $message)
+			"content" => @$this->store()->extractParam('view', $message)
 		];
 		
 		switch($scope)
 		{
 			case 'owner':
-			$this->_data->variables('%bodyDt%', 'your');
-			$this->_data->variables('%subjectDt%', $this->_data->variables('%bodyDt%'));
+			$this->store()->variables('%bodyDt%', 'your');
+			$this->store()->variables('%subjectDt%', $this->store()->variables('%bodyDt%'));
 			break;
 			
 			default:
-			$this->_data->variables('%bodyDt%', (($this->_data->criteria('action') == 'create') ? 'a' : 'the'));
-			$this->_data->variables('%subjectDt%', $this->_data->variables('%bodyDt%'));
+			$this->store()->variables('%bodyDt%', (($this->store()->criteria('action') == 'create') ? 'a' : 'the'));
+			$this->store()->variables('%subjectDt%', $this->store()->variables('%bodyDt%'));
 			break;
 		}
 		
@@ -487,7 +528,7 @@ class Dispatcher extends \yii\base\Component
 			$view = ['text' => rtrim($this->mailViewsPath).DIRECTORY_SEPARATOR.'message/mobile'];
 			break;
 		}
-		$params = $this->_data->replaceCommon($params);
+		$params = $this->store()->replaceCommon($params);
 		$this->_message = \Yii::$app->mailer->compose($view, $params)->setTo($address);
 		switch($type)
 		{
@@ -501,6 +542,10 @@ class Dispatcher extends \yii\base\Component
 		}
 	}
 	
+	/**
+	 * Send the message/alert
+	 * @return boolean
+	 */
 	protected function send()
 	{
 		if(!is_null($this->_message))
@@ -515,6 +560,11 @@ class Dispatcher extends \yii\base\Component
 			return false;
 	}
 	
+	/**
+	 * Add a notification tot he notification table
+	 * @param string message
+	 * @param array $addresses
+	 */
 	protected function addNotification($message, $addresses)
 	{
 		foreach((array)$addresses as $address)
@@ -525,7 +575,7 @@ class Dispatcher extends \yii\base\Component
 				case false:
 				$this->_notifications[$userId] = [
 					$message,
-					$this->_data->criteria('priority'),
+					$this->store()->criteria('priority'),
 					$userId 
 				];
 				break;
@@ -533,11 +583,13 @@ class Dispatcher extends \yii\base\Component
 		}
 	}
 	
+	/**
+	 * Send the stored notifications
+	 * @return boolean
+	 */
 	protected function sendNotifications()
 	{
-		switch(is_array($this->_notifications) && !empty($this->_notifications))
-		{
-			case true:
+		if(is_array($this->_notifications) && !empty($this->_notifications)) {
 			$keys = [
 				'message',
 				'priority',
@@ -548,23 +600,33 @@ class Dispatcher extends \yii\base\Component
 				$keys, 
 				array_values($this->_notifications)
 			)->execute();
-			break;
+			return true;
 		}
+		return false;
 	}
 	
+	/**
+	 * Get the mobile messgae
+	 * @param string | array $original
+	 * @return string the new message
+	 */
 	protected function getMobileMessage($original)
 	{
-		switch(is_array($original))
-		{
-			case true:
-			$original = $this->_data->extractParam('view', $original, 'mobile');
-			break;
-		}
-		$original = $this->_data->replaceCommon($original);
+		if(is_array($original))
+			$original = $this->store()->extractParam('view', $original, 'mobile');
+			
+		$original = $this->store()->replaceCommon($original);
 		//140 characters to be able to send a single SMS
 		return strip_tags(strlen($original) <= 140 ? $original : substr($original, 0, 140).'...');
 	}
 	
+	/**
+	 * Get the email message
+	 * @param string | array $original
+	 * @param array $user
+	 * @param string $scope
+	 * @return string email message
+	 */
 	protected function getEmailMessage($original, $user, $scope)
 	{
 		//140 characters to be able to send a single SMS
@@ -578,9 +640,15 @@ class Dispatcher extends \yii\base\Component
 		return nl2br($original.$this->getFooter($scope, $alert));
 	}
 	
+	/**
+	 * Get the footer
+	 * @param string $scope
+	 * @param array | null $alert
+	 * @return string the footer
+	 */
 	private function getFooter($scope, $alert=null)
 	{	
-		$alert = is_array($alert) ? $alert : $this->_data->criteria();
+		$alert = is_array($alert) ? $alert : $this->store()->criteria();
 		switch($scope)
 		{
 			case 'global':
@@ -592,15 +660,16 @@ class Dispatcher extends \yii\base\Component
 			break;
 		}
 		if(isset($alert['priority']) && !is_null($alert['priority']))
-		$footer .= "Priority: <b>".ucfirst($alert['priority'])."</b>, ";
+			$footer .= "Priority: <b>".ucfirst($alert['priority'])."</b>, ";
 		if(isset($alert['remote_type']) && !is_null($alert['remote_type']))
-		$footer .= "Type: <b>".ucfirst($alert['remote_type'])."</b>, ";
+			$footer .= "Type: <b>".ucfirst($alert['remote_type'])."</b>, ";
 		if(isset($alert['remote_id']) && !is_null($alert['remote_id']))
-		$footer .= "Id: <b>".$alert['remote_id']."</b>, ";
+			$footer .= "Id: <b>".$alert['remote_id']."</b>, ";
 		if(isset($alert['remote_for']) && !is_null($alert['remote_for']))
-		$footer .= "For: <b>".ucfirst($alert['remote_for'])."</b>, ";
-		if(isset($alert['action']) || !empty($this->_data->getReportedAction($this->_event)))
-		$footer .= "and Action <b>".Alerts::properName($this->_data->getReportedAction($this->_event))."</b>";
+			$footer .= "For: <b>".ucfirst($alert['remote_for'])."</b>, ";
+		if(isset($alert['action']) || !empty($this->store()->getReportedAction($this->_event)))
+			$footer .= "and Action <b>".Alerts::properName($this->store()->getReportedAction($this->_event))."</b>";
+		
 		$footer .= ". Go ".Html::a("here", \Yii::$app->urlManager->createAbsoluteUrl("/user/settings/alerts"))." to change your alerts";
 		$footer .= "\n\nSite: ".Html::a(\Yii::$app->urlManager->createAbsoluteUrl('/'), \Yii::$app->homeUrl);
 			

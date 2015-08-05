@@ -236,23 +236,14 @@ class DispatcherData
 				switch($method)
 				{
 					case 'email':
-					switch(1)
-					{
-						case ($uri = (is_object($user['profile']) ? $user['profile']['public_email'] : $user['email'])) != '':
-						break;
-						
-						default:
-						$uri = $user['email'];
-						break;
-					}
+					$uri = ArrayHelper::getValue($user, 'profile.public_email', ArrayHelper::getValue($user, 'email'));
 					break;
 					
 					default:
-					$uri = is_array($user['profile']) ? $user['profile'][$method.'_email'] : null;
+					$uri = ArrayHelper::getValue($user, 'profile.'.$method.'_email', null);
 					break;
 				}
-				if(!empty($uri))
-				{
+				if(is_string($uri)) {
 					$name = $user['profile']['name'];
 					$id = !$user['id'] ? 'global' : $user['id'];
 					$ret_val[$method][$id] = [$uri => (!$name ? $uri : $name), 'user' => $user];

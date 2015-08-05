@@ -35,43 +35,59 @@ trait Data {
 	
 	/*
 	 * What does this claim to be?
+	 * @param bollean|null $pluralize Should the returnvalue be pluralized or singularized. WHen set to null nothing is done
+	 * @param boolean $forceClassType resolution Don't check for type if this is set to type
 	 */
-	public function isWhat($pluralize=false)
+	public function isWhat($pluralize=null, $forceClassType=false)
 	{
 		$slugify = function ($value) {
 			$stack = explode('\\', $value);
 			return Inflector::slug(implode(' ', preg_split('/(?=[A-Z])/', array_pop($stack), -1, PREG_SPLIT_NO_EMPTY)));
 		};
 		
-		if(isset($this)) {
-			$class = $this->className();
+		if(isset($this) && is_null($pluralize)) {
 			if(isset($this->is))
 				return $this->is;
+			else if(!$forceClassType && $this->hasMethod('type') && !empty($this->type()))
+				$ret_val = $this->type();
 			else
 				$ret_val = $this->className();
+			$class = $this->className();
 			//Otherwise get the static class value
 		} else {
 			$class = get_called_class();
-			if(isset($class::$_is))
+			if(isset($class::$_is) && is_null($pluralize))
 				return $class::$_is;
+			else if(!$forceClassType && method_exists($class, 'type') && !empty($class::type()))
+				$ret_val = $class::type();
 			else
 				$ret_val = $class;
 		}
-
-		$inflector = $pluralize ? 'pluralize' : 'singularize';
+		
+		$inflector = $pluralize === true ? 'pluralize' : 'singularize';
+		
 		if(isset($this)) {
-			if(!isset($this->slugIs[$inflector]) && isset($class::$_slugIs[$inflector]))
-				$ret_val = $this->is = $this->slugIs[$inflector] = $class::$_slugIs[$inflector];
-			else if(!isset($this->slugIs[$inflector]))
-				$ret_val = $this->is = $class::$_slugIs[$inflector] = $this->slugIs[$inflector] = Inflector::$inflector($slugify($ret_val));
-			else
-				$ret_val = $this->is = $this->slugIs[$inflector];
+			if(!isset($this->slugIs[$inflector]) && isset($class::$_slugIs[$inflector][$ret_val])) {
+				$ret_val = $this->slugIs[$inflector] = $class::$_slugIs[$inflector][$ret_val];
+			} else if(!isset($this->slugIs[$inflector])) {
+				$ret_val = $class::$_slugIs[$inflector][$ret_val] = $this->slugIs[$inflector] = Inflector::$inflector($slugify($ret_val));
+			} else
+				$ret_val = $this->slugIs[$inflector];
+				
+			//If we didn't set the inflector then set the is value to the return value
+			if(is_null($pluralize) && !isset($this->is))
+				$this->is = $ret_val;
 		} else {
-			if(!isset(static::$_slugIs[$inflector]))
-				$ret_val = $class::$_is = $class::$_slugIs[$inflector] = Inflector::$inflector($slugify($ret_val));
+			if(!isset($class::$_slugIs[$inflector][$ret_val]))
+				$ret_val = $class::$_slugIs[$inflector][$ret_val] = Inflector::$inflector($slugify($ret_val));
 			else
-				$ret_val = $class::$_is = $class::$_slugIs[$inflector];
+				$ret_val = $class::$_slugIs[$inflector][$ret_val];
+
+			//If we didn't set the inflector then set the $_is value to the return value
+			if(is_null($pluralize) && !isset($class::$_is))
+				$class::$_is = $ret_val;
 		}
+			
 		return $ret_val;
 	}
 	
@@ -260,6 +276,9 @@ trait Data {
 		if(CacheHelper::cache()->exists($cacheKey))
 			$ret_val = CacheHelper::cache()->get($cacheKey);
 		else {
+			if(!isset($queryOptions['orderBy']))
+				$queryOptions['orderBy'] = [(is_array($label) ? end($label) : $label) => SORT_ASC];
+			
 			$items = self::locateItems($queryOptions);
 			switch(count($items) >= 1)
 			{
@@ -285,7 +304,7 @@ trait Data {
 	 * @param mixed $separator
 	 * @return array
 	 */
-	public function getJsonList($labelField='name', $separator=null, $options=[], $key=null)
+	public function getJsonList($label='name', $separator=null, $options=[], $key=null)
 	{
 		$class = $this->locateClassForItems($options);
 
@@ -302,7 +321,7 @@ trait Data {
 				$_ = [
 					"id" => $item->getId(),
 					"value" => $item->getId(), 
-					"text" =>  $item->$labelField, 
+					"text" =>  $item->$label, 
 					"label" => static::getLabel($item, $label, $separator)
 				];
 				if(isset($options['with']))
@@ -312,7 +331,13 @@ trait Data {
 						switch($attribute)
 						{
 							case 'htmlView':
-							$view = isset($options['view']['file']) ? $options['view']['file'] : "/".$item->isWhat()."/view";
+							$view = \Yii::$app->getViewPath();
+							if(!isset($options['view']['file'])) {
+								if(file_exists(\Yii::getAlias($path.$item->isWhat(true).'/view.php')))
+									$view = "/".$item->isWhat(true)."/view";
+								else if(file_exists(\Yii::getAlias($path.$item->isWhat().'/view.php')))
+									$view = "/".$item->isWhat()."/view";
+							}
 							$viewOptions = isset($options['view']['options']) ? $options['view']['options'] : ["model" => $item];
 							$_['html'] = \Yii::$app->getView()->renderAjax($view, $viewOptions);
 							break;

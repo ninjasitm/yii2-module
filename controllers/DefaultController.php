@@ -9,9 +9,7 @@ use nitm\helpers\Response;
 use nitm\helpers\Helper;
 
 class DefaultController extends BaseController
-{	
-	use \nitm\widgets\traits\Widgets;
-	
+{
 	public $boolResult;
 	/**
 	 * Redirect requests to the index page to the search function by default
@@ -141,7 +139,7 @@ class DefaultController extends BaseController
 			], $createOptions), 'Create'),
 			'filterButton' => $this->getFilterButton($filterOptions),
 			'filterCloseButton' => $this->getFilterButton($filterOptions, 'Close'),
-			'isWhat' => $this->model->isWhat()
+			'isWhat' => $this->model->isWhat(true)
 		], (array)@$options['viewOptions']);
 		
 		Response::viewOptions(null, [
@@ -200,7 +198,7 @@ class DefaultController extends BaseController
 		}
 			
 		if(!Response::viewOptions('scripts'))	
-			Response::viewOptions('scripts', new \yii\web\JsExpression("\$nitm.onModuleLoad('entity', function (){\$nitm.module('entity').initForms(null, '".$this->model->isWhat()."').initMetaActions(null, '".$this->model->isWhat()."');})"));
+			Response::viewOptions('scripts', new \yii\web\JsExpression("\$nitm.onModuleLoad('entity', function (){\$nitm.module('entity').initForms(null, '".$this->model->isWhat(true)."').initMetaActions(null, '".$this->model->isWhat(true)."');})"));
 				
 		Response::viewOptions('title', Response::viewOptions('title') ? 
 \nitm\helpers\Form::getTitle($this->model, ArrayHelper::getValue(Response::viewOptions(), 'title', [])) : '');
@@ -259,7 +257,7 @@ class DefaultController extends BaseController
 				\Yii::$app->getSession()->setFlash('success', "Added metadata");
 				break;
 			}
-			Response::viewOptions("view", '/'.$this->model->isWhat().'/view');
+			Response::viewOptions("view", '/'.$this->id.'/view');
         } else {
 			if(!empty($post)) {
 				$result['message'] = implode('<br>', array_map(function ($value) {
@@ -275,7 +273,7 @@ class DefaultController extends BaseController
 			 * If the save failed, we're most likely going back to the form so get the form variables
 			 */
 			Response::viewOptions(null, array_merge($this->getVariables($this->model->isWhat()), [
-				"view" => '/'.$this->model->isWhat().'/create'
+				"view" => '/'.$this->id.'/create'
 			]), true);
         }
 		
@@ -632,7 +630,7 @@ class DefaultController extends BaseController
 			'toggleButton' => [
 				'tag' => 'a',
 				'label' => Icon::forAction('plus')." ".$text, 
-				'href' => \Yii::$app->urlManager->createUrl(['/'.$this->model->isWhat().'/form/create', '__format' => 'modal']),
+				'href' => \Yii::$app->urlManager->createUrl(['/'.$this->id.'/form/create', '__format' => 'modal']),
 				'title' => \Yii::t('yii', "Add a new ".$this->model->properName($this->model->isWhat())),
 				'role' => 'dynamicAction createAction disabledOnClose',
 				'class' => 'btn btn-success btn-lg'

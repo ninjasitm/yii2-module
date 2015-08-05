@@ -87,9 +87,10 @@ abstract class BaseStore extends \yii\base\Object
 	 * @param string|int $key
 	 * @param mixed $value
 	 * @param string|int $container
+	 * @param boolean Is this a section?
 	 * @return mixed
 	 */
-	abstract public function create($key, $value, $container);
+	abstract public function create($key, $value, $container, $isSection=false);
 	
 	/*
 	 * Handle updating
@@ -97,18 +98,20 @@ abstract class BaseStore extends \yii\base\Object
 	 * @param string|int $key
 	 * @param mixed $value
 	 * @param string|int $container
+	 * @param boolean Is this a section?
 	 * @return mixed
 	 */
-	abstract public function update($id, $key, $value, $container);
+	abstract public function update($id, $key, $value, $container, $isSection=false);
 	
 	/*
 	 * Handle deleting in DB or in file to simplify delete function
 	 * @param int $id
 	 * @param string|int $key
 	 * @param string|int $container
+	 * @param boolean Is this a section?
 	 * @return mixed
 	 */
-	abstract public function delete($id, $key, $container);
+	abstract public function delete($id, $key, $container, $isSection=false);
 	
 	/**
 	 * Create a container: file, db entry...etc
@@ -161,26 +164,15 @@ abstract class BaseStore extends \yii\base\Object
 	{
 		$hierarchy = is_array($key) ? $key : explode('.', $key);
 		$size = count($hierarchy);
-		$name = $size == 5 ? $hierarchy[4] : ($size == 3 ? $hierarchy[2] : null);
 		
-		if($updating)
-			$sectionName = $size == 5 ? $hierarchy[3] : $hierarchy[1];
-		else
-			$sectionName = $size == 4 ? $hierarchy[3] : $hierarchy[1];
-			
-		$isSection = $this->isSection($hierarchy);	
+		$name = end($hierarchy);
+		$sectionName = $size == 2 ? $hierarchy[0] : $hierarchy[$size - 2];
+
 		return [
 			'name' => $name, 
 			'sectionName' => $sectionName, 
 			'hierarchy' => $hierarchy,
-			'isSection' => $isSection,
-			'isValue' => !$isSection
 		];
-	}
-	
-	protected function isSection($hierarchy)
-	{
-		return count($hierarchy) == 2 || count($hierarchy) == 4;
 	}
 	
 	protected function getLastChecked()

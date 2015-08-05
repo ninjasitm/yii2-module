@@ -56,7 +56,7 @@ class Entity extends Data
 		foreach(['created_at', 'updated_at', 'resolved_at', 'completed_at', 'disabled_at'] as $dateAttribute)
 		{
 			if($event->sender->hasAttribute($dateAttribute)) {
-				$attribute = '%'.\nitm\models\Data::properName($dateAttribute).'%';
+				$attribute = '%'.\nitm\helpers\ClassHelper::variableName($dateAttribute).'%';
 				$date = $event->sender->$dateAttribute instanceof \yii\db\Expression ? strtotime('now') : $event->sender->$dateAttribute;
 				$options['variables'][$attribute] = \Yii::$app->formatter->asDatetime($date);
 			}

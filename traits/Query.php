@@ -124,14 +124,15 @@ trait Query {
 					break;
 				}
 			}
+			
 			foreach($filters as $type=>$args)
 			{
 				try {
 					$query->$type($args);
 					unset($filters[$type]);
-				} catch (\Exception $e) {
-				}
+				} catch (\Exception $e) {}
 			}
+			
 			//now search for conditional filters
 			/*if(is_object($filters))
 			{

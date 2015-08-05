@@ -127,8 +127,10 @@ class ConfigurationController extends DefaultController
 			$this->model->setScenario($this->action->id.ucfirst($_POST[$this->model->formName()]['what']));
 			$this->model->load($_POST);
 			
-			if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
+			if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true)) {
+				$this->setResponseFormat('json');
 				return \yii\widgets\ActiveForm::validate($this->model);
+			}
 				
 			if($this->model->validate())
 			{
@@ -242,8 +244,10 @@ class ConfigurationController extends DefaultController
 			$this->model->setScenario($this->action->id.ucfirst($_POST[$this->model->formName()]['what']));
 			$this->model->load($_POST);
 			
-			if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
+			if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true)) {
+				$this->setResponseFormat('json');
 				return \yii\widgets\ActiveForm::validate($this->model);
+			}
 				
 			if($this->model->validate())
 			{
@@ -272,8 +276,10 @@ class ConfigurationController extends DefaultController
 			$this->model->setScenario($this->action->id.ucfirst($_POST[$this->model->formName()]['what']));
 			$this->model->load($_POST);
 			
-			if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true))
+			if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true)) {
+				$this->setResponseFormat('json');
 				return \yii\widgets\ActiveForm::validate($this->model);
+			}
 				
 			if($this->model->validate())
 			{

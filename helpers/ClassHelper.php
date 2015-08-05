@@ -4,6 +4,7 @@ namespace nitm\helpers;
 
 use yii\db\ActiveRecord;
 use yii\base\Model;
+use yii\helpers\Inflector;
 
 
 class ClassHelper extends Model
@@ -14,10 +15,19 @@ class ClassHelper extends Model
 	 * @param string $name
 	 * @return string
 	 */
+	public static function variableName($value)
+	{
+		return Inflector::variablize($value);
+	}
+	
+	/*
+	 * Return a string imploded with ucfirst characters
+	 * @param string $name
+	 * @return string
+	 */
 	public static function properName($value)
 	{
-		$ret_val = preg_replace('/[\-\_]/', " ", $value);
-		return implode(' ', array_map('ucfirst', explode(' ', $ret_val)));
+		return Inflector::humanize($value);
 	}
 	
 	/*
@@ -27,8 +37,7 @@ class ClassHelper extends Model
 	 */
 	public static function properFormName($value)
 	{
-		$ret_val = preg_replace('/[\-\_]/', " ", $value);
-		return implode('', array_map('ucfirst', explode(' ', $ret_val)));
+		return Inflector::camelize($value);
 	}
 	
 	/*

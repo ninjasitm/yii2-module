@@ -21,11 +21,11 @@ trait Configer {
 		if($module && $module->enableConfig)
 		{
 			$hierarchy = explode('.', $setting);
-			$isWhat = isset($this) ? $this->isWhat() : static::isWhat();
+			$isWhat = isset($this) ? $this->isWhat(true) : static::isWhat(true);
 			switch($hierarchy[0])
 			{
 				case '@':
-				array_pop($hierarchy[0]);
+				array_pop($hierarchy);
 				break;
 				
 				case $isWhat:
@@ -36,8 +36,8 @@ trait Configer {
 				default:
 				array_unshift($hierarchy, $isWhat);
 				break;
-			}		
-			return $module->config->get(implode('.', $hierarchy));
+			}
+			return $module->config->get(implode('.', array_filter($hierarchy)));
 		}
 	}
 	

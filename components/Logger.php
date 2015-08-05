@@ -9,6 +9,8 @@ use nitm\helpers\Network;
 
 class Logger extends \yii\log\Logger
 {
+	use \nitm\traits\EventTraits;
+	
 	//constant data
 	const LT_FILE = 'file';
 	const LT_DB = 'db';
@@ -25,6 +27,11 @@ class Logger extends \yii\log\Logger
 	public $type;
 	public $currentUser;
 	
+	//For Logger events
+	const EVENT_START = 'nitm.logger.process';
+	const EVENT_PROCESS = 'nitm.logger.process';
+	const EVENT_END = 'nitm.logger.end';
+	
 	public function init()
 	{
 		parent::init();
@@ -32,13 +39,12 @@ class Logger extends \yii\log\Logger
 			
 		if(!$this->dispatcher instanceof \yii\log\Dispatcher)
 			$this->initDispatcher();
-	}
-	
-	public function behaviors()
-	{
-		$behaviors = [
-		];
-		return array_merge(parent::behaviors(), $behaviors);
+			
+		$this->attachToEvents([
+			self::EVENT_START => [$this, 'process'],
+			self::EVENT_PROCESS => [$this, 'process'],
+			self::EVENT_END => [$this, 'flush']
+		]);
 	}
 	
 	public function initTargets($refresh=false)
@@ -80,6 +86,10 @@ class Logger extends \yii\log\Logger
 		return $this;
 	}
 	
+	/**
+	 * Temporarily change the collection name
+	 * @param string $newName
+	 */
 	public function changeCollectionName($newName=null)
 	{
 		if(is_null($newName)) {
@@ -96,35 +106,31 @@ class Logger extends \yii\log\Logger
 	
 	//- end write
 	
-	//function to add db transaction
+	/**
+	  * Proces a log event
+	  * @param \yii\base\Event $event
+	  * @return boolean
+	  */
+	public function process($event)
+	{
+		$event->handled = $this->log($event->data, ArrayHelper::remove($event->data, 'collectionName', null));
+		return $event->handled;
+	}
+	
+	/**
+	 * Log data
+	 * @param array $array
+	 * @param string $collectionName
+	 * @return Logger $this
+	 */
 	public function log($array, $collectionName=null)
 	{
-		if(\Yii::$app->getModule('nitm')->enableLogger && (is_array($array) && $array != []))
+		if(is_array($array) && $array != [])
 		{
-			$parser = (\UAParser\Parser::create());
-			$r = $parser->parse(!\Yii::$app->request->userAgent ? $_SERVER['SERVER_SOFTWARE'] : \Yii::$app->request->userAgent);
-			$baseInfo = [
-				'ua_family' => $r->ua->family,
-				'ua_version' => implode('.', array_filter([$r->ua->major, $r->ua->minor])).($r->ua->patch ? '-'.$r->ua->patch : ''),
-				'os_family' => $r->os->family,
-				'os_version' => implode('.', array_filter([$r->os->major, $r->os->minor])).($r->os->patch ? '-'.$r->os->patch : ''),
-				'device_family' => $r->device->family,
-				'request_method' => \Yii::$app->request->method,
-				'user_agent' => \Yii::$app->request->userAgent,
-				'action' => 'log',
-				'db_name' => \nitm\models\DB::getDefaultDbName(),
-				'table_name' => 'logger',
-				'user' => $this->currentUser->username,
-				'user_id' => $this->currentUser->getId(),
-				'ip_addr' => !\Yii::$app->request->userIp ? 'localhost' : \Yii::$app->request->userIp,
-				'host' => !\Yii::$app->request->userHost ? 'localhost' : \Yii::$app->request->userHost,
-				'error_level' => 0
-			];
-			
 			$keys = array_flip([
 				'message', 'level', 'internal_category', 'timestamp', 'category'
 			]);
-			$array = array_replace($keys, array_intersect_key((array)$array, $keys)) + (array)array_diff_key((array)$array, $keys) + $baseInfo;
+			$array = array_replace($keys, array_intersect_key((array)$array, $keys)) + (array)array_diff_key((array)$array, $keys) + $this->getBaseInfo();
 			
 			if(is_string($collectionName))
 				$this->messages[$collectionName.':'.uniqid()] = $array;
@@ -134,6 +140,46 @@ class Logger extends \yii\log\Logger
 		return $this;
 	}
 	//end fucntion
+	
+	/**
+	 * Determine whether this level is loggable
+	 * @param int $level
+	 * @return boolean the data can be stored for logging
+	 */
+	public function canLog($level=null)
+	{
+		if($level != null && $level >= 0)
+			return (int)$level <= (int)$this->level;
+		else
+			return false; 
+	}
+	
+	/**
+	 * Return some general log info
+	 * @return array
+	 */
+	protected function getBaseInfo()
+	{
+		$parser = (\UAParser\Parser::create());
+		$r = $parser->parse(!\Yii::$app->request->userAgent ? $_SERVER['SERVER_SOFTWARE'] : \Yii::$app->request->userAgent);
+		return [
+			'ua_family' => $r->ua->family,
+			'ua_version' => implode('.', array_filter([$r->ua->major, $r->ua->minor])).($r->ua->patch ? '-'.$r->ua->patch : ''),
+			'os_family' => $r->os->family,
+			'os_version' => implode('.', array_filter([$r->os->major, $r->os->minor])).($r->os->patch ? '-'.$r->os->patch : ''),
+			'device_family' => $r->device->family,
+			'request_method' => \Yii::$app->request->method,
+			'user_agent' => \Yii::$app->request->userAgent,
+			'action' => 'log',
+			'db_name' => \nitm\models\DB::getDefaultDbName(),
+			'table_name' => 'logger',
+			'user' => $this->currentUser->username,
+			'user_id' => $this->currentUser->getId(),
+			'ip_addr' => !\Yii::$app->request->userIp ? 'localhost' : \Yii::$app->request->userIp,
+			'host' => !\Yii::$app->request->userHost ? 'localhost' : \Yii::$app->request->userHost,
+			'error_level' => 0
+		];
+	}
 }
 // end log class 
 ?>

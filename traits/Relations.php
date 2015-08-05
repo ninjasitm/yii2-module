@@ -4,6 +4,7 @@ namespace nitm\traits;
 use nitm\helpers\Cache;
 use nitm\helpers\Relations as RelationsHelper;
 use nitm\models\ParentMap;
+use nitm\models\Category;
 
 /**
  * Traits defined for expanding active relation scopes until yii2 resolves traits issue
@@ -199,6 +200,19 @@ trait Relations {
 	public function typeOf()
 	{
 		return $this->getCachedCategoryModel('type_id', null, 'type');
+	}
+	
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getLevel()
+    {
+		return $this->getCategoryRelation(['id' => 'level_id']);
+    }
+	
+	public function level()
+	{
+		return $this->getCachedCategoryModel('level_id', null, 'level');	
 	}
 
     /**

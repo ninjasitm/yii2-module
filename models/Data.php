@@ -29,7 +29,8 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	\nitm\traits\Query,
 	\nitm\traits\Relations,
 	\nitm\traits\Cache,
-	\nitm\traits\Data;
+	\nitm\traits\Data, 
+	\nitm\traits\Alerts;
 	
 	//public members
 	public $initLocalConfig = true;
@@ -64,7 +65,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		if(!$this->noDbInit)
 			parent::init();
 		if(((bool)$this->initLocalConfig || (bool)static::$initClassConfig) && !\Yii::$app->getModule('nitm')->config->exists($this->isWhat()))
-			$this->initConfig($this->isWhat());
+			$this->initConfig($this->isWhat(true));
 	}
 	
 	public function rules()

@@ -5,7 +5,7 @@ namespace nitm;
 use nitm\helpers\Session;
 use nitm\models\DB;
 use nitm\helpers\ArrayHelper;
-use nitm\log\Logger;
+use nitm\components\Logger;
 use nitm\importer\Importer;
 use nitm\helpers\alerts\Dispatcher;
 
@@ -90,7 +90,6 @@ class Module extends \yii\base\Module
 		parent::init();
 		// custom initialization code goes here
 		$this->bootstrap();
-		$this->initEvents();
 		
 		/**
 		 * Aliases for nitm module
@@ -136,16 +135,12 @@ class Module extends \yii\base\Module
 	 */
 	public function canLog($level=null)
 	{
-		if($this->enableLogger && ($this->logger instanceof \yii\log\Logger)) {
-			if($level != null && $level >= 0)
-				return (int)$level <= (int)$this->logger->level;
-		}
-		return false; 
+		return $this->enableLogger ? $this->logger->canLog($level) : false;
 	}
 	
 	public function commitLog()
 	{
-		return ($this->enableLogger) ? $this->logger->flush() : false;
+		return $this->enableLogger ? $this->logger->trigger(Logger::EVENT_END) : false;
 	}
 	
 	public function log($level, $options, $modelClass)
@@ -158,8 +153,11 @@ class Module extends \yii\base\Module
 					'db_name' => \nitm\models\DB::getDbName(),
 					'level' => $level,
 					'timestamp' => time(),
+					'collectionName' => $collectionName
 				], $options);
-				return $this->logger->log($options, $collectionName);
+				$this->logger->trigger(Logger::EVENT_PROCESS, new \yii\base\Event([
+					'data' => $options
+				]));
 			} catch (\Exception $e) {
 				if(defined("YII_DEBUG"))
 					throw $e;
@@ -171,13 +169,5 @@ class Module extends \yii\base\Module
 	public function getCollectionName(&$from=[])
 	{
 		return ArrayHelper::remove($from, 'collection_name', (($this->logCollections != []) ? $this->logCollections[0] : 'nitm-log'));
-	}
-	
-	protected function initEvents()
-	{
-		if($this->enableLogger) {
-			$this->on(self::LOGGER_EVENT_PREPARE, [$this->logger, 'start']);
-			$this->on(self::LOGGER_EVENT_PROCESS, [$this->logger, 'process']);
-		}
 	}
 }

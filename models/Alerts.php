@@ -23,7 +23,6 @@ use yii\base\Event;
  */
 class Alerts extends Entity
 {
-	public static $usersWhere = [];
 	public $requiredFor;
 	
 	protected $link = [
@@ -61,6 +60,18 @@ class Alerts extends Entity
 			]
 		];
 		return array_merge(parent::behaviors(), $behaviors);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getUser()
+    {
+        return $this->hasOne(\nitm\models\User::className(), ['id' => 'user_id'])
+			->select(['id', 'username', 'email'])
+			->where(static::$usersWhere)
+			->andWhere(['disabled' => false])
+			->with('profile');
     }
 
     /**
@@ -162,35 +173,4 @@ class Alerts extends Entity
             'created_at' => Yii::t('app', 'Created At'),
         ];
     }
-
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getUser()
-    {
-        return $this->hasOne(User::className(), ['id' => 'user_id'])
-			->select(['id', 'username', 'email'])
-			->where(static::$usersWhere)
-			->andWhere(['disabled' => false])
-			->with('profile');
-    }
-	
-	public function getPriority()
-	{
-		switch($this->priority)
-		{
-			case 'critical':
-			$ret_val = 'error';
-			break;
-			
-			case 'important':
-			$ret_val = 'info';
-			break;
-			
-			default:
-			$ret_val = 'default';
-			break;
-		}
-		return $ret_val;
-	}
 }

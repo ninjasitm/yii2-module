@@ -98,16 +98,16 @@ class DBStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function create($key, $originalValue, $container)
+	public function create($key, $originalValue, $container, $isSection=false)
 	{
 		$ret_val = ['success' => false];
 		
-		list($name, $section, $hierarchy, $isSection, $isValue) = array_values($this->resolveNameAndSection($key, true));
+		list($name, $section, $hierarchy) = array_values($this->resolveNameAndSection($key, true));
 		$containerId = $this->container($container)->id;
-		switch(1)
+		switch($isSection)
 		{
 			//We're creating a section
-			case $isSection:
+			case true:
 			$value = [
 				'containerid' => $containerId,
 				'name' => $section,
@@ -117,7 +117,7 @@ class DBStore extends BaseStore
 			break;
 			
 			//We're creating a value
-			case $isValue:
+			default:
 			$value = [
 				'containerid' => $containerId,
 				'sectionid' => $this->section($section, $containerId, false)->id,
@@ -151,23 +151,23 @@ class DBStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function update($id, $key, $value, $container)
+	public function update($id, $key, $value, $container, $isSection=false)
 	{
 		$ret_val = ['success' => false];
 		
-		list($name, $section, $hierarchy, $isSection, $isValue) = array_values($this->resolveNameAndSection($key, true));
+		list($name, $section, $hierarchy) = array_values($this->resolveNameAndSection($key, true));
 		
-		switch(1)
+		switch($isSection)
 		{
 			//we're updating a section
-			case $isSection:
+			case true:
 			$message = "Updated the section name to $value";
 			$value = ['value' => $value];
 			$model = $this->section($id, $container, false);
 			break;
 		
 			//we're updating a value
-			case $isValue:
+			default:
 			$value = ['value' => $value];
 			$ret_val['name'] = $name;
 			$model = $this->value($section, $id, $key, false);
@@ -202,23 +202,23 @@ class DBStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function comment($id, $key, $value, $container)
+	public function comment($id, $key, $value, $container, $isSection=false)
 	{
 		$ret_val = ['success' => false];
 		
-		list($name, $section, $hierarchy, $isSection, $isValue) = array_values($this->resolveNameAndSection($key, true));
+		list($name, $section, $hierarchy) = array_values($this->resolveNameAndSection($key, true));
 		
-		switch(1)
+		switch($isSection)
 		{
 			//we're updating a section
-			case $isSection:
+			case true:
 			$message = "Updated the comment name to $value";
 			$value = ['comment' => $value];
 			$model = $this->section($id, $container, false);
 			break;
 		
 			//we're updating a value
-			case $isValue:
+			default:
 			$value = ['comment' => $value];
 			$ret_val['name'] = $name;
 			$model = $this->value($section, $id, $key, false);
@@ -253,23 +253,23 @@ class DBStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function delete($id, $key, $container)
+	public function delete($id, $key, $container, $isSection=false)
 	{
 		$ret_val = ['success' => false, 'value' => null];
 		
-		list($name, $section, $hierarchy, $isSection, $isValue) = array_values($this->resolveNameAndSection($key, true));
+		list($name, $section, $hierarchy) = array_values($this->resolveNameAndSection($key, true));
 		
-		switch(1)
+		switch($isSection)
 		{
 			//we're deleting a section
-			case $isSection:
+			case true:
 			$model = $this->section(!$id, $container, false);
 			$message = "Deleted the section: $key";
 			$delete['process'] = true;
 			break;
 		
 			//we're deleting a value
-			case $isValue:
+			default:
 			$ret_val['name'] = $id;
 			$message = "Deleted the value: $key";
 			$model = $this->value($section, $id, $key, false);

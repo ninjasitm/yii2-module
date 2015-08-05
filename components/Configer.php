@@ -460,7 +460,7 @@ class Configer extends Model
 	 */
 	public function get($name, $asArray = false)
 	{
-		return ArrayHelper::getValue($this->settings, $this->getPath($this->uriOf($name)));
+		return @ArrayHelper::getValue($this->settings, $this->getPath($this->uriOf($name)), null);
 	}
 	
 	/**
@@ -785,7 +785,7 @@ class Configer extends Model
 		$this->setBase($container);	
 		$this->container($container);
 		
-		$result = $this->_store->create($uriOf, $value, $container);
+		$result = $this->_store->create($uriOf, $value, $container, $this->isSection());
 		
 		if($result['success']) {
 			$ret_val = array_merge($ret_val, $result, [
@@ -827,14 +827,13 @@ class Configer extends Model
 		$oldValue = $this->config('current.config.'.$key.'.value');
 		$ret_val = [
 			'success' => false,
-			'oldValue' => json_encode($oldValue),
+			'oldValue' => rawurlencode(is_array($oldValue) ? json_encode($oldValue) : $oldValue),
 			'value' => rawurlencode($value),
-			'container' => stripslashes($uriOf),
 			'key' => $uriOf,
 			'message' => "Unable to update value ".$value
 		];
 		
-		$result = $this->_store->update(($id ? $id : $key), $uriOf, $value, $container);
+		$result = $this->_store->update(($id ? $id : $key), $uriOf, $value, $container, $this->isSection());
 		if($result['success'])
 		{
 			$ret_val = array_merge($ret_val, $result, [
@@ -880,18 +879,18 @@ class Configer extends Model
 			"class" => $this->classes["failure"]
 		];
 		
-		$result = array_merge($ret_val, $this->_store->delete((!$id ? $key : $id), $uriOf, $container));
+		$result = array_merge($ret_val, $this->_store->delete((!$id ? $key : $id), $uriOf, $container, $this->isSection()));
 		if($result['success'])
 		{
 			$ret_val = array_replace($ret_val, $result, [
-				'data' => [$key, $value],
+				'data' => [$key, $result['value']],
 				'class' => $this->classes['success']
 			]);
 			$this->setEventData(array_replace($ret_val, [
 				'key' => $key,
-				'value' => $value,
+				'value' => $result['value'],
 				'action' => "Delete Config",
-				'message' => "deleted value ($key -> '".var_export($value, true)."') from config ".$this->_store->is.": ".$container
+				'message' => "deleted value ($key -> '".var_export($result['value'], true)."') from config ".$this->_store->is.": ".$container
 			]));
 			$this->trigger('afterDelete');
 		}
@@ -965,6 +964,11 @@ class Configer extends Model
 		$this->config('sections', $ret_val);
 		$this->config('load.sections', true);
 		return $ret_val;
+	}
+	
+	protected function isSection()
+	{
+		return $this->what == 'section';
 	}
 	
 	/*---------------------
@@ -1046,7 +1050,7 @@ class Configer extends Model
 			$ret_val['key'] = $this->container;
 			break;
 		}
-		return array_merge(array_filter($params), $ret_val);
+		return array_merge($ret_val, array_filter($params));
 	}
 }
 ?>

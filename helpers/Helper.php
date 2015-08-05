@@ -331,7 +331,7 @@ class Helper extends Model
 		$ret_val = [];
 		if(count($models))
 		{
-			$models = is_array(current($models)) || is_object(current($models)) ? $models : [$models];
+			$models = is_array($models) ? $models : [$models];
 			foreach($models as $model)
 			{
 				$ret_val[] = implode($glue, array_map(function ($attribute) use($model, $discardEmpty) {

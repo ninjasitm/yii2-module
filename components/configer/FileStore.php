@@ -91,14 +91,14 @@ class FileStore extends BaseStore
 		$ret_val = $this->resource->read($contents, $this->commentChar);
 	}
 	
-	public function create($name, $value, $container)
+	public function create($name, $value, $container, $isSection=false)
 	{
 		$args = [];
 		$ret_val = [
 			'success' => false,
 		];
 		
-		list($name, $section, $hierarchy, $isSection, $isValue) = $this->resolveNameAndSection($key, true);
+		list($name, $section, $hierarchy, $isSection) = $this->resolveNameAndSection($key, true);
 		
 		$container = $this->resolveDir($this->dir);
 		$proceed = true;
@@ -127,19 +127,17 @@ class FileStore extends BaseStore
 		}
 		if($proceed)
 		{
-			switch(sizeof($hierarchy))
+			switch($isSection)
 			{
 				//we're creating a section
-				case 5:
-				case 2:
+				case true:
 				$success = $this->resource->createSection($name);
 				$message = "Added new section [".$section."] to ".$container;
 				break;
 				
 	
 				//we're creating a value
-				case 6:
-				case 3:
+				default:
 				$sucess = $this->resource->createValue($section, $name, $value);
 				$message = "Added new config option [".$name."] to ".$section;
 				break;
@@ -162,13 +160,13 @@ class FileStore extends BaseStore
 		return $ret_val;
 	}
 	
-	public function update($id, $key, $value, $container)
+	public function update($id, $key, $value, $container, $isSection=false)
 	{
 		$args = [];
 		$ret_val = ['success' => false];
 		$container = $this->resolveDir($this->dir);
 		
-		list($name, $section, $hierarchy, $isSection, $isValue) = $this->resolveNameAndSection($key, true);
+		list($name, $section, $hierarchy) = $this->resolveNameAndSection($key, true);
 		
 		$proceed = true;
 		
@@ -186,18 +184,16 @@ class FileStore extends BaseStore
 		}
 		if($proceed)
 		{
-			switch(sizeof($hierarchy))
+			switch($isSection)
 			{
 				//we're updating a section
-				case 4:
-				case 2:
+				case true:
 				$success = $this->resource->updateSection($section, $value);
 				$message = "Updated the section name from ".$name." to $value";
 				break;
 			
 				//no support for updating section names as of yet
-				case 5: 
-				case 3:    
+				default:    
 				$success = $this->resource->updateValue($section, $name, $name, $value);
 				$message = "Updated the value name from ".$name." to $value";
 				break;
@@ -216,7 +212,7 @@ class FileStore extends BaseStore
 	{	
 		$args = [];
 		
-		list($name, $section, $hierarchy, $isSection, $isValue) = $this->resolveNameAndSection($key, true);
+		list($name, $section, $hierarchy) = $this->resolveNameAndSection($key, true);
 		
 		$container = $this->resolveDir($this->dir);
 		$proceed = true;
@@ -234,28 +230,20 @@ class FileStore extends BaseStore
 		}
 		if($proceed)
 		{
-			switch(sizeof($hierarchy))
+			switch($isSection)
 			{
-				//are we deleting a value/line?
-				case 6:
-				case 3:
-				$success = $this->resource->deleteValue($name, $sectionName);
-				$message = "Deleted value ".$hierarchy." in ".$sectionName;
-				break;
-				
 				//we're deleting a section
-				case 5:
-				case 2:
+				case true:
 				$success = $this->resource->deleteSection($sectionName);
 				$args['command'] = "sed -i '/^\[%s\]/,/^$/d' ";
 				$args['args'] = [$name];
 				$message = "Deleted the section ".$name;
 				break;
 				
-				//we're deleting a container
-				case 1:
-				$success = $this->resource->deletefile($container);
-				$message = "Deleted the file ".$container;
+				//are we deleting a value/line?
+				default:
+				$success = $this->resource->deleteValue($name, $sectionName);
+				$message = "Deleted value ".$hierarchy." in ".$sectionName;
 				break;
 			}
 			//sed should return an empty value for success when updating files

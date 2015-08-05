@@ -61,6 +61,27 @@ trait Nitm
 		];
 	}
 	
+	public function getLevelCssClass()
+	{
+		$ret_val = 'default';
+		switch(1)
+		{
+			case $this->level()->slug == 'visibility-private':
+			$ret_val = 'error';
+			break;
+			
+			case $this->level()->slug == 'visibility-admin':
+			$ret_val = 'info';
+			break;
+			
+			default:
+			$ret_val = 'success';
+			break;
+		}
+		return $ret_val;
+	}
+
+	
 	public function getStatus()
 	{
 		$ret_val = 'default';

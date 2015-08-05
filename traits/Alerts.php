@@ -12,7 +12,7 @@ use nitm\models\log\search\AlertEntry;
 
 trait Alerts
 {
-	private $_alertModel;
+	public static $usersWhere = [];
 	
 	public function getLastAlertSent()
 	{
@@ -33,12 +33,29 @@ trait Alerts
 	
 	public function canSendPushAlert()
 	{
-		if(!isset($this->_alertModel))
-			$this->_alertModel = new \nitm\models\Alerts(['noDbInit' => true]);
-			
-		$interval = !$this->_alertModel->setting('globals.push_interval') ? \Yii::$app->getModule('nitm')->alerts->pushInterval : $this->_alertModel->setting('globals.push_interval');
-		echo $interval;
+		if(!\Yii::$app->getModule('nitm')->enableAlerts)
+			return false;			
+		$interval = !$this->setting('globals.push_interval') ? \Yii::$app->getModule('nitm')->alerts->pushInterval : $this->setting('globals.push_interval');
 		return (round(strtotime('now') - $this->lastAlertSent()->timestamp)/60) >= $interval;
+	}
+	
+	public function getPriority()
+	{
+		switch($this->priority)
+		{
+			case 'critical':
+			$ret_val = 'error';
+			break;
+			
+			case 'important':
+			$ret_val = 'info';
+			break;
+			
+			default:
+			$ret_val = 'default';
+			break;
+		}
+		return $ret_val;
 	}
 }
 ?>
