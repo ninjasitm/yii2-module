@@ -26,12 +26,12 @@ trait User {
      */
 	public function status()
 	{
-		return \nitm\models\security\User::getStatus($this);
+		return \nitm\models\User::getStatus($this);
 	}
 	
 	public function indicator($user)
 	{
-		return \nitm\models\security\User::getIndicator($user);
+		return \nitm\models\User::getIndicator($user);
 	}
 	
 	/**
@@ -40,7 +40,7 @@ trait User {
      */
 	public function role()
 	{
-		return \nitm\models\security\User::getRole($this);
+		return \nitm\models\User::getRole($this);
 	}
 	
 	/**
@@ -48,7 +48,7 @@ trait User {
 	 */
 	public function isAdmin()
 	{
-		return \nitm\models\security\User::getIsAdmin($this);
+		return \nitm\models\User::getIsAdmin($this);
 	}
 	
 	/**

@@ -99,7 +99,7 @@ class Session extends Model
 	
 	public static function sessionName()
 	{
-		static::$session = (empty(static::$session)) ?  preg_replace('/[^\da-z]/i', '-', static::$sessionName.$_SERVER['SERVER_NAME']) : static::$session;
+		static::$session = (empty(static::$session)) ?  preg_replace('/[^\da-z]/i', '-', static::$sessionName.@$_SERVER['SERVER_NAME']) : static::$session;
 		return static::$session;
 	}
 	

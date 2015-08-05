@@ -64,7 +64,10 @@ trait Data {
 				$ret_val = $class;
 		}
 		
-		$inflector = $pluralize === true ? 'pluralize' : 'singularize';
+		if(is_null($pluralize))
+			$inflector = 'slug';
+		else
+			$inflector = $pluralize === true ? 'pluralize' : 'singularize';
 		
 		if(isset($this)) {
 			if(!isset($this->slugIs[$inflector]) && isset($class::$_slugIs[$inflector][$ret_val])) {
