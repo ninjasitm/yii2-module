@@ -464,6 +464,8 @@ class Dispatcher extends \yii\base\Component
 					case 'single':
 					foreach($addresses as $name=>$email)
 					{
+						if(!$email)
+							continue;
 						$address = [$name => $email];
 						$this->formatMessage($type, $scope, ArrayHelper::getValue($compose, 'message.'.$type, $this->defaultMessage), $address, current($unmappedAddresses)['user']);
 						$this->send();
