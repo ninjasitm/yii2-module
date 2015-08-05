@@ -462,11 +462,11 @@ class Dispatcher extends \yii\base\Component
 				switch($this->mode)
 				{
 					case 'single':
-					foreach($addresses as $email=>$name)
+					foreach(array_filter($addresses) as $email=>$name)
 					{
-						if(!$email)
+						if(!$email || count($email) == 0)
 							continue;
-						$address = [$name => $email];
+						$address = [$email => $name];
 						$this->formatMessage($type, $scope, ArrayHelper::getValue($compose, 'message.'.$type, $this->defaultMessage), $address, current($unmappedAddresses)['user']);
 						$this->send();
 					}
