@@ -462,7 +462,7 @@ class Dispatcher extends \yii\base\Component
 				switch($this->mode)
 				{
 					case 'single':
-					foreach($addresses as $name=>$email)
+					foreach($addresses as $email=>$name)
 					{
 						if(!$email)
 							continue;
@@ -473,7 +473,7 @@ class Dispatcher extends \yii\base\Component
 					break;
 						
 					default:
-					$this->formatMessage($type, $scope, ArrayHelper::getValue($compose, 'message.'.$type, $this->defaultMessage), array_slice($addresses, 0, 1));
+					$this->formatMessage($type, $scope, ArrayHelper::getValue($compose, 'message.'.$type, $this->defaultMessage), array_filter(array_slice($addresses, 0, 1)));
 					$this->send();
 					break;
 				}
