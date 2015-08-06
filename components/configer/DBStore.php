@@ -113,7 +113,7 @@ class DBStore extends BaseStore
 				'name' => $section,
 			];
 			$model = new Section($value);
-			$message = "Added new section '".$section."'";
+			$message = "Added new section '%name%'";
 			break;
 			
 			//We're creating a value
@@ -125,7 +125,7 @@ class DBStore extends BaseStore
 				'name' => $name
 			];
 			$model = new Value($value);
-			$message = "Added value '$name' to section '$section'";
+			$message = "Added value '%name%' to section '%section%'";
 			break;
 		}
 		$model->setScenario('create');
@@ -139,7 +139,7 @@ class DBStore extends BaseStore
 			$ret_val['section_name'] = $section;
 			$ret_val = array_merge($ret_val, $value);
 			$ret_val['success'] = true;
-			$ret_val['message'] = $message;
+			$ret_val['message'] = $this->getMessage($message, $model);
 			break;
 			
 			default:
@@ -161,13 +161,14 @@ class DBStore extends BaseStore
 		{
 			//we're updating a section
 			case true:
-			$message = "Updated the section name to $value";
-			$value = ['value' => $value];
+			$message = "Updated the section name from '%oldValue%' to '%value%'";
+			$value = ['name' => $value];
 			$model = $this->section($id, $container, false);
 			break;
 		
 			//we're updating a value
 			default:
+			$message = "Updated the value '%key%' from '%oldValue%' to '%value%'";
 			$value = ['value' => $value];
 			$ret_val['name'] = $name;
 			$model = $this->value($section, $id, $key, false);
@@ -176,9 +177,11 @@ class DBStore extends BaseStore
 		switch(is_object($model))
 		{
 			case true:
-			$oldValue = $model->value;
 			$model->setScenario('update');
+			$model->refresh();
 			$model->load([$model->formName() => $value]);
+			//Need to get the update message here sincea save rewrites the old attributes
+			$ret_val['message'] = $this->getMessage($message, $model);
 			switch($model->save())
 			{
 				case true:
@@ -188,7 +191,6 @@ class DBStore extends BaseStore
 				$ret_val['section_name'] = $section;
 				$ret_val = array_merge($ret_val, $value);
 				$ret_val['success'] = true;
-				$ret_val['message'] = "Updated the value [$key] from '".$oldValue."' to '".$model->value."'";
 				break;
 				
 				default:
@@ -212,13 +214,15 @@ class DBStore extends BaseStore
 		{
 			//we're updating a section
 			case true:
-			$message = "Updated the comment name to $value";
+			$message = "Updated comment for section '%name%'";
 			$value = ['comment' => $value];
-			$model = $this->section($id, $container, false);
+			$model = null;
+			//$model = $this->section($id, $container, false);
 			break;
 		
 			//we're updating a value
 			default:
+			$message = "Updated the comment for '%name%' from '%oldValue%' to '%value%'";
 			$value = ['comment' => $value];
 			$ret_val['name'] = $name;
 			$model = $this->value($section, $id, $key, false);
@@ -227,9 +231,11 @@ class DBStore extends BaseStore
 		switch(is_object($model))
 		{
 			case true:
-			$oldValue = $model->value;
 			$model->setScenario('update');
+			$model->refresh();
 			$model->load([$model->formName() => $value]);
+			//Need to get the update message here sincea save rewrites the old attributes
+			$ret_val['message'] = $this->getMessage($message, $model, 'comment');
 			switch($model->save())
 			{
 				case true:
@@ -239,7 +245,6 @@ class DBStore extends BaseStore
 				$ret_val['section_name'] = $section;
 				$ret_val = array_merge($ret_val, $value);
 				$ret_val['success'] = true;
-				$ret_val['message'] = "Updated the comment for $key";
 				break;
 				
 				default:
@@ -275,7 +280,10 @@ class DBStore extends BaseStore
 			$model = $this->value($section, $id, $key, false);
 			break;
 		}
-		switch(is_object($model) && $model->delete())
+		$model->refresh();
+		//Need to get the update message here sincea save rewrites the old attributes
+		$ret_val['message'] = $this->getMessage($message, $model);
+		switch($model->save())
 		{
 			case true:
 			if($model instanceof Value)
@@ -283,7 +291,6 @@ class DBStore extends BaseStore
 			else
 				$ret_val['isSection'] = true;
 			$ret_val['success'] = true;
-			$ret_val['message'] = $message;
 			break;
 			
 			default:
@@ -495,6 +502,56 @@ class DBStore extends BaseStore
 		if(!$asArray && is_array($ret_val))
 			$ret_val = new Value($ret_val);
 		return $ret_val;
+	}
+	
+	/**
+	 * Get the return message for a model
+	 * @param string $template The tokeniczed string using %token% format
+	 * @param object $model
+	 * @param string $requestedOldAttribute The attributte containing the changed value
+	 * @return string
+	 */
+	protected function getMessage($template, $model, $requestedOldAttribute=null)
+	{
+		$oldAttribute = is_null($requestedOldAttribute) ? 'name' : $requestedOldAttribute;
+		$value = $model->name;
+		switch(1)
+		{
+			case $model instanceof Section:
+			$section = $model->name;
+			$container = $this->container()->name;
+			break;
+			
+			case $model instanceof Container:
+			$container = $model->name;
+			$section = '';
+			break;
+			
+			default:
+			$section = $model->getSection()->one()->name;
+			$container = $this->container()->name;
+			$value = $model->value;
+			$oldAttribute = is_null($requestedOldAttribute) ? 'value' : $requestedOldAttribute;
+			break;
+		}
+		return str_replace([
+				'%id%',
+				'%value%',
+				'%oldValue%',
+				'%key%',
+				'%name%',
+				'%section%',
+				'%container%'
+			], [
+				$model->id,
+				$value,
+				$model->getOldAttribute($oldAttribute),
+				$model->name,
+				$model->name,
+				$section,
+				$container
+				
+			], $template);
 	}
 	 
 	private static function hasNew()

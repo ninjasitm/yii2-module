@@ -785,13 +785,12 @@ class Configer extends Model
 		$this->setBase($container);	
 		$this->container($container);
 		
-		$result = $this->_store->create($uriOf, $value, $container, $this->isSection());
-		
-		if($result['success']) {
-			$ret_val = array_merge($ret_val, $result, [
+		$ret_val = array_merge($ret_val, array_filter($this->_store->create($uriOf, $value, $container, $this->isSection())));
+		if($ret_val['success']) {
+			$ret_val += [
 				'data' => [$key, $value],
 				'class' => $this->classes['success']
-			]);
+			];
 			$this->setEventData(array_merge($ret_val, [
 				'action' => 'Create Config',
 				'message' => "created new key->value ($key -> ".var_export($value, true).") to in ".$container
@@ -830,16 +829,15 @@ class Configer extends Model
 			'oldValue' => rawurlencode(is_array($oldValue) ? json_encode($oldValue) : $oldValue),
 			'value' => rawurlencode($value),
 			'key' => $uriOf,
-			'message' => "Unable to update value ".$value
+			'message' => "Unable to update value '".$key."' to '".$value."'"
 		];
 		
-		$result = $this->_store->update(($id ? $id : $key), $uriOf, $value, $container, $this->isSection());
-		if($result['success'])
-		{
-			$ret_val = array_merge($ret_val, $result, [
+		$ret_val = array_merge($ret_val, array_filter($this->_store->update(($id ? $id : $key), $uriOf, $value, $container, $this->isSection())));
+		if($ret_val['success']) {
+			$ret_val += [
 				'data' => [$key, $value],
 				'class' => $this->classes['success']
-			]);
+			];
 			$this->setEventData(array_merge($ret_val, [
 				'key' => $key,
 				'value' => $value,
@@ -879,13 +877,13 @@ class Configer extends Model
 			"class" => $this->classes["failure"]
 		];
 		
-		$result = array_merge($ret_val, $this->_store->delete((!$id ? $key : $id), $uriOf, $container, $this->isSection()));
-		if($result['success'])
+		$ret_val = array_merge($ret_val, array_filter($this->_store->delete((!$id ? $key : $id), $uriOf, $container, $this->isSection())));
+		if($ret_val['success'])
 		{
-			$ret_val = array_replace($ret_val, $result, [
+			$ret_val += [
 				'data' => [$key, $result['value']],
 				'class' => $this->classes['success']
-			]);
+			];
 			$this->setEventData(array_replace($ret_val, [
 				'key' => $key,
 				'value' => $result['value'],
