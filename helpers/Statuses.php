@@ -8,15 +8,17 @@ class Statuses
 	 * Indicator types supports
 	 */
 	protected static $indicators = [
-		'error' => 'bg-danger',
 		'critical' => 'bg-danger',
 		'danger' => 'bg-danger',
-		'resolved' => 'bg-resolved',
-		'duplicate' => 'bg-duplicate',
 		'default' => '',
-		'success' => 'bg-success',
-		'info' => 'bg-info',
 		'disabled' => 'bg-disabled',
+		'duplicate' => 'bg-duplicate',
+		'error' => 'bg-danger',
+		'info' => 'bg-info',
+		'important' => 'bg-info',
+		'normal' => '',
+		'resolved' => 'bg-resolved',
+		'success' => 'bg-success',
 		'warning' => 'bg-warning'
 	];
 	
@@ -24,14 +26,18 @@ class Statuses
 	 * Indicator types supports
 	 */
 	protected static $listIndicators = [
-		'error' => 'list-group-item list-group-item-danger',
 		'critical' => 'list-group-item list-group-item-danger',
 		'danger' => 'list-group-item list-group-item-danger',
 		'default' => 'list-group-item',
-		'success' => 'list-group-item  list-group-item-success',
+		'disabled' => 'list-group-item list-group-item-disabled',
+		'duplicate' => 'list-group-item list-group-item-duplicate',
+		'error' => 'list-group-item list-group-item-danger',
 		'info' => 'list-group-item list-group-item-info',
-		'warning' => 'list-group-item list-group-item-warning',
-		'disabled' => 'list-group-item list-group-item-disabled'
+		'important' => 'list-group-item list-group-item-info',
+		'normal' => 'list-group-item',
+		'resolved' => 'list-group-item  list-group-item-resolved',
+		'success' => 'list-group-item  list-group-item-success',
+		'warning' => 'list-group-item list-group-item-warning'
 	];
 	
 	/**
