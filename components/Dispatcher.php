@@ -550,16 +550,16 @@ class Dispatcher extends \yii\base\Component
 	 */
 	protected function send()
 	{
-		if(!is_null($this->_message))
-		{
-			$this->_message->setFrom(\Yii::$app->params['components.alerts']['sender'])
+		$ret_val = false;
+		if(!is_null($this->_message)) {
+			$this->_message
+				->setFrom(\Yii::$app->params['components.alerts']['sender'])
 				->send();
-			$this->_message = null;
 			$this->_sendCount++;
-			return true;
+			$ret_val = true;
 		}
-		else
-			return false;
+		$this->_message = null;
+		return $ret_val;
 	}
 	
 	/**
