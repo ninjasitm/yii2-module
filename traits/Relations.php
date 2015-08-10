@@ -235,7 +235,7 @@ trait Relations {
 	{
 		$parts = explode('\\', $relationClass);
 		$baseName = array_pop($parts);
-		if(\nitm\search\traits\SearchTrait::useSearchClass($callingClass) !== false)
+		if(\nitm\search\traits\SearchTrait::useSearchClass($callingClass) !== false && (strpos($callingClass, 'search') === false))
 			$parts[] = 'search';
 		$parts[] = $baseName;
 		return implode('\\', $parts);
@@ -283,7 +283,7 @@ trait Relations {
 		 * This is the parent_id in the PartntMap table
 		 * remote_id maps to the current class's id
 		 */
-		return $this->getRelationQuery(static::className(), ['id' => 'parent_id'])
+		return $this->getRelationQuery($this->className(), ['id' => 'parent_id'])
 			->viaTable(ParentMap::tableName(), ['remote_id' => 'id'], function($query) {
 				$query->where(['remote_class' => $this->className()]);
 				return $query;
@@ -292,7 +292,7 @@ trait Relations {
 	
 	public function parent()
 	{
-		return $this->getCachedRelation('id', static::className(), [], false, 'parent');
+		return $this->getCachedRelation('id', $this->className(), [], false, 'parent');
 	}
 
     /**
@@ -304,8 +304,8 @@ trait Relations {
 		 * parent_id represents the outter part of the query and will matcch to the static::className's id
 		 * This is the parent_id in the ParentMap table
 		 * remote_id maps to the current class's id
-		 */
-		return $this->getRelationQuery(static::className(), ['id' => 'parent_id'], ['where' => []], true)
+		 */;
+		return $this->getRelationQuery($this->className(), ['id' => 'parent_id'], ['where' => []], true)
 			->viaTable(ParentMap::tableName(), ['remote_id' => 'id'], function($query) {
 				$query->where(['remote_class' => $this->className()]);
 				return $query;
@@ -314,7 +314,7 @@ trait Relations {
 	
 	public function parents()
 	{
-		return $this->getCachedRelation('id', static::className(), [], true, 'parents');
+		return $this->getCachedRelation('id', $this->className(), [], true, 'parents');
 	}
 	
 	protected function getRelationQuery($className, $link, $options=[], $many=false)
