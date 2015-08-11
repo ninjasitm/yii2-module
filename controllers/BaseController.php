@@ -314,16 +314,17 @@ class BaseController extends Controller
 				$url = ArrayHelper::remove($options, 'data-url', ArrayHelper::remove($options, 'href', '#'));
 				$class = ArrayHelper::remove($options, 'class', '');
 				$labelClass = ArrayHelper::remove($options, 'label-class', '');
+				$itemOptions = ArrayHelper::remove($options, 'item-options', []);
 				$item = array_merge($options, [
 					'label' => Html::tag('span', $label, [
 						'class' => $labelClass
 					]),
 					'items' => $submenu,
 					'url' => $url,
-					"options" => [
+					"options" => array_merge($itemOptions, [
 						"class" => $class, 
 						"encode" => false
-					],
+					]),
 					'linkOptions' => $options
 				]);
 				$ret_val[$idx] = $item;

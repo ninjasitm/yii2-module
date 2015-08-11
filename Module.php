@@ -143,7 +143,7 @@ class Module extends \yii\base\Module
 		return $this->enableLogger ? $this->logger->trigger(Logger::EVENT_END) : false;
 	}
 	
-	public function log($level, $options, $modelClass)
+	public function log($level, $options)
 	{
 		if($this->canLog($level)) {
 			try {

@@ -184,6 +184,7 @@ class Form extends Behavior
 		$ret_val = new \yii\data\ArrayDataProvider;
 		if(!isset($options['provider']))
 			return $ret_val;
+
 		switch(is_array($options['provider']))
 		{
 			case true:

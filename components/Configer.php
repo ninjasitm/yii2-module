@@ -147,14 +147,14 @@ class Configer extends Model
 	{
 		$this->on("afterCreate", function($e) {
 			$this->config('current.section', $this->event('section'));
-			$this->set($this->event('key'), $this->event('value'));
-			$this->config($this->uriOf(self::dm.'.'.$this->event('key'), true), $this->event('value'));
+			$this->set($this->event('key'), Json::decode($this->event('value')));
+			$this->config($this->uriOf(self::dm.'.'.$this->event('key').'.value', true), $this->event('value'));
 			$this->trigger('logData');
 		});
 		
 		$this->on("afterUpdate", function($e) {
-			$this->set($this->event('key'), $this->event('value'));
-			$this->config($this->uriOf(self::dm.'.'.$this->event('key'), true), $this->event('value'));
+			$this->set($this->event('key'), Json::decode($this->event('value')));
+			$this->config($this->uriOf(self::dm.'.'.$this->event('key').'.value', true), $this->event('value'));
 			$this->trigger('logData');
 		});
 		
@@ -178,7 +178,7 @@ class Configer extends Model
 		
 		$this->on('logData', function ($e) {
 			$data = array_merge($this->getEventData(), $this->_event->data);
-			\Yii::$app->getModule('nitm')->logger->log($data);
+			\Yii::$app->getModule('nitm')->log(0, $data);
 			$this->_event->handled = true;
 		});
 	}
