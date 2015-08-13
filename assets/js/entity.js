@@ -53,8 +53,7 @@ function NitmEntity () {
 		var defaults = defaults !== undefined ? defaults: self.defaultInit;
 		defaults.map(function (method) {
 			try {
-				var containerId = (container == undefined) ? self.views.containerId : container;
-				self[method](container, key);
+				self[method](container || self.views.containerId, key || self.id);
 			} catch (error){}
 		});
 	}
@@ -113,7 +112,7 @@ function NitmEntity () {
 							
 							var errorFunc = $elem.data('error-callback') == undefined ? function (xhr, text, error) {
 								$nitm.stopSpinner($elem);
-								var message = "An error occurred while reading the data!\nThe error was:<i> "+text+"</i>";
+								var message = "An error occurred while reading the data!: <br><br><i> "+(xhr.responseText || text)+"</i>";
 								if($nitm.debug == true)
 									message += "<br><br>Detailed error is: <br><br><i>"+error+"</i>";
 									
