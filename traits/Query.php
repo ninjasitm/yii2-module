@@ -247,11 +247,20 @@ trait Query {
 						break;
 						
 						default:
+						if($info->isPrimaryKey) {
+							$primaryKey = [$colName => $this->properName($colName)];
+							continue;
+						}
 						$ret_val[$colName] = $this->properName($colName);
 						break;
 					}
 				}
 				ksort($ret_val);
+				if(isset($primaryKey)) {
+					$ret_val = array_reverse($ret_val, true);
+					$ret_val[key($primaryKey)] = current($primaryKey);
+					$ret_val = array_reverse($ret_val, true);
+				}
 				break;
 				
 				default:

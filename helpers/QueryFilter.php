@@ -72,8 +72,7 @@ class QueryFilter
 	public static function getOrderByQuery()
 	{
 		return [
-			"updated_at" => SORT_DESC,
-			"created_at" => SORT_DESC,
+			"COALESCE(updated_at, created_at)" => SORT_DESC,
 		];
 	}
 	
