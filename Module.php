@@ -7,7 +7,7 @@ use nitm\models\DB;
 use nitm\helpers\ArrayHelper;
 use nitm\components\Logger;
 use nitm\importer\Importer;
-use nitm\helpers\alerts\Dispatcher;
+use nitm\components\Dispatcher;
 
 class Module extends \yii\base\Module
 {	
@@ -169,5 +169,12 @@ class Module extends \yii\base\Module
 	public function getCollectionName(&$from=[])
 	{
 		return ArrayHelper::remove($from, 'collection_name', (($this->logCollections != []) ? $this->logCollections[0] : 'nitm-log'));
+	}
+	
+	public function canSendAlert()
+	{
+		$ret_val =  $this->enableAlerts 
+			&& \Yii::$app->getRequest()->get(Dispatcher::SKIP_ALERT_FLAG) != true;
+		return (bool) $ret_val;
 	}
 }

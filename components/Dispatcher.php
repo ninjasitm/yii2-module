@@ -67,6 +67,9 @@ class Dispatcher extends \yii\base\Component
 	const EVENT_START = 'nitm.alert.start';
 	const EVENT_PROCESS = 'nitm.alert.process';
 	
+	//Alert flags
+	const SKIP_ALERT_FLAG = '__skipAlert';
+	
 	public function init()
 	{
 		$this->attachToEvents([
@@ -99,7 +102,7 @@ class Dispatcher extends \yii\base\Component
 	 */
 	public function start($event, $for='any', $priority='any')
 	{
-		if(!\Yii::$app->getModule('nitm')->enableAlerts)
+		if(!\Yii::$app->getModule('nitm')->canSendAlert())
 			return;
 
 		if($event->handled)
@@ -131,7 +134,7 @@ class Dispatcher extends \yii\base\Component
 	 */
 	public function process($event)
 	{
-		if(!\Yii::$app->getModule('nitm')->enableAlerts)
+		if(!\Yii::$app->getModule('nitm')->canSendAlert())
 			return;
 		
 		if($event->handled)
