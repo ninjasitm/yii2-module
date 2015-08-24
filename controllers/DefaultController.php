@@ -139,7 +139,7 @@ class DefaultController extends BaseController
 			], $createOptions), 'Create'),
 			'filterButton' => $this->getFilterButton($filterOptions),
 			'filterCloseButton' => $this->getFilterButton($filterOptions, 'Close'),
-			'isWhat' => $this->model->isWhat(true)
+			'isWhat' => $this->model->isWhat()
 		], (array)@$options['viewOptions']);
 		
 		Response::viewOptions(null, [
