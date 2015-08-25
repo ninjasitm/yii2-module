@@ -196,9 +196,8 @@ class DefaultController extends BaseController
 		if(Response::viewOptions('assets')) {
 			$this->initAssets(Response::viewOptions('assets'), true);
 		}
-			
-		if(!Response::viewOptions('scripts'))	
-			Response::viewOptions('scripts', new \yii\web\JsExpression("\$nitm.onModuleLoad('entity', function (){\$nitm.module('entity').initForms(null, '".$this->model->isWhat(true)."').initMetaActions(null, '".$this->model->isWhat(true)."');})"));
+		
+		$this->prepareJsFor(true);
 				
 		Response::viewOptions('title', Response::viewOptions('title') ? 
 \nitm\helpers\Form::getTitle($this->model, ArrayHelper::getValue(Response::viewOptions(), 'title', [])) : '');

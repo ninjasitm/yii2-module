@@ -160,6 +160,35 @@ use yii\helpers\ArrayHelper;
 		];
 	}
 	
+	/**
+	 * Prepare some standard Javascript functions
+	 * @param boolean $force Force preparing the operation
+	 * @param array $options
+	 */
+	protected function prepareJsFor($force=false, $options=[])
+	{
+		$options = $options == [] ? ['forms', 'actions'] : $options;
+		if(!Response::viewOptions('js') || $force)	{
+			$js = '';
+			foreach((array)$options as $type)
+			{
+				switch($type)
+				{
+					case 'forms':
+					$js .= 'module.initForms(null, "'.$this->model->isWhat().'");';
+					break;
+					
+					case 'actions':
+					$js .= 'module.initMetaActions(null, "'.$this->model->isWhat().'");';
+					break;
+				}
+			}
+			Response::viewOptions('js', new \yii\web\JsExpression('$nitm.onModuleLoad("entity", function (module) {'.$js.'})'));
+			return true;
+		}
+		return false;
+	}
+	
 	/*
 	 * Determine how to return the data
 	 * @param mixed $result Data to be displayed

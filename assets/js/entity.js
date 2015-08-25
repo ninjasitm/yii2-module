@@ -105,9 +105,11 @@ function NitmEntity () {
 							var successFunc = $elem.data('success-callback') == undefined ? function (result) {
 								$nitm.stopSpinner($elem);
 								self.afterAction(result.action, result, currentIndex, $elem.get(0));
-								var afterCallback = $elem.data('after-callback').parseFunction();
-								if(afterCallback && typeof afterCallback == 'function')
-									(function (elem) {afterCallback.call(elem)})($elem.get(0));
+								if($elem.data('after-callback')) {
+									var afterCallback = $elem.data('after-callback').parseFunction();
+									if(afterCallback && typeof afterCallback == 'function')
+										(function (elem) {afterCallback.call(elem)})($elem.get(0));
+								}
 							} : $elem.data('success-callback').parseFunction();
 							
 							var errorFunc = $elem.data('error-callback') == undefined ? function (xhr, text, error) {
@@ -133,27 +135,6 @@ function NitmEntity () {
 					});
 				}
 			});
-		});
-	}
-	
-	this.initSearch = function (containerId) {
-		var container = $nitm.getObj(this.getContainer(containerId));
-		$nitm.getObj(container).find("form[role~='"+this.forms.roles.ajaxSearch+"']").map(function() {
-			var _form = this;
-			$(this).off('submit');
-			var submitFunction = function (e) {
-				e.preventDefault();
-				$(_form).data('yiiActiveForm').validated = true;
-				var request = self.operation(_form, function(result, form, xmlHttp) {
-					var replaceId = $(form).data('id');
-					$nitm.notify(result.message, $nitm.classes.info, form);
-					$nitm.getObj(replaceId).replaceWith(result.data);
-					$nitm.module('tools').initDefaults('#'+replaceId);
-					history.pushState({}, result.message, (!result.url ? xmlHttp.url : result.url));
-				});
-			}
-			$(this).find(':input').on('change', function (e) {submitFunction(e)});
-			$(this).on('submit', function (e) {submitFunction(e)});
 		});
 	}
 	
@@ -469,11 +450,4 @@ function NitmEntity () {
 
 $nitm.addOnLoadEvent(function () {
 	$nitm.initModule(new NitmEntity());
-	//$nitm.module('entity').initSearch();
-	$(document).on('pjax:send', function (xhr, options) {
-		$(xhr.target).fadeOut('slow');
-	});
-	$(document).on('pjax:complete', function (xhr, options) {
-		$(xhr.target).fadeIn('slow');
-	});
 });

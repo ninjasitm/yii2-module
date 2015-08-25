@@ -422,22 +422,6 @@ function Tools ()
 	}
 	
 	/**
-	 * Fix for handling slow loading remote js with pjax.
-	 * We need to hook onto the before send function and not execute
-	 * until the scripts have been loaded.
-	 */
-	this.pjaxAjaxStop = function () {
-		$(document).on('pjax:beforeSend', function (event, xhr, options) {
-			var success = options.success;
-			options.success = function () {
-				self.evalScripts(xhr.responseText, function (responseText) {
-					success(responseText, status, xhr);
-				}, options);
-			}
-		});
-	};
-	
-	/**
 	 * Remove the parent element up to a certain depth
 	 */
 	this.initRemoveParent = function (containerId) {
@@ -745,4 +729,17 @@ function Tools ()
 	}
 }
 
-$nitm.initModule(new Tools());
+$nitm.addOnLoadEvent(function () {
+	$nitm.initModule(new Tools());
+	//$nitm.module('entity').initSearch();
+	$(document).on('pjax:send', function (xhr, options) {
+		$(xhr.target).fadeOut('slow');
+	});
+	$(document).on('pjax:complete', function (xhr, options) {
+		$(xhr.target).fadeIn('slow');
+	});
+		
+	$(document).on('pjax:beforeReplace', function (content, options) {
+		$nitm.module('tools').evalScripts(content, function (text) {return true;});
+	});
+});
