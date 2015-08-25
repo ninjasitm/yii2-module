@@ -18,7 +18,7 @@ use nitm\helpers\Cache as CacheHelper;
 
 trait Nitm
 {
-	public function url($attribute='id', $text=null, $url=null) 
+	public function url($attribute='id', $text=null, $url=null, $options=[]) 
 	{
 		if(is_array($text)){
 			$object = is_object(($text[0])) ? array_shift($text) : $this;
@@ -33,12 +33,12 @@ trait Nitm
 			$this->formName()."[".$attribute."]" => $this->getAttribute($attribute)
 		]);
 		array_unshift($urlOptions, $url);
-		$htmlOptions = [
+		$htmlOptions = array_merge([
 			'href' => \Yii::$app->urlManager->createUrl($urlOptions), 
 			'role' => $this->formName().'Link', 
 			'id' => $this->isWhat().'-link-'.uniqid(),
 			'data-pjax' => 1
-		];
+		], $options);
 		return \yii\helpers\Html::tag('a', $text, $htmlOptions);
 	}
 	

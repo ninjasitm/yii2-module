@@ -15,7 +15,6 @@ function NitmEntity () {
 	};
 	this.forms = {
 		roles: {
-			ajaxSearch: "filter",
 			ajaxForm: 'ajaxForm',
 		}
 	};
