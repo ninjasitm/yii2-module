@@ -226,12 +226,13 @@ trait Data {
 		return $ret_val;
 	}
 	
+	/**
+	 * Function to get class name for locating items
+	 * @return string
+	 */
 	private function locateClassForItems($options)
 	{
-		if(isset($this) && get_class($this) == static::className())
-			return static::className();
-		else
-			return ArrayHelper::remove($options, 'class', __CLASS__);
+		return ArrayHelper::remove($options, 'class', (is_subclass_of(static::className(), __CLASS__) ? static::className() : __CLASS__));
 	}
 	
 	/**
@@ -240,17 +241,18 @@ trait Data {
 	 */
 	private function locateItems($options)
 	{
-		$class = $this->locateClassForItems($options);
-			
+		$class = self::locateClassForItems($options);
+		
 		$items = [];
-		$this->queryOptions = array_merge($this->queryOptions, array_merge([
+		if(isset($this) && is_subclass_of(static::className(), __CLASS__)) {
+			$this->queryOptions = array_merge($this->queryOptions, array_merge([
 				'limit' => 100,
 				'select' => '*',
 			], $options));
-		if(isset($this)) {
 			$items = $this->getModels();
 		}
 		else {
+			echo $class;
 			$query = $class::find();
 			foreach($this->queryOptions as $name=>$value)
 				if($query->hasMethod($name))
@@ -268,8 +270,7 @@ trait Data {
 	 */
 	public function getList($label='name', $separator=null, $queryOptions=[], $key=null)
 	{
-		$class = $this->locateClassForItems($queryOptions);
-		
+		$class = self::locateClassForItems($queryOptions);
 		$ret_val = [];
 		$separator = is_null($separator) ? ' ' : $separator;
 		$label = is_null($label) ? 'name' : $label;

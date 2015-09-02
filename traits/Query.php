@@ -296,12 +296,18 @@ trait Query {
 	 * Set the aliased fields according to the class columns() function
      * @param ActiveQuery $query
 	 */
-	public static function aliasColumns($query)
+	public function aliasColumns($query)
 	{
-		$pri = static::primaryKey();
+		if(isset($this)) {
+			$class = $this->className();
+			$pri = $this->getPrimaryKey()[0];
+		} else {
+			$class = static::className();
+			$pri = (new $class)->getTableSchema()->primaryKey[0];
+		}
 		$ret_val = [];
-		$columns = array_keys(static::getTableSchema()->columns);
-		$has = is_array(static::has()) ? static::has() : null;
+		$columns = array_keys($class::getTableSchema()->columns);
+		$has = is_array($class::has()) ? $class::has() : null;
 		switch(is_null($has))
 		{
 			case false:

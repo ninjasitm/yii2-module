@@ -401,10 +401,9 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	 */
 	public static function find(&$model=null, $options=null)
 	{
-		$query = parent::find($options);
-		static::aliasColumns($query);
-		if(is_object($model))
-		{
+		$query = parent::find($options);		
+		if($model instanceof Data) {
+			$model->aliasColumns($query);
 			foreach($model->queryOptions as $filter=>$value)
 			{
 				switch(strtolower($filter))
@@ -421,6 +420,8 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 				}
 			}
 			static::applyFilters($query, $model->queryOptions);
+		} else {
+			static::aliasColumns($query);
 		}
 		return $query;
 	}
