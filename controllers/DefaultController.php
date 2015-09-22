@@ -150,7 +150,8 @@ class DefaultController extends BaseController
 				'model' => $this->model
 			], $options['viewOptions'])
 		]);
-        return $this->renderResponse(null, Response::viewOptions(), false);
+		
+        return $this->renderResponse($dataProvider->getModels(), Response::viewOptions(), false);
     }
 	
 	/*

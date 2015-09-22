@@ -95,8 +95,7 @@ function NitmEntity () {
 						var proceed = true;
 						
 						if($elem.attr('role').indexOf(self.actions.deleteAction) != -1)
-							if(!confirm("Are you sure you want to delete this?"))
-								proceed = false;
+							proceed = confirm("Are you sure you want to delete this?");
 						
 						if(proceed === true)
 						{
@@ -120,17 +119,18 @@ function NitmEntity () {
 								$nitm.notify(message, 'danger');
 							} : $elem.data('error-callback').parseFunction();
 							
-							if($elem.attr('href') || $elem.data('url')) {
-								var url = !$elem.attr('href') ? $elem.attr('url') : $elem.attr('href');
+							var url = $elem.attr('href') || $elem.attr('url');
+							if(url[0] != '#') {
 								$.ajax({
-									method: $elem.data('method') == 'get' ? 'get' : 'post',
+									method: $elem.data('method') || 'post',
 									url: url, 
 									success: successFunc, 
 									error: errorFunc,
-									dataType: $elem.data('type') != undefined ? $elem.data('type') : 'json',
+									dataType: $elem.data('type') ||  'json',
 								});
 							}
 						}
+						return false;
 					});
 				}
 			});
@@ -192,7 +192,7 @@ function NitmEntity () {
 				break;
 				
 				default:
-				var indicate = 'notify';
+				var indicate = result.indicate || 'notify';
 				break;
 			}
 			$nitm.notify(result.message, indicate, (!realElem ? elem : realElem));

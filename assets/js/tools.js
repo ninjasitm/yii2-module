@@ -132,7 +132,6 @@ function Tools ()
 		
 		if($object.data('toggle-inputs')) {
 			this.target.find(':input').prop('disabled', function(i, v) { return !v; });
-			console.log($(this).data());
 		}
 		
 		return false;
@@ -365,7 +364,7 @@ function Tools ()
 	this.evalScripts = function (text, callback, options) {
 		var dom = $(text);
 		//Need to find top level and nested scripts in returned text
-		var scripts = dom.find('script');
+		var scripts = dom.find('script[type="text/javascript"]');
 		$.merge(scripts, dom.filter('script'));
 		//Load remote scripts before ading content to DOM
 		scripts.each(function(){
@@ -466,19 +465,12 @@ function Tools ()
 	{
 		var $element = $(elem);
 		var levels = ($element.data('depth') == undefined) ? -1 : $element.data('depth');
-		switch($element.data('parent') != undefined)
-		{
-			case true:
-			if($element.data('parent') != undefined)
-				var parent = $element.parents($element.data('parent')).eq(levels);
-			else
+		if($element.data('parent') != undefined) {
+			var parent = $element.parents($element.data('parent')).eq(levels);
+			if(!parent.length)
 				var parent = $element.parents($element.data('parent'));
-			break;
-			
-			default:
+		} else 
 			var parent = $element.parents().eq(levels);
-			break;
-		}
 		parent.hide('slow').remove();
 	}
 	
