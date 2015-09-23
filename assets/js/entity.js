@@ -97,7 +97,7 @@ function NitmEntity () {
 						if($elem.attr('role').indexOf(self.actions.deleteAction) != -1)
 							proceed = confirm("Are you sure you want to delete this?");
 						
-						if(proceed === true)
+						if(proceed == true)
 						{
 							$nitm.startSpinner($elem);
 							var successFunc = $elem.data('success-callback') == undefined ? function (result) {
@@ -119,7 +119,7 @@ function NitmEntity () {
 								$nitm.notify(message, 'danger');
 							} : $elem.data('error-callback').parseFunction();
 							
-							var url = $elem.attr('href') || $elem.attr('url');
+							var url = $elem.data('url') || $elem.attr('href');
 							if(url[0] != '#') {
 								$.ajax({
 									method: $elem.data('method') || 'post',
@@ -128,6 +128,8 @@ function NitmEntity () {
 									error: errorFunc,
 									dataType: $elem.data('type') ||  'json',
 								});
+							} else {
+								$nitm.stopSpinner($elem);
 							}
 						}
 						return false;
