@@ -98,7 +98,7 @@ class Form extends Behavior
 						'action' => "/".$model->isWhat()."/$action".($action == 'create' ? '' : "/".$model->getId()),
 						'options' => [
 							'id' => $model->isWhat()."-form".$model->getId(),
-							'role' => $scenario.$model->formName()
+							'role' => $scenario.$model->formName().' ajaxForm'
 						]
 					], \yii\helpers\ArrayHelper::getValue($options, 'formOptions', []));
 					
