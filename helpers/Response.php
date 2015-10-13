@@ -168,7 +168,7 @@ class Response extends Behavior
 	 */
 	public static function formatSpecified()
 	{
-		return \Yii::$app->request->get('__format') != null;
+		return \Yii::$app->request->get('__format') != null && !isset(static::$format);
 	}
 	
 	/**
