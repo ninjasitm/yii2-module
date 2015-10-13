@@ -18,7 +18,7 @@ class Json
 	 */
 	public static function decode($value, $asArray=true)
 	{
-		if(is_string($value))
+		if(is_string($value) && static::isJson($value))
 			return (is_null($decoded = JsonHelper::decode(trim($value), $asArray)) ? $value : $decoded);
 		return $value;
 	}
