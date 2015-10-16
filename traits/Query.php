@@ -56,71 +56,23 @@ trait Query {
 				switch(static::hasFilter($name))
 				{
 					case true:
-					switch($name)
+					switch(strtolower($name))
 					{
-						case 'custom':
-						$query->orWhere($value['attribute'], $value['value']);
+						case 'select':
+						\nitm\helpers\QueryFilter::aliasSelectFields($value, $this);
 						break;
 						
-						case 'order_by':
-						$query->orderBy($value);
-						if(@isset($filters['order']))
-						{
+						case 'orderby':
+						\nitm\helpers\QueryFilter::aliasOrderByFields($value, $this);
+						if(isset($filters['order']))
 							unset($filters['order']);
-						}
-						unset($filters[$name]);
 						break;
 						
-						case 'group_by':
-						$query->groupBy($value);
-						break;
-						
-						case 'text':
-						$query->orWhere(['like', $name, $value]);
-						break;
-						
-						case 'show':
-						switch(is_null($value))
-						{
-							case true:
-							continue;
-							break;
-							
-							case false:
-							$fieldName = 'disabled';
-							switch($value)
-							{
-								case 'disabled':
-								$fieldName = $value;
-								$value = 1;
-								break;
-								
-								case 1:
-								case true:
-								$value = 1;
-								break;
-								
-								default:
-								$value = 0;
-								break;
-							}
-							$query->andWhere([$fieldName => $value]);
-							break;
-						}
-						unset($filters[$name]);
-						break;
-						
-						case 'limit':
-						$query->limit($value);
-						unset($filters[$name]);
-						break;
-						
-						case 'unique':
-						$pk = static::primaryKey();
-						$query->andWhere([$pk[0] => $value]);
-						unset($filters[$name]);
+						case 'groupby':
+						\nitm\helpers\QueryFilter::aliasOrderByFields($value, $this);
 						break;
 					}
+					$filters[$name] = $value;
 					break;
 				}
 			}
@@ -133,20 +85,9 @@ trait Query {
 				} catch (\Exception $e) {}
 			}
 			
-			//now search for conditional filters
-			/*if(is_object($filters))
-			{
-				print_r($filters);
-				exit;
-			}
-			$filters = array_filter($filters, function ($key, $value) {
-				return 
-			});*/
-			switch(is_array($filters) && (sizeof($filters) >= 1))
-			{
-				case true:
+			if(is_array($filters) && (sizeof($filters) >= 1)) {
+				\nitm\helpers\QueryFilter::aliasWhereFields($filters);
 				$query->andWhere($filters);
-				break;
 			}
 			break;
 		}
@@ -303,7 +244,7 @@ trait Query {
 			$pri = $this->getPrimaryKey()[0];
 		} else {
 			$class = static::className();
-			$pri = (new $class)->getTableSchema()->primaryKey[0];
+			$pri = $class::getTableSchema()->primaryKey[0];
 		}
 		$ret_val = [];
 		$columns = array_keys($class::getTableSchema()->columns);
@@ -334,6 +275,7 @@ trait Query {
 			break;
 		}
 		$query->select(array_merge($ret_val, $columns));
+		\nitm\helpers\QueryFilter::aliasFields($query, $class::tableName());
 		return $query;
 	}
 }

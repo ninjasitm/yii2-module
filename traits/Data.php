@@ -104,6 +104,17 @@ trait Data {
 		return (int)(string)$this->$key[0];
 	}
 	
+	public function hasRelation($name)
+	{
+		$ret_val = null;
+		if($this->hasMethod('get'.$name)) {
+			$ret_val = $this->{'get'.$name}();
+			if(!($ret_val instanceof \yii\db\ActiveQuery))
+				$ret_val = null;
+		}
+		return $ret_val;
+	}
+	
 	/*
 	 * Return a string imploded with ucfirst characters
 	 * @param string $name

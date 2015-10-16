@@ -401,8 +401,9 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	 */
 	public static function find(&$model=null, $options=null)
 	{
-		$query = parent::find($options);		
-		if($model instanceof Data) {
+		$query = parent::find($options);
+		$query->from = [$model instanceof self ? $model->tableName() : static::tableName()];
+		if($model instanceof self) {
 			$model->aliasColumns($query);
 			foreach($model->queryOptions as $filter=>$value)
 			{
@@ -424,6 +425,39 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			static::aliasColumns($query);
 		}
 		return $query;
+	}
+	
+	/**
+	 * Get the query that orders items by their activity
+	 */
+	public function getSort()
+	{
+		return [
+			'date' => [
+				'asc' => ['created_at' => SORT_ASC, 'updated_at' => SORT_ASC],
+				'desc' => ['created_at' => SORT_DESC, 'updated_at' => SORT_DESC],
+				'default' => SORT_DESC,
+				'label' => 'Date'
+			],
+			'author' => [
+				'asc' => [\nitm\models\Profile::tableName().'.name' => SORT_ASC],
+				'desc' => [\nitm\models\Profile::tableName().'.name' => SORT_DESC],
+				'default' => SORT_DESC,
+				'label' => 'Author'
+			],
+			'editor' => [
+				'asc' => [\nitm\models\Profile::tableName().'.name' => SORT_ASC],
+				'desc' => [\nitm\models\Profile::tableName().'.name' => SORT_DESC],
+				'default' => SORT_DESC,
+				'label' => 'Editor'
+			],
+			'name' => [
+				'asc' => [\nitm\models\Profile::tableName().'.name' => SORT_ASC],
+				'desc' => [\nitm\models\Profile::tableName().'.name' => SORT_DESC],
+				'default' => SORT_DESC,
+				'label' => 'Name'
+			],
+		];
 	}
 	
 	/*---------------------

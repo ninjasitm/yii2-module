@@ -2,7 +2,6 @@
 
 namespace nitm\traits\relations;
 
-use dektrium\user\models\User;
 use nitm\helpers\Cache;
 use yii\helpers\ArrayHelper;
 

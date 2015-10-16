@@ -280,7 +280,7 @@ trait Relations {
     {
 		/**
 		 * parent_id represents the outter part of the query and will matcch to the static::className's id
-		 * This is the parent_id in the PartntMap table
+		 * This is the parent_id in the ParentMap table
 		 * remote_id maps to the current class's id
 		 */
 		return $this->getRelationQuery($this->className(), ['id' => 'parent_id'])
@@ -306,15 +306,31 @@ trait Relations {
 		 * remote_id maps to the current class's id
 		 */;
 		return $this->getRelationQuery($this->className(), ['id' => 'parent_id'], ['where' => []], true)
-			->viaTable(ParentMap::tableName(), ['remote_id' => 'id'], function($query) {
-				$query->where(['remote_class' => $this->className()]);
-				return $query;
-			});
+			->viaTable(ParentMap::tableName(), ['remote_id' => 'id']);
     }
 	
 	public function parents()
 	{
 		return $this->getCachedRelation('id', $this->className(), [], true, 'parents');
+	}
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getChildren()
+    {
+		/**
+		 * parent_id represents the outter part of the query and will matcch to the static::className's id
+		 * This is the parent_id in the ParentMap table
+		 * remote_id maps to the current class's id
+		 */;
+		return $this->getRelationQuery($this->className(), ['id' => 'remote_id'], ['where' => []], true)
+			->viaTable(ParentMap::tableName(), ['parent_id' => 'id']);
+    }
+	
+	public function children()
+	{
+		return $this->getCachedRelation('id', $this->className(), [], true, 'children');
 	}
 	
 	protected function getRelationQuery($className, $link, $options=[], $many=false)

@@ -6,6 +6,7 @@ use Yii;
 use yii\base\Model;
 use yii\base\Event;
 use yii\helpers\ArrayHelper;
+use yii\helpers\Html;
 use nitm\models\User;
 use nitm\widgets\models\Category;
 use nitm\models\ParentMap;
@@ -39,7 +40,7 @@ trait Nitm
 			'id' => $this->isWhat().'-link-'.uniqid(),
 			'data-pjax' => 1
 		], $options);
-		return \yii\helpers\Html::tag('a', $text, $htmlOptions);
+		return Html::tag('a', $text, $htmlOptions);
 	}
 	
 	public function nitmScenarios()
@@ -81,6 +82,13 @@ trait Nitm
 		return $ret_val;
 	}
 
+	
+	public function getStatusTag($text = null, $label = null)
+	{
+		$label = is_null($label) ? $this->getStatus() : $label;
+		$text = is_null($text) ? $this->getStatusName() : $text;
+		return Html::tag('span', $text, ['class' => 'label label-'.$label]);
+	}
 	
 	public function getStatus()
 	{
@@ -162,6 +170,11 @@ trait Nitm
 		$ret_val = 'status';
 		switch(1)
 		{
+			case $this->hasAttribute($attribute = 'status'):
+			case $this->hasAttribute($attribute = 'level'):
+			$ret_val = $this->$attribute;
+			break;
+			
 			case $this->hasAttribute('duplicate') && $this->duplicate:
 			$ret_val = 'duplicate'; //need to add duplicate css class
 			break;

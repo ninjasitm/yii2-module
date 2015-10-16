@@ -2,8 +2,8 @@
 
 namespace nitm\traits\relations;
 
-use dektrium\user\models\Profile;
 use nitm\helpers\Cache;
+use nitm\models\Profile as ProfileModel;
 use yii\helpers\ArrayHelper;
 
 /**
@@ -98,7 +98,7 @@ trait User {
 				
 				//Fallback to dektriuk\User gravatar info
 				default:
-				$profile = $this->profile instanceof Profile ? $this->profile : Profile::find()->where(['user_id' => $this->getId()])->one();
+				$profile = $this->profile instanceof ProfileModel ? $this->profile : ProfileModel::find()->where(['user_id' => $this->getId()])->one();
 				$url = $this->getAvatar($this->email, $profile);
 				break;
 			}
@@ -160,6 +160,19 @@ trait User {
 			break;
 		}
 		return $ret_val;
+	}
+	
+	public function getSort()
+	{
+		$sort = [
+			'username' => [
+				'asc' => [$this->tableName().'.username' => SORT_ASC],
+				'desc' => [$this->tableName().'.username' => SORT_DESC],
+				'default' => SORT_DESC,
+				'label' => 'Username'
+			],
+		];
+		return array_merge(parent::getSort(), $sort);
 	}
 }
 ?>
