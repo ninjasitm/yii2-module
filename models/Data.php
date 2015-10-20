@@ -176,11 +176,6 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		return array_merge(parent::behaviors(), $behaviors);
 	}
 	
-	public function beforeSave($insert)
-	{
-		return parent::beforeSave($insert);
-	}
-	
 	public function afterSave($insert, $attributes)
 	{
 		/**

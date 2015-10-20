@@ -251,13 +251,13 @@ use yii\helpers\ArrayHelper;
 						
 			if(($ret_val = $query->one()) instanceof $className)
             	return $ret_val;
-			else
-				if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))	
-            		throw new \yii\web\NotFoundHttpException((new $className)->properName()." : $id doesn't exist!");
+			else if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev')) {
+            	throw new \yii\web\NotFoundHttpException((new $className)->properName()." : $id doesn't exist!");
+			}
 				return $ret_val;
-        } else
-			if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))	
-           		throw new \yii\web\NotFoundHttpException((new $className)->properName()." doesn't exist!");
+        } else if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))	{
+           	throw new \yii\web\NotFoundHttpException((new $className)->properName()." doesn't exist!");
+		}
 		return $ret_val;
     }
  }

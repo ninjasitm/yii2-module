@@ -58,7 +58,8 @@ class Entity extends Data
 			if($event->sender->hasAttribute($dateAttribute)) {
 				$attribute = '%'.\nitm\helpers\ClassHelper::variableName($dateAttribute).'%';
 				$date = $event->sender->$dateAttribute instanceof \yii\db\Expression ? strtotime('now') : $event->sender->$dateAttribute;
-				$options['variables'][$attribute] = \Yii::$app->formatter->asDatetime($date);
+				if(strtotime($date))
+					$options['variables'][$attribute] = \Yii::$app->formatter->asDatetime($date);
 			}
 		}
 			

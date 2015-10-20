@@ -239,15 +239,8 @@ trait Query {
 	 */
 	public function aliasColumns($query)
 	{
-		if(isset($this)) {
-			$class = $this->className();
-			$pri = $this->getPrimaryKey()[0];
-		} else {
-			$class = static::className();
-			$pri = $class::getTableSchema()->primaryKey[0];
-		}
+		$class = isset($this) ? $this->className() :  static::className();
 		$ret_val = [];
-		$columns = array_keys($class::getTableSchema()->columns);
 		$has = is_array($class::has()) ? $class::has() : null;
 		switch(is_null($has))
 		{
@@ -274,7 +267,11 @@ trait Query {
 			}
 			break;
 		}
-		$query->select(array_merge($ret_val, $columns));
+		if(count($ret_val))
+			$query->select(array_merge($ret_val, array_keys($class::getTableSchema()->columns)));
+		else
+			$query->select('*');
+			
 		\nitm\helpers\QueryFilter::aliasFields($query, $class::tableName());
 		return $query;
 	}

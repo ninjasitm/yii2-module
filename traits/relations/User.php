@@ -172,7 +172,7 @@ trait User {
 				'label' => 'Username'
 			],
 		];
-		return array_merge(parent::getSort(), $sort);
+		return array_merge(\nitm\models\Data::getSort(), $sort);
 	}
 }
 ?>

@@ -108,7 +108,7 @@ class QueryFilter
 	 */
 	public static function aliasSelectFields(&$query, $model)
 	{
-		
+		$query->select = !$query->select ? '*' : $query->select;
 		if(!is_array($query->select))
 			$query->select = [$query->select];
 			
