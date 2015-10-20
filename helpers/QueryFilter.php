@@ -165,7 +165,7 @@ class QueryFilter
 	 */
 	public static function aliasOrderByFields(&$query, $model)
 	{	
-		$joined = [];
+		$joined = $ret_val = [];
 		if($query instanceof \yii\db\Query)
 			$orderBy =& $query->orderBy;
 		else if(is_array($query))
@@ -173,6 +173,13 @@ class QueryFilter
 		
 		if(!isset($orderBy) || !is_array($orderBy))
 			return;
+		
+		if($query instanceof \yii\db\Query)
+			$with =& $query->with;
+		else if(is_array($query))
+			$with =& $query;
+		else
+			$with = [];
 		
 		foreach($orderBy as $field=>$order)
 		{
@@ -190,59 +197,66 @@ class QueryFilter
 			
 			$class = $query->modelClass;
 			
-			if($class::tableName() == $table || (strpos($table, '(') || strpos($table, ')') !== false))
-				continue;
-				
-			if(isset($table) && !in_array($table, $joined)) {
+			/**
+			 * If the field belongs to the current table then alias it and add it to the list of sorted fields and continue
+			 */
+			if($class::tableName() == $table || (strpos($table, '(') || strpos($table, ')') !== false)) {
 				$query->orderBy[$table.'.'.$field] = $order;
+				$ret_val[$field] = $order;
 				unset($query->orderBy[$field]);
-				//$query->from[] = $table;
-				$query->leftJoin($table, '0=1');
-				$joined[] = $table;
+				continue;
 			}
-		}
-		$query->from(array_unique($query->from));
-	}
-	
-	/**
-	 * Add related tables to from selection for relations and ordering by relations
-	 */
-	public function addWithTables(&$query, $model, $attributes=[])
-	{
-		$joined = [];
-		if($query instanceof \yii\db\Query)
-			$with =& $query->with;
-		else if(is_array($query))
-			$with =& $query;
-		
-		if(!isset($with) || !is_array($with))
-			return;
 			
-		foreach($with as $idx=>$toJoin) {
-			if(($relation = $model->hasRelation($toJoin)) && isset($attributes[$toJoin])) {
-				$class = $relation->modelClass;
-				$table = $class::tableName();
-				if($model->tableName() == $class::tableName())
-					continue;
-				
-				if(in_array($table, $joined) || (strpos($table, '(') || strpos($table, ')') !== false))
-					continue;
-					
-				self::aliasFields($relation, $table);
-				$query->leftJoin($table, '0=1');
+			/**
+			 * Or if the field is a yii DB expression
+			 */
+			if($field instanceof \yii\db\Expression) {
+				continue;
+			}
+			
+			$db =  $query->createCommand()->db;
+			
+			//If $table is actually the name of a relation then investigate further
+			if(isset($table) && !in_array($table, $joined)) {
+				//If a relation was specified as the joining value then we need to join the relation and order by the aliased table
+				if(in_array($table, $with)) {
+					$toJoin = $table;
+					if($relation = $model->hasRelation($toJoin)) {
+						$relationClass = $relation->modelClass;
+						$relationTable = $relationClass::tableName();
+						
+						//We will skip for various conditions
+						
+						//If we already joined this relation 	
+						if(in_array($toJoin, $joined))
+							continue;
+						
+						if($relationClass::tableName() == $class::tableName())
+							$alias = '';
+						else
+							$alias = $toJoin;
+						
+						//We join on the relation links
+						foreach($relation->link as $relationField=>$targetAttr)
+						{
+							$on[$alias.'.'.$relationField] = new \yii\db\Expression($db->quoteTableName($class::tableName()).'.'.$db->quoteColumnName($targetAttr));
+						}
+						//Left join to return the values from the subject table only
+						$query->leftJoin($relationTable.' '.$alias, $on);
+						$query->orderBy[$alias.'.'.$field] = $order;
+						$ret_val[implode(',', array_values((array)$relation->link))] = $order;
+						unset($query->orderBy[$toJoin.'.'.$field]);
+					}
+				} else {
+					$query->orderBy[$table.'.'.$field] = $order;
+					$ret_val[$field] = $order;
+					unset($query->orderBy[$field]);
+				}
 				$joined[] = $table;
-				
-				/*$this->dataProvider->query->joinWith([
-					 $toJoin => function ($query) use($relation, $toJoin, $idx, $class) {
-						$query->from($class::tableName().' '.$class::isWhat().ucfirst($toJoin).$idx);
-						QueryFilter::aliasFields($query, $class::tableName());
-					 }
-				]);*/
 			}
 		}
-		if(($query instanceof \yii\db\Query) && is_array($query->join)) {
-			$query->join = array_map('unserialize', array_unique(array_map('serialize', $query->join)));
-		}
+		//Returnt he original fields that were sorted by
+		return $ret_val;
 	}
 	
 	public static function aliasFields(&$query, $model)
@@ -250,6 +264,16 @@ class QueryFilter
 		self::aliasSelectFields($query, $model);
 		self::aliasOrderByFields($query, $model);
 		self::aliasWhereFields($query, $model);
+	}
+	
+	public static function setDataProviderOrders($dataProvider, $orders)
+	{
+		$dataProvider->sort->params = $sort = [];
+		foreach($orders as $key=>$direction) {
+			$sort[] = ($direction == SORT_ASC) ? $key : '-'.$key; 
+		}
+		$dataProvider->sort->params[$dataProvider->sort->sortParam] = implode(',', $sort);
+		$dataProvider->sort->getOrders(true);
 	}
 }
 ?>

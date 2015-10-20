@@ -124,23 +124,9 @@ class DefaultController extends BaseController
 		}
 		
 		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
-
-		$createOptions = isset($options['createOptions']) ? $options['createOptions'] : [];
-		
-		$filterOptions = isset($options['filterOptions']) ? $options['filterOptions'] : [];
 		unset($options['createOptions'], $options['filterOptions']);
 		
-		$options['viewOptions'] = array_merge([
-			'createButton' => $this->getCreateButton($createOptions),
-			'createMobileButton' => $this->getCreateButton(array_replace_recursive([
-				'containerOptions' => [
-					'class' => 'btn btn-default btn-lg navbar-toggle aligned'
-				]
-			], $createOptions), 'Create'),
-			'filterButton' => $this->getFilterButton($filterOptions),
-			'filterCloseButton' => $this->getFilterButton($filterOptions, 'Close'),
-			'isWhat' => $this->model->isWhat()
-		], (array)@$options['viewOptions']);
+		$options['viewOptions'] = array_merge($this->getViewOptions(), (array)@$options['viewOptions']);
 		
 		Response::viewOptions(null, [
 			'view' => ArrayHelper::getValue($options, 'view', 'index'),
@@ -153,6 +139,25 @@ class DefaultController extends BaseController
 		
         return $this->renderResponse($dataProvider->getModels(), Response::viewOptions(), false);
     }
+	
+	protected function getViewOptions($options=[])
+	{
+		$createOptions = isset($options['createOptions']) ? $options['createOptions'] : [];
+		
+		$filterOptions = isset($options['filterOptions']) ? $options['filterOptions'] : [];
+		
+		return [
+			'createButton' => $this->getCreateButton($createOptions),
+			'createMobileButton' => $this->getCreateButton(array_replace_recursive([
+				'containerOptions' => [
+					'class' => 'btn btn-default btn-lg navbar-toggle aligned'
+				]
+			], $createOptions), 'Create'),
+			'filterButton' => $this->getFilterButton($filterOptions),
+			'filterCloseButton' => $this->getFilterButton($filterOptions, 'Close'),
+			'isWhat' => $this->model->isWhat()
+		];
+	}
 	
 	/*
 	 * Get the forms associated with this controller
@@ -350,6 +355,78 @@ class DefaultController extends BaseController
 		
 		return $this->finalAction($ret_val, $result);
     }
+	
+	public function actionFilter($options=[], $searchOptions=[])
+	{
+		$ret_val = [
+			"success" => false, 
+			'action' => 'filter',
+			"format" => $this->getResponseFormat(),
+			'message' => "No data found for this filter"
+		];
+
+		$searchModelOptions = array_merge([
+			'inclusiveSearch' => true,
+			'booleanSearch' => true,
+		], $searchOptions);
+		
+		$className = ArrayHelper::getValue($options, 'className');
+		
+		$this->model = new $className($searchModelOptions);
+		$type = $this->model->isWhat();
+		
+		$this->model->setIndexType($type);
+		
+		switch(1)
+		{
+			case $this->model instanceof \nitm\search\BaseMongo:
+			case $this->model instanceof \nitm\search\BaseElasticSearch:
+			$options['with'] = null;
+			break;
+		}
+		
+		$dataProvider = $this->model->search(array_merge($_REQUEST, [
+			'forceType' => true,
+			'types' => $type,
+			'isWhat' => $type,
+			'queryOptions' => [
+				'with' => ArrayHelper::getValue($options, 'with', [])
+			]
+		]));
+		
+		$dataProvider->pagination->route = "/$type/filter";
+		
+		$view = isset($options['view']) ? $options['view'] : 'index';
+		
+		//Change the context ID here to match the filtered content
+		$this->id = $type;
+		
+		$ret_val['data'] = $this->renderAjax($view, array_merge($this->getViewOptions(), [
+			"dataProvider" => $dataProvider,
+			'searchModel' => $this->model,
+			'model' => $this->model,
+			'primaryModel' => $this->model->primaryModel,
+			'isWhat' => $type,
+		]));
+
+		//Add support for Pjax requests here. If somethign was sent based on Pjax always return HTML
+		if(\Yii::$app->getRequest()->get('_pjax') != null)
+			$this->setResponseFormat('html');
+			
+		$getParams = array_merge([$type], \Yii::$app->request->get());
+		
+		foreach(['__format', '_type', 'getHtml', 'ajax', 'do'] as $prop)
+			unset($getParams[$prop]);
+			
+		$ret_val['url'] = \Yii::$app->urlManager->createUrl($getParams);
+		$ret_val['message'] = !$dataProvider->getCount() ? $ret_val['message'] : "Found ".$dataProvider->getTotalCount()." results matching your search";
+		
+		Response::viewOptions('args', [
+			"content" => $ret_val['data'],
+		]);
+		
+		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
+	}
 
     /**
      * Deletes an existing Category model.
@@ -711,5 +788,10 @@ class DefaultController extends BaseController
 				
 		unset($options['modalOptions']);
 		return $this->getFormVariables($this->model, $options, $modalOptions);
+	}
+	
+	protected function getWith()
+	{
+		return [];
 	}
 }
