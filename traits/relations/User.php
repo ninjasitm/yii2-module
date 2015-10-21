@@ -135,7 +135,6 @@ trait User {
 					$key = $profile['public_email'];
 					break;
 				}
-				break;
 			}
 		}
 		return "https://gravatar.com/avatar/".md5($key);

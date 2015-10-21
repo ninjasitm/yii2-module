@@ -266,14 +266,17 @@ class QueryFilter
 		self::aliasWhereFields($query, $model);
 	}
 	
-	public static function setDataProviderOrders($dataProvider, $orders)
+	public static function setDataProviderOrders($dataProvider, $orders=[])
 	{
 		$dataProvider->sort->params = $sort = [];
-		foreach($orders as $key=>$direction) {
-			$sort[] = ($direction == SORT_ASC) ? $key : '-'.$key; 
+		if(is_array($orders))
+		{
+			foreach($orders as $key=>$direction) {
+				$sort[] = ($direction == SORT_ASC) ? $key : '-'.$key; 
+			}
+			$dataProvider->sort->params[$dataProvider->sort->sortParam] = implode(',', $sort);
+			$dataProvider->sort->getOrders(true);
 		}
-		$dataProvider->sort->params[$dataProvider->sort->sortParam] = implode(',', $sort);
-		$dataProvider->sort->getOrders(true);
 	}
 }
 ?>
