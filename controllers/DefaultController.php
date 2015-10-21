@@ -108,6 +108,9 @@ class DefaultController extends BaseController
 		], $options);
 		
         $searchModel = new $className($options['construct']);
+		$options['with'] = ArrayHelper::getValue($options, 'with', ArrayHelper::getValue($options, 'queryOptions.with', []));
+		
+		$searchModel->queryOptions['with'] = ArrayHelper::getValue($searchModel, 'queryOptions.with', $options['with']);
 		
         $dataProvider = $searchModel->search($options['params']);
 		

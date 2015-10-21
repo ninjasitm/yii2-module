@@ -196,7 +196,16 @@ trait Query {
 						break;
 					}
 				}
+				
+				foreach($this->getSort() as $attr=>$options)
+				{
+					@list($relation, $label, $orderAttr) = (array)$options;
+					if($this->hasMethod('get'.$relation))
+						$ret_val[$attr] = $options['label'];
+				}
+				
 				ksort($ret_val);
+				
 				if(isset($primaryKey)) {
 					$ret_val = array_reverse($ret_val, true);
 					$ret_val[key($primaryKey)] = current($primaryKey);

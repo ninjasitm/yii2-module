@@ -422,37 +422,70 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		return $query;
 	}
 	
+	protected function addSortParams(&$to, array $labels, $params=[])
+	{
+		foreach($labels as $attr=>$options)
+		{
+			@list($relation, $label, $orderAttr) = (array)$options;
+			$relation = is_null($relation) ? $attr : $relation;
+			
+			if($orderAttr instanceof \yii\db\Expression)
+				$relation = serialize(new \yii\db\Expression($relation.'.'.$orderAttr));
+			else
+				$relation .= is_null($orderAttr) ? '' : '.'.$orderAttr;
+			
+			$to[$attr] = array_merge([
+				'asc' => [$relation => SORT_ASC],
+				'desc' => [$relation => SORT_DESC],
+				'default' => SORT_DESC,
+				'label' => $label
+			], $params);
+		}
+	}
+	
 	/**
 	 * Get the query that orders items by their activity
 	 */
 	public function getSort()
 	{
-		return [
-			'date' => [
-				'asc' => ['created_at' => SORT_ASC, 'updated_at' => SORT_ASC],
-				'desc' => ['created_at' => SORT_DESC, 'updated_at' => SORT_DESC],
-				'default' => SORT_DESC,
-				'label' => 'Date'
-			],
-			'author' => [
-				'asc' => [\nitm\models\Profile::tableName().'.name' => SORT_ASC],
-				'desc' => [\nitm\models\Profile::tableName().'.name' => SORT_DESC],
-				'default' => SORT_DESC,
-				'label' => 'Author'
-			],
-			'editor' => [
-				'asc' => [\nitm\models\Profile::tableName().'.name' => SORT_ASC],
-				'desc' => [\nitm\models\Profile::tableName().'.name' => SORT_DESC],
-				'default' => SORT_DESC,
-				'label' => 'Editor'
-			],
-			'name' => [
-				'asc' => [\nitm\models\Profile::tableName().'.name' => SORT_ASC],
-				'desc' => [\nitm\models\Profile::tableName().'.name' => SORT_DESC],
-				'default' => SORT_DESC,
-				'label' => 'Name'
-			],
+		$ret_val = [];
+		//Create the user sort parameters
+		static::addSortParams($ret_val, [
+			'author_id' => ['author', 'Author', 'username'], 
+			'editor_id' => ['editor', 'Editor', 'username'], 
+			'resolved_by' => ['resolvedBy', 'Resolved By', 'username'], 
+			'closed_by' => ['closedBy', 'Closed By', 'username'], 
+			'disabled_by' => ['disabledBy', 'Disabled By', 'username'], 
+			'deleted_by' => ['deletedBy', 'Deleted By', 'username'], 
+			'completed_by' => ['completedBy', 'Completed By', 'username']
+		]);
+		
+		//Create the date sort parameters
+		static::addSortParams($ret_val, [
+			'created_at' => [null, 'Created At'], 
+			'updated_at' => [null, 'Updated At'], 
+			'resolved_at' => [null, 'Resolved At'], 
+			'closed_at' => [null, 'Closed At'], 
+			'disabled_at' => [null, 'Disabled At'], 
+			'deleted_at' => [null, 'Deleted At'], 
+			'completed_at' => [null, 'Completed At']
+		]);
+		
+		$ret_val['date'] = [
+			'asc' => ['created_at' => SORT_ASC, 'updated_at' => SORT_ASC],
+			'desc' => ['created_at' => SORT_DESC, 'updated_at' => SORT_DESC],
+			'default' => SORT_DESC,
+			'label' => 'Date'
 		];
+		
+		//Create the category sort parameters
+		static::addSortParams($ret_val, [
+			'type_id' => ['type', 'Type', 'name'], 
+			'category_id' => ['category', 'Category', 'name'], 
+			'level_id' => ['level', 'Level', 'name'], 
+		]);
+		
+		return $ret_val;
 	}
 	
 	/*---------------------

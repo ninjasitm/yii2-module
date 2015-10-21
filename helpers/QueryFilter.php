@@ -134,7 +134,7 @@ class QueryFilter
 	 * @param Query|array $query THe query or conditions being modified
 	 * @param Object|string $model Either a model or the table name
 	 */
-	public static function aliasWhereFields(&$query, $model)
+	public static function aliasWhereFields(&$query, $model, $alias = null)
 	{
 		if($query instanceof \yii\db\Query)
 			$where =& $query->where;
@@ -143,14 +143,15 @@ class QueryFilter
 		
 		if(!isset($where) || !is_array($where))
 			return;
-			
+		
+		$alias = is_null($alias) ? $model->tableName() : $alias;
 		foreach($where as $field=>$value) {
-			if(is_string($field)) {
+			if(is_string($field) && strpos('.', $field) === false) {
 				//If an object was passed get the table name
 				if(is_object($model) && $model->hasAttribute($field))
-					$where[$model->tableName().'.'.$field] = $value;
+					$where[$alias.'.'.$field] = $value;
 				//Otherwise only a table name could have been passed
-				else
+				else if(!is_object($model))
 					$where[$model.'.'.$field] = $value;
 				unset($where[$field]);
 			} else if(is_array($value))
@@ -176,11 +177,9 @@ class QueryFilter
 		
 		if($query instanceof \yii\db\Query)
 			$with =& $query->with;
-		else if(is_array($query))
-			$with =& $query;
 		else
 			$with = [];
-		
+			
 		foreach($orderBy as $field=>$order)
 		{
 			if($order instanceof \yii\db\Query
@@ -189,8 +188,18 @@ class QueryFilter
 				|| $field instanceof \yii\db\Expression)
 					continue;
 					
-			if(is_string($field) && strpos($field, '.') !== false) {
+			$originalField = $field;
+				
+			try {
+				$field = unserialize($field);
 				$table = array_shift(explode('.', $field));
+			} catch (\Exception $e) {
+				$table = array_shift(explode('.', $field));
+			}
+			
+			if($field instanceof \yii\db\Expression) {
+				$field = new \yii\db\Expression(implode('.', array_slice(explode('.', $field), 1)));
+			} else if(is_string($field) && strpos($field, '.') !== false) {
 				$field = array_pop(explode('.', $field));
 			} else
 				$table = is_string($model) ? $model : $model->tableName();
@@ -204,13 +213,6 @@ class QueryFilter
 				$query->orderBy[$table.'.'.$field] = $order;
 				$ret_val[$field] = $order;
 				unset($query->orderBy[$field]);
-				continue;
-			}
-			
-			/**
-			 * Or if the field is a yii DB expression
-			 */
-			if($field instanceof \yii\db\Expression) {
 				continue;
 			}
 			
@@ -237,25 +239,43 @@ class QueryFilter
 							$alias = $toJoin;
 						
 						//We join on the relation links
+						$on = [];
 						foreach($relation->link as $relationField=>$targetAttr)
 						{
 							$on[$alias.'.'.$relationField] = new \yii\db\Expression($db->quoteTableName($class::tableName()).'.'.$db->quoteColumnName($targetAttr));
 						}
+						
+						//We join on the where as well;
+						static::aliasWhereFields($relation, new $relationClass, $alias);
+						if(is_array($relation->where))
+							$on += $relation->where;
+							
+						/*
+						 * Remove the current ordering before adding the new one
+						 * This is necessary for when $toJoin == $alias
+						 */
+						unset($query->orderBy[$toJoin.'.'.$field], $query->orderBy[$originalField]);
+						
 						//Left join to return the values from the subject table only
-						$query->leftJoin($relationTable.' '.$alias, $on);
-						$query->orderBy[$alias.'.'.$field] = $order;
-						$ret_val[implode(',', array_values((array)$relation->link))] = $order;
-						unset($query->orderBy[$toJoin.'.'.$field]);
+						$query->leftJoin(implode(' ', [$relationTable, $alias]), $on);
+						$aliasField = implode('.', $field instanceof \yii\db\Expression ? [$field] : [$alias, $field]);
+						$query->orderBy[$aliasField] = $order;
+						//Ignore the universal 'id' attribute
+						$relationLink = array_filter($relation->link, function ($attribute) {
+							return $attribute != 'id';
+						});
+						$ret_val[implode(',', $relationLink)] = $order;
+						$ret_val[$toJoin] = $order;
 					}
 				} else {
 					$query->orderBy[$table.'.'.$field] = $order;
-					$ret_val[$field] = $order;
-					unset($query->orderBy[$field]);
+					$ret_val[$field.''] = $order;
+					unset($query->orderBy[$originalField]);
 				}
 				$joined[] = $table;
 			}
 		}
-		//Returnt he original fields that were sorted by
+		//Return the original fields that were sorted by
 		return $ret_val;
 	}
 	
@@ -272,6 +292,19 @@ class QueryFilter
 		if(is_array($orders))
 		{
 			foreach($orders as $key=>$direction) {
+				try {
+					$sortParams = $dataProvider->sort->attributes[$key];
+					foreach(['asc', 'desc'] as $order)
+					{
+						foreach($sortParams[$order] as $field=>$fieldDirection)
+						{
+							unset($dataProvider->sort->attributes[$key][$order][$field]);
+							$field = unserialize($field);
+							$dataProvider->sort->attributes[$key][$order][substr($field, strpos($field, '.')+1)] = $fieldDirection;
+						}
+					}
+				} catch (\Exception $e) {}
+				
 				$sort[] = ($direction == SORT_ASC) ? $key : '-'.$key; 
 			}
 			$dataProvider->sort->params[$dataProvider->sort->sortParam] = implode(',', $sort);
