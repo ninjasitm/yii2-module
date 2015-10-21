@@ -251,4 +251,31 @@ class ArrayHelper extends BaseArrayHelper
 		}
 		return !$ret_val ? $default : $ret_val;
 	}
+	
+	
+	/**
+	 * Return data from source specified by $getter
+	 * @param array $source. Indexed by the ids of the items
+	 * @param boolean $dsOnly Only return the ids
+	 * @param array|callablke $getter
+	 * @return array
+	 */
+	public static function filter(array $source, $idsOnly=false, $getter=null)
+	{
+		$ret_val = $source;
+		if($idsOnly) {
+			$ret_val = parent::getColumn($source, 'id');
+		} else
+			foreach((array)$source as $id=>$d)
+			{
+				if(is_callable($getter))
+					$ret_val[$id] = call_user_func($getter, $d);
+				else if(is_array($getter)) {
+					$d = $d instanceof \yii\data\Arrayable ? $d->toArray() : (array)$d;
+					$ret_val[$id] = array_intersect_key($d, $getter);
+				} else
+					$ret_val[$id] = $d;
+			}
+		return $ret_val;
+	}
 }
