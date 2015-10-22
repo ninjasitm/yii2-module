@@ -4,7 +4,6 @@ namespace nitm\controllers;
 use yii\helpers\Html;
 use yii\helpers\ArrayHelper;
 use nitm\models\Category;
-use nitm\helpers\Icon;
 use nitm\helpers\Response;
 use nitm\helpers\Helper;
 
@@ -16,13 +15,14 @@ class DefaultController extends BaseController
 	 */
 	public $indexToSearch = true;
 	public static $currentUser;
-	
+
 	public function init()
 	{
 		parent::init();
 		static::$currentUser =  \Yii::$app->user->identity;
+		$this->determineResponseFormat();
 	}
-	
+
 	public function behaviors()
 	{
 		$behaviors = [
@@ -35,7 +35,7 @@ class DefaultController extends BaseController
 					],
 					[
 						'actions' => [
-							'index', 'add', 'list', 'view', 'create', 
+							'index', 'add', 'list', 'view', 'create',
 							'update', 'delete', 'form', 'filter', 'disable',
 							'close', 'resolve', 'complete', 'error',
 						],
@@ -59,7 +59,7 @@ class DefaultController extends BaseController
 		];
 		return array_merge_recursive(parent::behaviors(), $behaviors);
 	}
-	
+
     /**
 	* @inheritdoc
 	*/
@@ -71,7 +71,7 @@ class DefaultController extends BaseController
             ],
         ];
     }
-	
+
 	public function beforeAction($action)
 	{
 		switch($action->id)
@@ -96,8 +96,8 @@ class DefaultController extends BaseController
     {
 		$options = array_replace_recursive([
 			'params' => \Yii::$app->request->get(),
-			'with' => [], 
-			'viewOptions' => [], 
+			'with' => [],
+			'viewOptions' => [],
 			'construct' => [
 				'inclusiveSearch' => true,
 				'exclusiveSearch' => false,
@@ -106,31 +106,22 @@ class DefaultController extends BaseController
 				'queryOptions' => []
 			],
 		], $options);
-		
+
         $searchModel = new $className($options['construct']);
-		$options['with'] = ArrayHelper::getValue($options, 'with', ArrayHelper::getValue($options, 'queryOptions.with', []));
-		
-		$searchModel->queryOptions['with'] = ArrayHelper::getValue($searchModel, 'queryOptions.with', $options['with']);
-		
+
+		$options['with'] = $this->extractRelationParameters($options);
+		$searchModel->queryOptions['with'] = $options['with'];
+
         $dataProvider = $searchModel->search($options['params']);
-		
-		switch(1)
-		{
-			case $dataProvider->query instanceof \yii\elasticsearch\ActiveQuery:
-			case $dataProvider->query instanceof \yii\mongodb\ActiveQuery:
-			$dataProvider->query->with = null;
-			break;
-			
-			default:
-			$dataProvider->query->with($options['with']);
-			break;
-		}
-		
+
+		$this->filterRelationParameters($dataProvider->query, $options['with']);
+
 		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
+
 		unset($options['createOptions'], $options['filterOptions']);
-		
+
 		$options['viewOptions'] = array_merge($this->getViewOptions(), (array)@$options['viewOptions']);
-		
+
 		Response::viewOptions(null, [
 			'view' => ArrayHelper::getValue($options, 'view', 'index'),
 			'args' => array_merge([
@@ -139,29 +130,13 @@ class DefaultController extends BaseController
 				'model' => $this->model
 			], $options['viewOptions'])
 		]);
-		
+
+		if(!Response::formatSpecified())
+			$this->setResponseFormat('html');
+
         return $this->renderResponse($dataProvider->getModels(), Response::viewOptions(), false);
     }
-	
-	protected function getViewOptions($options=[])
-	{
-		$createOptions = isset($options['createOptions']) ? $options['createOptions'] : [];
-		
-		$filterOptions = isset($options['filterOptions']) ? $options['filterOptions'] : [];
-		
-		return [
-			'createButton' => $this->getCreateButton($createOptions),
-			'createMobileButton' => $this->getCreateButton(array_replace_recursive([
-				'containerOptions' => [
-					'class' => 'btn btn-default btn-lg navbar-toggle aligned'
-				]
-			], $createOptions), 'Create'),
-			'filterButton' => $this->getFilterButton($filterOptions),
-			'filterCloseButton' => $this->getFilterButton($filterOptions, 'Close'),
-			'isWhat' => $this->model->isWhat()
-		];
-	}
-	
+
 	/*
 	 * Get the forms associated with this controller
 	 * @param string $param What are we getting this form for?
@@ -172,12 +147,11 @@ class DefaultController extends BaseController
 	public function actionForm($type=null, $id=null, $options=[], $returnData=false)
 	{
 		$options = $this->getVariables($type, $id, $options);
-		$format = Response::formatSpecified() ? $this->getResponseFormat() : 'html';
-		$this->setResponseFormat($format);
-		
+		$this->determineResponseFormat('html');
+
 		if(\Yii::$app->request->isAjax)
 			Response::viewOptions('js', "\$nitm.module('tools').init('".Response::viewOptions('args.formOptions.container.id')."');", true);
-		
+
 		return $returnData ? Response::viewOptions() : $this->renderResponse($options, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
 
@@ -189,10 +163,10 @@ class DefaultController extends BaseController
     public function actionView($id, $modelClass=null, $options=[])
     {
 		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
-        $this->model =  isset($options['model']) ? $options['model'] : $this->findModel($modelClass, $id, @$options['with']);
+        $this->model =  isset($options['model']) ? $options['model'] : $this->findModel($modelClass, $id, array_merge($this->getWith(), ArrayHelper::getValue($options, 'with', [])));
 		$view = isset($options['view']) ? $options['view'] : '/'.$this->id.'/view';
 		$args = isset($options['args']) ? $options['args'] : [];
-		
+
 		Response::viewOptions(null, $options);
 		/**
 		 * Some default values we would like
@@ -201,23 +175,23 @@ class DefaultController extends BaseController
 		Response::viewOptions('args', array_merge([
 			'content' => $this->renderAjax($view, array_merge(["model" => $this->model], $args)),
 		], ArrayHelper::getValue($options, 'args', [])));
-			
+
 		if(Response::viewOptions('assets')) {
 			$this->initAssets(Response::viewOptions('assets'), true);
 		}
-		
+
 		$this->prepareJsFor(true);
-				
-		Response::viewOptions('title', Response::viewOptions('title') ? 
+
+		Response::viewOptions('title', Response::viewOptions('title') ?
 \nitm\helpers\Form::getTitle($this->model, ArrayHelper::getValue(Response::viewOptions(), 'title', [])) : '');
-		
+
 		Response::$forceAjax = false;
-		
+
 		$this->log($this->model->properName()."[$id] was viewed from ".\Yii::$app->request->userIp, 3);
-		
+
 		return $this->renderResponse(null, Response::viewOptions(), (\Yii::$app->request->get('__contentOnly') ? true : \Yii::$app->request->isAjax));
     }
-	
+
     /**
      * Creates a new Category model.
      * If creation is successful, the browser will be redirected to the 'view' page.
@@ -229,140 +203,55 @@ class DefaultController extends BaseController
 		$ret_val = false;
 		$result = ['level' => 3];
 		$level = 1;
-		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
-		$post = \Yii::$app->request->post();
-        $this->model =  new $modelClass(['scenario' => 'create']);
-		$this->model->load($post);
-		switch(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true) && !\Yii::$app->request->get('_pjax'))
-		{
-			case true:
-			$this->setResponseFormat('json');
-			return \yii\widgets\ActiveForm::validate($this->model);
-			break;
-		}
-		
-		switch(\Yii::$app->request->isAjax)
-		{
-			case true:
-			$this->setResponseFormat(\Yii::$app->request->get('_pjax') ? 'html' : 'json');
-			break;
-			
-			default:
-			$this->setResponseFormat('html');
-			break;
-		}
-        if (!empty($post) && $this->model->save()) {
-			$metadata = isset($post[$this->model->formName()]['contentMetadata']) ? $post[$this->model->formName()]['contentMetadata'] : null;
-			$ret_val = true;
-			$result['message'] = implode(' ', [
-				"Succesfully created new ",
-				$this->model->isWhat(),
-				': '.$this->model->title()
-			]);
-			switch($metadata && $this->model->addMetadata($metadata))
-			{
-				case true:
-				\Yii::$app->getSession()->setFlash('success', "Added metadata");
-				break;
-			}
-			Response::viewOptions("view", '/'.$this->id.'/view');
-        } else {
-			if(!empty($post)) {
-				$result['message'] = implode('<br>', array_map(function ($value) {
-					return array_shift($value);
-				}, $this->model->getErrors()));
-				
-				\Yii::$app->getSession()->setFlash('error', $result['message']);
-			}
-			else
-				$this->shouldLog = false;
-				
-			/**
-			 * If the save failed, we're most likely going back to the form so get the form variables
-			 */
-			Response::viewOptions(null, array_merge($this->getVariables($this->model->isWhat()), [
-				"view" => '/'.$this->id.'/create'
-			]), true);
-        }
-		
+		$this->getModel('create', $modelClass);
+
+		if($this->isValidationRequest())
+			return $this->performValidationRequest();
+
+		$this->determineResponseFormat('html');
+
+		$ret_val['message'] = $this->saveInternal($post, 'create');
+
 		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]), true);
 		return $this->finalAction($ret_val, $result);
     }
-	
+
 	/**
      * Updates an existing Category model.
      * If update is successful, the browser will be redirected to the 'view' page.
      * @param integer $id
      * @return mixed
      */
-    public function actionUpdate($id, $modelClass=null, $with=[], $viewOptions=[])
+    public function actionUpdate($id, $modelClass=null, $with=[])
     {
 		$this->action->id = 'update';
 		$ret_val = false;
 		$result = ['level' => 3];
-		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
-		$post = \Yii::$app->request->post();
-        $this->model =  $this->findModel($modelClass, $id, $with);
-		$this->model->setScenario('update');
-		$this->model->load($post);
-		
-		if(\Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true) && !\Yii::$app->request->get('_pjax')) {
-			$this->setResponseFormat('json');
-			return \yii\widgets\ActiveForm::validate($this->model);
-		}
-		 
-		if(\Yii::$app->request->isAjax && !Response::formatSpecified())
-			$this->setResponseFormat(\Yii::$app->request->get('_pjax') ? 'html' : 'json');
-		else
-			$this->setResponseFormat('html');
-		
-        if (!empty($post) && $this->model->save()) {
-			$metadata = isset($post[$this->model->formName()]['contentMetadata']) ? $post[$this->model->formName()]['contentMetadata'] : null;
-			$ret_val = true;
-			switch($metadata && $this->model->addMetadata($metadata))
-			{
-				case true:
-				\Yii::$app->getSession()->setFlash(
-					'success',
-					"Updated metadata"
-				);
-				break;
-			}
-			$result['message'] = implode(' ', [
-				"Succesfully updated ",
-				$this->model->isWhat(),
-				': '.$this->model->title()
-			]);
-			Response::viewOptions("view",  '/'.$this->model->isWhat().'/view');
-			
-        } else {
-			if(!empty($post)) {
-				$result['message'] = implode('<br>', array_map(function ($value) {
-					return array_shift($value);
-				}, $this->model->geterrors()));
-				\Yii::$app->getSession()->setFlash('error', $result['message']);
-			}
-			else
-				$this->shouldLog = false;
-			
-			/**
-			 * If the save failed, we're most likely going back to the form so get the form variables
-			 */
-			Response::viewOptions(null, array_merge($this->getVariables($this->model->isWhat(), $this->model->getId()), [
-				"view" => '/'.$this->model->isWhat().'/update'
-			]), true);
-			
-        }
-				
+		$this->getModel('update', $id, $modelClass, $with);
+
+		if($this->isValidationRequest())
+			return $this->performValidationRequest();
+
+		$this->determineResponseFormat('html');
+
+		$ret_val['message'] = $this->saveInternal($post, 'update');
+
 		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]), true);
-		
+
 		return $this->finalAction($ret_val, $result);
     }
-	
-	public function actionFilter($options=[], $searchOptions=[])
+
+	/**
+	 * Performs filtering on models
+	 * @method actionFilter
+	 * @param  array       $options       Options for the view parameters
+	 * @param  array       $modelOptions Options for the search model
+	 * @return string                     Rendered data
+	 */
+	public function actionFilter($options=[], $modelOptions=[])
 	{
 		$ret_val = [
-			"success" => false, 
+			"success" => false,
 			'action' => 'filter',
 			"format" => $this->getResponseFormat(),
 			'message' => "No data found for this filter"
@@ -371,39 +260,33 @@ class DefaultController extends BaseController
 		$searchModelOptions = array_merge([
 			'inclusiveSearch' => true,
 			'booleanSearch' => true,
-		], $searchOptions);
-		
+		], $modelOptions);
+
 		$className = ArrayHelper::getValue($options, 'className');
-		
+
+		$options['with'] = $this->extractRelationParameters(array_merge($options, $modelOptions));
 		$this->model = new $className($searchModelOptions);
 		$type = $this->model->isWhat();
-		
 		$this->model->setIndexType($type);
-		
-		switch(1)
-		{
-			case $this->model instanceof \nitm\search\BaseMongo:
-			case $this->model instanceof \nitm\search\BaseElasticSearch:
-			$options['with'] = null;
-			break;
-		}
-		
+
 		$dataProvider = $this->model->search(array_merge($_REQUEST, [
 			'forceType' => true,
 			'types' => $type,
 			'isWhat' => $type,
 			'queryOptions' => [
-				'with' => ArrayHelper::getValue($options, 'with', [])
+				'with' => $options['with']
 			]
 		]));
-		
+
+		$this->filterRelationParameters($dataProvider->query, $options['with']);
+
 		$dataProvider->pagination->route = "/$type/filter";
-		
-		$view = isset($options['view']) ? $options['view'] : 'index';
-		
+
+		$view = ArrayHelper::getValue($options, 'view', 'index');
+
 		//Change the context ID here to match the filtered content
 		$this->id = $type;
-		
+
 		$ret_val['data'] = $this->renderAjax($view, array_merge($this->getViewOptions(), [
 			"dataProvider" => $dataProvider,
 			'searchModel' => $this->model,
@@ -415,19 +298,19 @@ class DefaultController extends BaseController
 		//Add support for Pjax requests here. If somethign was sent based on Pjax always return HTML
 		if(\Yii::$app->getRequest()->get('_pjax') != null)
 			$this->setResponseFormat('html');
-			
+
 		$getParams = array_merge([$type], \Yii::$app->request->get());
-		
+
 		foreach(['__format', '_type', 'getHtml', 'ajax', 'do'] as $prop)
 			unset($getParams[$prop]);
-			
+
 		$ret_val['url'] = \Yii::$app->urlManager->createUrl($getParams);
 		$ret_val['message'] = !$dataProvider->getCount() ? $ret_val['message'] : "Found ".$dataProvider->getTotalCount()." results matching your search";
-		
+
 		Response::viewOptions('args', [
 			"content" => $ret_val['data'],
 		]);
-		
+
 		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
 
@@ -440,8 +323,8 @@ class DefaultController extends BaseController
     public function actionDelete($id, $modelClass=null)
     {
 		$deleted = false;
-		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
-        $this->model =  $this->findModel($modelClass, $id);
+		$this->getModel('delete', $id);
+
 		if(is_object($this->model))
 		{
 			switch(1)
@@ -458,32 +341,32 @@ class DefaultController extends BaseController
 				$deleted = true;
 				$level = 1;
 				break;
-				
+
 				default:
 				$level = 6;
 				break;
 			}
 		}
-		
+
 		$this->setResponseFormat('json');
 		return $this->finalAction($deleted, ['redirect' => \Yii::$app->request->getReferrer(), 'logLevel' => $level]);
     }
-	
+
 	public function actionClose($id)
 	{
 		return $this->booleanAction($this->action->id, $id);
 	}
-	
+
 	public function actionComplete($id)
 	{
 		return $this->booleanAction($this->action->id, $id);
 	}
-	
+
 	public function actionResolve($id)
 	{
 		return $this->booleanAction($this->action->id, $id);
 	}
-	
+
 	public function actionDisable($id)
 	{
 		return $this->booleanAction($this->action->id, $id);
@@ -554,7 +437,7 @@ class DefaultController extends BaseController
 			]
 		];
 	}
-	
+
 	protected function booleanAction($action, $id)
 	{
 		$saved = false;
@@ -574,7 +457,7 @@ class DefaultController extends BaseController
 						case 'blamable':
 						$this->model->setAttribute($value, (!$this->boolResult ? null : \Yii::$app->user->getId()));
 						break;
-						
+
 						case 'date':
 						$this->model->setAttribute($value, (!$this->boolResult ? null : new \yii\db\Expression('NOW()')));
 						break;
@@ -585,13 +468,13 @@ class DefaultController extends BaseController
 			$this->model->setAttribute($attributes['attribute'], $this->boolResult);
 			if(!Response::formatSpecified())
 				$this->setResponseFormat('json');
-			
+
 			if(isset($afterAction) && is_callable($afterAction))
 				$afterAction($this->model);
-				
+
 			$saved = $this->model->save();
 		}
-		
+
 		$this->shouldLog = true;
 		$actionTitle = strtolower($title[(int)$this->boolResult]);
 		$actionTitle .= (in_array(substr($actionTitle, strlen($actionTitle)-1, 1), ['e']) ? 'd' : 'ed');
@@ -601,7 +484,7 @@ class DefaultController extends BaseController
 			'message' => implode(' ', ["Successfully", $actionTitle, $this->model->isWhat().':', $this->model->title()])
 		]);
 	}
-	
+
 	/**
 	 * Put here primarily to handle action after create/update
 	 */
@@ -611,7 +494,7 @@ class DefaultController extends BaseController
 			'success' => false,
 		];
         if ($saved) {
-		
+
 			/**
 			 * Perform logging if logging is enabled in the module and the controller enables it
 			 */
@@ -621,7 +504,7 @@ class DefaultController extends BaseController
 					unset($ret_val[$remove]);
 				$this->commitLog();
 			}
-			
+
 			switch(\Yii::$app->request->isAjax)
 			{
 				case true:
@@ -631,8 +514,8 @@ class DefaultController extends BaseController
 					extract(static::booleanActions()[$this->action->id]);
 					$ret_val['success'] = true;
 					$booleanValue = (bool)$this->model->getAttribute($attributes['attribute']);
-					$ret_val['title'] = @ArrayHelper::getValue((array)$title, $booleanValue, '');
-					$iconName = @ArrayHelper::getValue((array)$icon, $booleanValue, $this->action->id);
+					$ret_val['title'] = ArrayHelper::getValue((array)$title, $booleanValue, '');
+					$iconName = ArrayHelper::getValue((array)$icon, $booleanValue, $this->action->id);
 					$ret_val['actionHtml'] = Icon::forAction($iconName, $booleanValue);
 					$ret_val['action'] = isset($action) ? $action : $this->action->id;
 					$ret_val['data'] = $this->boolResult;
@@ -644,7 +527,7 @@ class DefaultController extends BaseController
 						if(method_exists($this->model, 'getStatus'))
 							$ret_val['class'][] = \nitm\helpers\Statuses::getListIndicator($this->model->getStatus());
 						break;
-						
+
 						default:
 						if(method_exists($this->model, 'getStatus'))
 							$ret_val['class'][] = \nitm\helpers\Statuses::getIndicator($this->model->getStatus());
@@ -652,7 +535,7 @@ class DefaultController extends BaseController
 					}
 					$ret_val['class'] = implode(' ', $ret_val['class']);
 					break;
-					
+
 					default:
 					$format = Response::formatSpecified() ? $this->getResponseFormat() : 'json';
 					$this->setResponseFormat($format);
@@ -675,7 +558,7 @@ class DefaultController extends BaseController
 						if(file_exists($this->getViewPath() . DIRECTORY_SEPARATOR . ltrim($viewFile, '/').'.php'))
 							$ret_val['data'] = $this->renderAjax($viewFile, ["model" => $this->model]);
 						break;
-						
+
 						default:
 						if(file_exists($this->getViewPath() . DIRECTORY_SEPARATOR . ltrim($viewFile, '/')))
 							Response::viewOptions('content', $this->renderAjax($viewFile, ["model" => $this->model]));
@@ -686,7 +569,7 @@ class DefaultController extends BaseController
 					break;
 				}
 				break;
-					
+
 				default:
 				\Yii::$app->getSession()->setFlash(@$ret_val['class'], @$ret_val['message']);
 				return $this->redirect(isset($args['redirect']) ? $args['redirect'] : ['index']);
@@ -699,100 +582,10 @@ class DefaultController extends BaseController
 			else
 				$ret_val['message'] = ArrayHelper::getValue($ret_val, 'message', 'There was an error creating a new '.$this->model->isWhat());
 		$ret_val['id'] = $this->model->getId();
-			
+
 		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
-	
-	protected function getCreateButton($options=[], $text=null)
-	{
-		$text = is_null($text) ? strtoupper(\Yii::t('yii', " new ".$this->model->properName($this->model->isWhat()))) : $text;
-		$options = array_replace_recursive([
-			'toggleButton' => [
-				'tag' => 'a',
-				'label' => Icon::forAction('plus')." ".$text, 
-				'href' => \Yii::$app->urlManager->createUrl(['/'.$this->id.'/form/create', '__format' => 'modal']),
-				'title' => \Yii::t('yii', "Add a new ".$this->model->properName($this->model->isWhat())),
-				'role' => 'dynamicAction createAction disabledOnClose',
-				'class' => 'btn btn-success btn-lg'
-			],
-			//'dialogOptions' => [
-			//	"class" => "modal-full"
-			//],
-			'containerOptions' => [
-				'class' => 'navbar-collapse navbar-collapse-content'
-			]
-		], (array)$options);
-		
-		$containerOptions = $options['containerOptions'];
-		unset($options['containerOptions']);
-		
-		return Html::tag('div', \nitm\widgets\modal\Modal::widget($options), $containerOptions);
-	}
-	
-	protected function getFilterButton($options=[], $text='filter')
-	{
-		$containerOptions = isset($options['containerOptions']) ? $options['containerOptions'] : [
-			'class' => 'navbar-toggle aligned'
-		];
-		unset($options['containerOptions']);
-		return Html::tag('div', Html::button(Icon::forAction('filter')." ".ucfirst($text), array_replace([
-			'class' => 'btn btn-default btn-lg',
-			'data-toggle' => 'collapse',
-			'data-target' => '#'.$this->model->isWhat().'-filter'
-		], (array)$options)), $containerOptions);
-	}
-	
-	/*
-	 * Get the variables for a model
-	 * @param string $param What are we getting this form for?
-	 * @param int $unique The id to load data for
-	 * @param array $options
-	 * @return string | json
-	 */
-	protected function getVariables($type=null, $id=null, $options=[])
-	{
-		$force = false;
-		$options['id'] = $id;
-		$options['param'] = $type;
-		
-		if(isset($options['modelClass']))
-		{
-			$this->model = ($this->model->className() == $options['modelClass']) ? $this->model : new $options['modelClass'](@$options['construct']);
-		}
-		switch($type)
-		{	
-			//This is for generating the form for updating and creating a form for $this->model->className()
-			default:
-			$options = array_merge([
-				'title' => ['title', 'Create '.static::properName($this->model->isWhat())],
-				'scenario' => !$id ? 'create' : 'update',
-				'provider' => null,
-				'dataProvider' => null,
-				'view' => isset($options['view']) ? $options['view'] : $type,
-				'args' => [],
-				'modelClass' => $this->model->className(),
-				'force' => false	
-			], $options);
-			break;
-		}
-		$options['modalOptions'] = isset($options['modalOptions']) ? (array)$options['modalOptions'] : [];
-		$modalOptions = array_merge([
-			'body' => [
-				'class' => 'modal-full'
-			],
-			'dialog' => [
-				'class' => 'modal-full'
-			],
-			'content' => [
-				'class' => 'modal-full'
-			],
-			'contentOnly' => true
-		], $options['modalOptions']);
-				
-		unset($options['modalOptions']);
-		return $this->getFormVariables($this->model, $options, $modalOptions);
-	}
-	
+
 	protected function getWith()
 	{
 		return [];

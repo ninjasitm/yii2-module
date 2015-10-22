@@ -2,17 +2,19 @@
 namespace nitm\traits;
 
 use nitm\helpers\Response;
+use nitm\helpers\Icon;
 use yii\helpers\ArrayHelper;
+use yii\helpers\Html;
 
 /**
  * Traits defined for expanding active relation scopes until yii2 resolves traits issue
  */
  trait Controller {
-	
+
 	protected $_logLevel = 3;
 	protected $logCollection;
 	protected $shouldLog = true;
-	
+
     /*
 	 * Check to see if somethign is supported
 	 * @param mixed $what
@@ -21,12 +23,12 @@ use yii\helpers\ArrayHelper;
 	{
 		return (@$this->settings['supported'][$what] == true);
 	}
-	
+
 	public static function assets()
 	{
 		return [];
 	}
-	
+
 	/**
 	 * Initialze the assets supported by this controller. Taken from static::has();
 	 * @param mixed $assts Array of assets
@@ -46,7 +48,7 @@ use yii\helpers\ArrayHelper;
 				case true:
 				$asset::register($this->getView());
 				break;
-				
+
 				default:
 				//It isn't then it may be an asset we have in nitm/assets or nitm/widgets
 				$class = $asset.'\assets\Asset';
@@ -55,7 +57,7 @@ use yii\helpers\ArrayHelper;
 					case true:
 					$class::register($this->getView());
 					break;
-					
+
 					default:
 					//This is probably not a widget asset but a module asset
 					$class = '\nitm\assets\\'.static::properName($asset).'Asset';
@@ -75,12 +77,7 @@ use yii\helpers\ArrayHelper;
 	{
 		return \nitm\helpers\Form::getVariables($options, $modalOptions, $model);
 	}
-	
-	public function getResponseFormat()
-	{
-		return Response::getFormat();
-	}
-	
+
 	/**
 	 * Use nitm logger to log something
 	 * @param string|array $message
@@ -97,10 +94,10 @@ use yii\helpers\ArrayHelper;
 		{
 			if(is_null($message))
 				return false;
-				
+
 			if(!$model)
 				$model = ($model instanceof \nitm\models\Data) ? $model : $this->model;
-			
+
 			/**
 			 * Only log this information if the logging $level is less than or equal to the gloabl accepted level
 			 */
@@ -109,18 +106,18 @@ use yii\helpers\ArrayHelper;
 				'category' => 'User Activity',
 				'table_name' => $model->tableName(),
 				'message' => $message,
-				'action' => (is_null($action) ? $this->action->id : $action), 
+				'action' => (is_null($action) ? $this->action->id : $action),
 			], $options);
 			return \Yii::$app->getModule('nitm')->log($level, $options, $model->className());
 		}
 		return false;
 	}
-	
+
 	protected function commitLog()
 	{
 		return \Yii::$app->getModule('nitm')->commitLog();
 	}
-	
+
 	/**
 	 * Get te log parameters
 	 * @param boolean $saved
@@ -134,32 +131,32 @@ use yii\helpers\ArrayHelper;
 		$level = ArrayHelper::remove($result, 'logLevel', $this->_logLevel);
 		$category = ArrayHelper::remove($result, 'logCategory', 'User Action');
 		$internalCategory = ArrayHelper::remove($result, 'internalLogCategory', 'user-activity');
-		
+
 		$baseArgs = [
-			'category' => $category, 
+			'category' => $category,
 			'internal_category' => $internalCategory
 		];
-			
+
 		if(!isset($result['collection_name']) && (isset($this->logCollection) && !is_null($this->logCollection)))
 			$baseArgs['collection_name'] = $this->logCollection;
-		
+
 		if(!$model)
 			$model = $this->hasProperty('model') && ($this->model instanceof \nitm\models\Data) ? $this->model : new \nitm\models\Data(['noDbInit' => true]);
-		
+
 		$id = ArrayHelper::remove($result, 'id', $model->getId());
 		$message = [\Yii::$app->user->identity->username];
-		
+
 		array_push($message, ($saved ? $action.(in_array(substr($action, strlen($action)-1, 1), ['e']) ? 'd' : 'ed') : "failed to $action"), $this->model->isWhat());
 		if($id)
 			array_push($message, "with id $id");
 		if(!$saved)
 			array_push($message, "\n\nError was: \n\n".var_export($message));
-		
+
 		return [
 			implode(' ', $message), $level, $action, $baseArgs, $model
 		];
 	}
-	
+
 	/**
 	 * Prepare some standard Javascript functions
 	 * @param boolean $force Force preparing the operation
@@ -177,7 +174,7 @@ use yii\helpers\ArrayHelper;
 					case 'forms':
 					$js .= 'module.initForms(null, "'.$this->model->isWhat().'");';
 					break;
-					
+
 					case 'actions':
 					$js .= 'module.initMetaActions(null, "'.$this->model->isWhat().'");';
 					break;
@@ -188,8 +185,8 @@ use yii\helpers\ArrayHelper;
 		}
 		return false;
 	}
-	
-	/*
+
+	/**
 	 * Determine how to return the data
 	 * @param mixed $result Data to be displayed
 	 */
@@ -199,8 +196,8 @@ use yii\helpers\ArrayHelper;
 		$params = is_null($params) ? Response::viewOptions() : $params;
 		return Response::render($result, $params, $partial);
 	}
-	
-	/*
+
+	/**
 	 * Get the desired display format supported
 	 * @return string format
 	 */
@@ -208,7 +205,36 @@ use yii\helpers\ArrayHelper;
 	{
 		return Response::setFormat($format);
 	}
-	
+
+	/**
+	 * Get the response format
+	 * @method getResponseFormat
+	 * @return string            The response format
+	 */
+	public function getResponseFormat()
+	{
+		return Response::getFormat();
+	}
+
+	/**
+	 * Determine what format to return for the response
+	 * @method determineResponseFormat
+	 * @param string			$format THe response format
+	 * @return string 			The response format
+	 */
+	protected function determineResponseFormat($format=null)
+	{
+		if(Response::formatSpecified())
+			return;
+
+		if(\Yii::$app->request->isAjax)
+			$this->setResponseFormat(\Yii::$app->request->get('_pjax') ? 'html' : 'json');
+		else
+			$this->setResponseFormat($format==null ? 'html' : $format);
+
+		return $this->getResponseFormat();
+	}
+
 	/*
 	 * Return a string imploded with ucfirst characters
 	 * @param string $name
@@ -216,10 +242,9 @@ use yii\helpers\ArrayHelper;
 	 */
 	protected static function properName($value)
 	{
-		$ret_val = empty($value) ?  [] : array_map('ucfirst', preg_split("/[_-]/", $value));
-		return implode($ret_val);
+		return \nitm\helpers\ClassHelper::properName($value);
 	}
-	
+
 	/**
      * Finds the Category model based on its primary key value.
      * If the model is not found, a 404 HTTP exception will be thrown.
@@ -237,28 +262,275 @@ use yii\helpers\ArrayHelper;
 		if($id != null || $queryOptions != [])
 		{
 			$query = $className::find();
-			
+
 			if($id && is_numeric($id))
 				$query->where([array_shift($className::primaryKey()) => $id]);
 
 			$with = is_array($with) ? $with : (is_null($with) ? null : [$with]);
 			if(is_array($with))
 				$query->with($with);
-			
+
 			if($queryOptions != [])
 				foreach($queryOptions as $type=>$options)
 					$query->$type($options);
-						
-			if(($ret_val = $query->one()) != null)
+
+			if(($ret_val = $query->one()) instanceof $className)
             	return $ret_val;
-			else if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev')) {
-            	throw new \yii\web\NotFoundHttpException((new $className)->properName()." : $id doesn't exist!");
-			}
+			else
+				if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))
+            		throw new \yii\web\NotFoundHttpException((new $className)->properName()." : $id doesn't exist!");
 				return $ret_val;
-        } else if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))	{
-           	throw new \yii\web\NotFoundHttpException((new $className)->properName()." doesn't exist!");
-		}
+        } else
+			if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))
+           		throw new \yii\web\NotFoundHttpException((new $className)->properName()." doesn't exist!");
 		return $ret_val;
     }
+
+	/**
+	 * Extract the relation parameters
+	 * @method extractRelationParameters
+	 * @param  array                    $options  Array of specified options
+	 * @return array                             The with parameters
+	 */
+	protected function extractRelationParameters($options)
+	{
+		return array_unique(array_merge($this->getWith(), ArrayHelper::getValue($options, 'with', ArrayHelper::getValue($options, 'queryOptions.with', []))));
+	}
+
+	/**
+	 * Go through the relations and determine whether they shoudl be kept or excluded
+	 * @method filterRelationParameters
+	 * @param \yii\db\Query $query             The query object
+	 * @param array with			    The relations
+	 * @return boolean                  Relations were dropped
+	 */
+	protected function filterRelationParameters($query, $with=[])
+	{
+		if(in_array($query->className(), [
+			\yii\elasticsearch\ActiveQuery::className(),
+			\yii\mongodb\ActiveQuery::className()
+		]))
+			$query->with = null;
+		else
+			$query->with($with);
+		return true;
+	}
+
+	/**
+	 * Get some related videw options
+	 * @method getViewOptions
+	 * @param  array         $options User specified options
+	 * @return array                  View options
+	 */
+	protected function getViewOptions($options=[])
+	{
+		$createOptions = isset($options['createOptions']) ? $options['createOptions'] : [];
+
+		$filterOptions = isset($options['filterOptions']) ? $options['filterOptions'] : [];
+
+		return [
+			'createButton' => $this->getCreateButton($createOptions),
+			'createMobileButton' => $this->getCreateButton(array_replace_recursive([
+				'containerOptions' => [
+					'class' => 'btn btn-default btn-lg navbar-toggle aligned'
+				]
+			], $createOptions), 'Create'),
+			'filterButton' => $this->getFilterButton($filterOptions),
+			'filterCloseButton' => $this->getFilterButton($filterOptions, 'Close'),
+			'isWhat' => $this->model->isWhat()
+		];
+	}
+
+	/**
+	 * Is this a form request for validation?
+	 * @method isValidationRequest
+	 * @return boolean             Whether this is a validation request
+	 */
+	protected function isValidationRequest()
+	{
+		return \Yii::$app->request->isAjax && (@Helper::boolval($_REQUEST['do']) !== true) && !\Yii::$app->request->get('_pjax');
+	}
+
+	/**
+	 * Perform the validation request on the model
+	 * @method performValidationRequest
+	 * @return array                  The errors is there were any
+	 */
+	protected function performValidationRequest()
+	{
+		$this->setResponseFormat('json');
+		return \yii\widgets\ActiveForm::validate($this->model);
+	}
+
+	/**
+	 * Either create a new model or update an existing model
+	 * @method getModel
+	 * @param  string   	$scenario   The scenario we're working on
+	 * @param  int|null   	$id 		The id of an existing model
+	 * @param  string|null  $modelClass The model classs
+	 * @return [type]               [description]
+	 */
+	protected function getModel($scenario, $id=null, $modelClass=null, $with=null)
+	{
+		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
+		$post = \Yii::$app->request->post();
+
+		if(!is_null($id)) {
+        	$this->model =  $this->findModel($modelClass, $id, is_null($with) ? $this->getWith() : $with);
+		}
+		else
+        	$this->model =  new $modelClass;
+
+		$this->model->setScenario($scenario);
+		if(!empty($post))
+			$this->model->load($post);
+	}
+
+	/**
+	 * If there were errors after the save then handle them
+	 * @method handleSaveErrors
+	 * @param  array           $data The data to be saved
+	 * @param  string			$action The action being performed
+	 * @return string                 The message after success or failure
+	 */
+	protected function saveInternal($data, $action)
+	{
+		$ret_val = '';
+		if (!empty($post) && $this->model->save()) {
+			$metadata = isset($post[$this->model->formName()]['contentMetadata']) ? $post[$this->model->formName()]['contentMetadata'] : null;
+			$ret_val = true;
+			$result['message'] = implode(' ', [
+				"Succesfully {$action}d new ",
+				$this->model->isWhat(),
+				': '.$this->model->title()
+			]);
+			if($metadata)
+				$this->model->addMetadata($metadata);
+
+			Response::viewOptions("view", '/'.$this->id.'/view');
+		} else {
+			if(!empty($data)) {
+				$ret_val = implode('<br>', array_map(function ($value) {
+					return array_shift($value);
+				}, $this->model->getErrors()));
+
+				\Yii::$app->getSession()->setFlash('error', $result['message']);
+			}
+			else
+				$this->shouldLog = false;
+
+			/**
+			 * If the save failed, we're most likely going back to the form so get the form variables
+			 */
+			Response::viewOptions(null, array_merge($this->getVariables($this->model->isWhat()), [
+				"view" => '/'.$this->id."/$action"
+			]), true);
+		}
+		return $ret_val;
+	}
+
+	/**
+	 * Get the create button
+	 * @method getCreateButton
+	 * @param  array          	$options The options for the create button
+	 * @param  string          	$text    The text for the button
+	 * @return string                    The HTML button
+	 */
+	protected function getCreateButton($options=[], $text=null)
+	{
+		$text = is_null($text) ? strtoupper(\Yii::t('yii', " new ".$this->model->properName($this->model->isWhat()))) : $text;
+		$options = array_replace_recursive([
+			'toggleButton' => [
+				'tag' => 'a',
+				'label' => Icon::forAction('plus')." ".$text,
+				'href' => \Yii::$app->urlManager->createUrl(['/'.$this->id.'/form/create', '__format' => 'modal']),
+				'title' => \Yii::t('yii', "Add a new ".$this->model->properName($this->model->isWhat())),
+				'role' => 'dynamicAction createAction disabledOnClose',
+				'class' => 'btn btn-success btn-lg'
+			],
+			//'dialogOptions' => [
+			//	"class" => "modal-full"
+			//],
+			'containerOptions' => [
+				'class' => 'navbar-collapse navbar-collapse-content'
+			]
+		], (array)$options);
+
+		$containerOptions = $options['containerOptions'];
+		unset($options['containerOptions']);
+
+		return Html::tag('div', \nitm\widgets\modal\Modal::widget($options), $containerOptions);
+	}
+
+	/**
+	 * Get the filter button
+	 * @method getFilterButton
+	 * @param  array          	$options The options for the filter button
+	 * @param  string          	$text    The text for the button
+	 * @return string                    The HTML button
+	 */
+	protected function getFilterButton($options=[], $text='filter')
+	{
+		$containerOptions = isset($options['containerOptions']) ? $options['containerOptions'] : [
+			'class' => 'navbar-toggle aligned'
+		];
+		unset($options['containerOptions']);
+		return Html::tag('div', Html::button(Icon::forAction('filter')." ".ucfirst($text), array_replace([
+			'class' => 'btn btn-default btn-lg',
+			'data-toggle' => 'collapse',
+			'data-target' => '#'.$this->model->isWhat().'-filter'
+		], (array)$options)), $containerOptions);
+	}
+
+	/*
+	 * Get the variables for a model
+	 * @param string $param What are we getting this form for?
+	 * @param int $unique The id to load data for
+	 * @param array $options
+	 * @return string | json
+	 */
+	protected function getVariables($type=null, $id=null, $options=[])
+	{
+		$force = false;
+		$options['id'] = $id;
+		$options['param'] = $type;
+
+		if(isset($options['modelClass']))
+		{
+			$this->model = ($this->model->className() == $options['modelClass']) ? $this->model : new $options['modelClass'](@$options['construct']);
+		}
+		switch($type)
+		{
+			//This is for generating the form for updating and creating a form for $this->model->className()
+			default:
+			$options = array_merge([
+				'title' => ['title', 'Create '.static::properName($this->model->isWhat())],
+				'scenario' => !$id ? 'create' : 'update',
+				'provider' => null,
+				'dataProvider' => null,
+				'view' => isset($options['view']) ? $options['view'] : $type,
+				'args' => [],
+				'modelClass' => $this->model->className(),
+				'force' => false
+			], $options);
+			break;
+		}
+		$options['modalOptions'] = isset($options['modalOptions']) ? (array)$options['modalOptions'] : [];
+		$modalOptions = array_merge([
+			'body' => [
+				'class' => 'modal-full'
+			],
+			'dialog' => [
+				'class' => 'modal-full'
+			],
+			'content' => [
+				'class' => 'modal-full'
+			],
+			'contentOnly' => true
+		], $options['modalOptions']);
+
+		unset($options['modalOptions']);
+		return $this->getFormVariables($this->model, $options, $modalOptions);
+	}
  }
 ?>
