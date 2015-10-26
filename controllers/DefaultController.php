@@ -118,9 +118,9 @@ class DefaultController extends BaseController
 
 		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
 
-		unset($options['createOptions'], $options['filterOptions']);
+		$options['viewOptions'] = array_merge($this->getViewOptions($options), (array)@$options['viewOptions']);
 
-		$options['viewOptions'] = array_merge($this->getViewOptions(), (array)@$options['viewOptions']);
+		unset($options['createOptions'], $options['filterOptions']);
 
 		Response::viewOptions(null, [
 			'view' => ArrayHelper::getValue($options, 'view', 'index'),
