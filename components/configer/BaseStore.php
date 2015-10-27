@@ -3,7 +3,6 @@
 namespace nitm\components\configer;
 
 use nitm\helpers\ArrayHelper;
-use nitm\helpers\Session;
 
 /**
  * The base stroe interface for configer storage
@@ -45,7 +44,7 @@ abstract class BaseStore extends \yii\base\Object
 	 */
 	protected function containerKey($container)
 	{
-		return Session::sessionName().'-config-container-'.$container;
+		return 'config-container-'.$container;
 	}
 	
 	/*

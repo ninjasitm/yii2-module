@@ -210,7 +210,7 @@ class DefaultController extends BaseController
 
 		$this->determineResponseFormat('html');
 
-		$ret_val['message'] = $this->saveInternal($post, 'create');
+		list($ret_val, $result) = $this->saveInternal(\Yii::$app->getRequest()->post(), 'create');
 
 		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]), true);
 		return $this->finalAction($ret_val, $result);
@@ -222,7 +222,7 @@ class DefaultController extends BaseController
      * @param integer $id
      * @return mixed
      */
-    public function actionUpdate($id, $modelClass=null, $with=[])
+    public function actionUpdate($id, $modelClass=null, $with=[], $viewOptions=[])
     {
 		$this->action->id = 'update';
 		$ret_val = false;
@@ -234,7 +234,7 @@ class DefaultController extends BaseController
 
 		$this->determineResponseFormat('html');
 
-		$ret_val['message'] = $this->saveInternal($post, 'update');
+		list($ret_val, $result) = $this->saveInternal(\Yii::$app->getRequest()->post(), 'update');
 
 		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]), true);
 
@@ -280,7 +280,7 @@ class DefaultController extends BaseController
 
 		$this->filterRelationParameters($dataProvider->query, $options['with']);
 
-		$dataProvider->pagination->route = "/$type/filter";
+		$dataProvider->pagination->route = "/$type";
 
 		$view = ArrayHelper::getValue($options, 'view', 'index');
 

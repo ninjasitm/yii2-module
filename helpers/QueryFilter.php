@@ -169,7 +169,7 @@ class QueryFilter
 
 	public static function joinFields($parts, $glue='.')
 	{
-		return (string)implode($glue, array_filter($parts));
+		return (string)implode($glue, array_filter($parts, 'strlen'));
 	}
 
 	/**
@@ -234,14 +234,6 @@ class QueryFilter
 			} else
 				$table = is_string($model) ? $model : $model->tableName();
 
-			/**
-			 *  If we just checkd for the original field don't do anything just continue;
-			 */
-			if($field === $originalField) {
-				$newOrderBy[$field] = $order;
-				continue;
-			}
-
 			$class = $query->modelClass;
 
 			if($field instanceof Expression && (static::isExpression($table) || empty($table))) {
@@ -255,6 +247,7 @@ class QueryFilter
 			if($class::tableName() == $table && !static::isExpression($table)) {
 				$key = static::joinFields([$table, $field]);
 				$newOrderBy[$key] = $order;
+				$ret_val[$field] = $order;
 				continue;
 			}
 

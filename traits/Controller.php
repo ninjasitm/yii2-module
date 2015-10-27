@@ -3,7 +3,8 @@ namespace nitm\traits;
 
 use nitm\helpers\Response;
 use nitm\helpers\Icon;
-use yii\helpers\ArrayHelper;
+use nitm\helpers\Helper;
+use nitm\helpers\ArrayHelper;
 use yii\helpers\Html;
 
 /**
@@ -373,7 +374,7 @@ use yii\helpers\Html;
 	protected function getModel($scenario, $id=null, $modelClass=null, $with=null)
 	{
 		$modelClass = !$modelClass ? $this->model->className() : $modelClass;
-		$post = \Yii::$app->request->post();
+		$data = \Yii::$app->request->post();
 
 		if(!is_null($id)) {
         	$this->model =  $this->findModel($modelClass, $id, is_null($with) ? $this->getWith() : $with);
@@ -382,8 +383,8 @@ use yii\helpers\Html;
         	$this->model =  new $modelClass;
 
 		$this->model->setScenario($scenario);
-		if(!empty($post))
-			$this->model->load($post);
+		if(!empty($data))
+			$this->model->load($data);
 	}
 
 	/**
@@ -395,12 +396,15 @@ use yii\helpers\Html;
 	 */
 	protected function saveInternal($data, $action)
 	{
-		$ret_val = '';
-		if (!empty($post) && $this->model->save()) {
-			$metadata = isset($post[$this->model->formName()]['contentMetadata']) ? $post[$this->model->formName()]['contentMetadata'] : null;
+		$ret_val = false;
+		$result = [
+			'message' => "Unable to {$action} ".$this->model->isWhat()
+		];
+		if (!empty($data) && $this->model->save()) {
+			$metadata = isset($data[$this->model->formName()]['contentMetadata']) ? $data[$this->model->formName()]['contentMetadata'] : null;
 			$ret_val = true;
 			$result['message'] = implode(' ', [
-				"Succesfully {$action}d new ",
+				"Succesfully {$action}d ",
 				$this->model->isWhat(),
 				': '.$this->model->title()
 			]);
@@ -410,11 +414,11 @@ use yii\helpers\Html;
 			Response::viewOptions("view", '/'.$this->id.'/view');
 		} else {
 			if(!empty($data)) {
-				$ret_val = implode('<br>', array_map(function ($value) {
+				$result['message'] = implode('<br>', array_map(function ($value) {
 					return array_shift($value);
 				}, $this->model->getErrors()));
 
-				\Yii::$app->getSession()->setFlash('error', $result['message']);
+				\Yii::$app->getSession()->setFlash('error', $ret_val);
 			}
 			else
 				$this->shouldLog = false;
@@ -426,7 +430,7 @@ use yii\helpers\Html;
 				"view" => '/'.$this->id."/$action"
 			]), true);
 		}
-		return $ret_val;
+		return [$ret_val, $result];
 	}
 
 	/**

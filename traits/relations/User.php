@@ -135,6 +135,7 @@ trait User {
 					$key = $profile['public_email'];
 					break;
 				}
+				break;
 			}
 		}
 		return "https://gravatar.com/avatar/".md5($key);
@@ -171,7 +172,7 @@ trait User {
 				'label' => 'Username'
 			],
 		];
-		return array_merge(\nitm\models\Data::getSort(), $sort);
+		return array_merge(parent::getSort(), $sort);
 	}
 }
 ?>

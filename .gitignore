@@ -4,3 +4,5 @@ config/
 **.DS_Stroe
 **~
 **.lock
+**dwsync.xml
+_notes/
