@@ -9,22 +9,22 @@ use nitm\helpers\Cache as CacheHelper;
  * Traits defined for expanding query scopes until yii2 resolves traits issue
  */
 trait Data {
-	
+
 	public $noDbInit = true;
 	public $queryOptions = [];
-	
+
 	public $slugIs = [];
 	public static $_slugIs = [];
-	
+
 	protected $is;
 	protected static $_is;
 	protected static $tableName;
 	protected static $_flags = [];
-	
+
 	public function title() {
 		return $this->getId();
 	}
-	
+
 	public function setIs($is)
 	{
 		if(isset($this))
@@ -32,7 +32,7 @@ trait Data {
 		else
 			static:: $_is = $is;
 	}
-	
+
 	/*
 	 * What does this claim to be?
 	 * @param bollean|null $pluralize Should the returnvalue be pluralized or singularized. WHen set to null nothing is done
@@ -44,7 +44,7 @@ trait Data {
 			$stack = explode('\\', $value);
 			return Inflector::slug(implode(' ', preg_split('/(?=[A-Z])/', array_pop($stack), -1, PREG_SPLIT_NO_EMPTY)));
 		};
-		
+
 		if(isset($this) && is_null($pluralize)) {
 			if(isset($this->is))
 				return $this->is;
@@ -63,12 +63,12 @@ trait Data {
 			else
 				$ret_val = $class;
 		}
-		
+
 		if(is_null($pluralize))
 			$inflector = 'slug';
 		else
 			$inflector = $pluralize === true ? 'pluralize' : 'singularize';
-		
+
 		if(isset($this)) {
 			if(!isset($this->slugIs[$inflector]) && isset($class::$_slugIs[$inflector][$ret_val])) {
 				$ret_val = $this->slugIs[$inflector] = $class::$_slugIs[$inflector][$ret_val];
@@ -76,7 +76,7 @@ trait Data {
 				$ret_val = $class::$_slugIs[$inflector][$ret_val] = $this->slugIs[$inflector] = Inflector::$inflector($slugify($ret_val));
 			} else
 				$ret_val = $this->slugIs[$inflector];
-				
+
 			//If we didn't set the inflector then set the is value to the return value
 			if(is_null($pluralize) && !isset($this->is))
 				$this->is = $ret_val;
@@ -90,10 +90,10 @@ trait Data {
 			if(is_null($pluralize) && !isset($class::$_is))
 				$class::$_is = $ret_val;
 		}
-			
+
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Get the unique ID of this object
 	 * @return string|int
@@ -103,7 +103,7 @@ trait Data {
 		$key = $this->primaryKey();
 		return (int)(string)$this->$key[0];
 	}
-	
+
 	public function hasRelation($name)
 	{
 		$ret_val = null;
@@ -114,7 +114,7 @@ trait Data {
 		}
 		return $ret_val;
 	}
-	
+
 	/*
 	 * Return a string imploded with ucfirst characters
 	 * @param string $name
@@ -128,7 +128,7 @@ trait Data {
 			$value = is_null($value) ?  static::isWhat() : $value;
 		return \nitm\helpers\ClassHelper::properName($value);
 	}
-	
+
 	/*
 	 * Return a string imploded with ucfirst characters
 	 * @param string $name
@@ -142,7 +142,7 @@ trait Data {
 			$value = is_null($value) ?  static::isWhat() : $value;
 		return \nitm\helpers\ClassHelper::properFormName($value);
 	}
-	
+
 	/*
 	 * Return a string imploded with ucfirst characters
 	 * @param string $name
@@ -156,7 +156,7 @@ trait Data {
 			$value = is_null($value) ?  static::className() : $value;
 		return \nitm\helpers\ClassHelper::properClassName($value);
 	}
-	
+
 	public function getNamespace()
 	{
 		if(isset($this))
@@ -165,7 +165,7 @@ trait Data {
 			$class = static::className();
 		return \nitm\helpers\ClassHelper::getNameSpace($class);
 	}
-	
+
 	public function flagId($flag)
 	{
 		if(isset($this) && $this instanceof \nitm\models\Data)
@@ -173,25 +173,25 @@ trait Data {
 		else
 			return self::getNamespace().'\\';
 	}
-	
+
 	/**
 	 * Some support for setting custom flags at runtime
-	 */	
+	 */
 	public function setFlag($flag, $value)
 	{
 		self::$_flags[self::flagId($flag)] = $value;
 	}
-	
+
 	public function getFlag($flag)
 	{
 		return ArrayHelper::getValue(self::$_flags, self::flagId($flag), null);
 	}
-	
+
 	public static function unsetFlag($flag)
 	{
 		return ArrayHelper::remove(self::$_flags, self::flagId($flag), null);
 	}
-	
+
 	public function addWith($with)
 	{
 		$with = is_array($with) ? $with : [$with];
@@ -211,19 +211,20 @@ trait Data {
         $query = $this->hasOne(static::className(), $link)
 			->select([
 				'_count' => "COUNT(".$primaryKey.")",
-			]);
+			])
+			->limit(1);
 		foreach(['where', 'orwhere', 'andwhere'] as $option)
 			if(isset($this->queryOptions[$option]))
 				$query->$option($this->queryOptions[$option]);
 		return $query;
     }
-	
+
 	public function count()
-	{		
+	{
 		return \nitm\helpers\Relations::getRelatedRecord('count', $this, static::className(), [
 			'_count' => 0
 		])['_count'];
-	}	
+	}
 
 	/*
 	 * Get the array of arrays
@@ -236,7 +237,7 @@ trait Data {
 		$this->success = (sizeof($ret_val) >= 1) ? true : false;
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Function to get class name for locating items
 	 * @return string
@@ -245,7 +246,7 @@ trait Data {
 	{
 		return ArrayHelper::remove($options, 'class', (is_subclass_of(static::className(), __CLASS__) ? static::className() : __CLASS__));
 	}
-	
+
 	/**
 	 * Function to get items for the List methods
 	 * @return array
@@ -253,7 +254,7 @@ trait Data {
 	private function locateItems($options)
 	{
 		$class = self::locateClassForItems($options);
-		
+
 		$items = [];
 		if(isset($this) && is_subclass_of(static::className(), __CLASS__)) {
 			$this->queryOptions = array_merge($this->queryOptions, array_merge([
@@ -272,7 +273,7 @@ trait Data {
 		}
 		return $items;
 	}
-	
+
 	/**
 	 * Get a one dimensional associative array
 	 * @param mixed $label
@@ -285,15 +286,15 @@ trait Data {
 		$ret_val = [];
 		$separator = is_null($separator) ? ' ' : $separator;
 		$label = is_null($label) ? 'name' : $label;
-		
+
 		$cacheKey = CacheHelper::getKey(is_string($key) ? $key : $class::formName(), null, 'list', true);
-		
+
 		if(CacheHelper::cache()->exists($cacheKey))
 			$ret_val = CacheHelper::cache()->get($cacheKey);
 		else {
 			if(!isset($queryOptions['orderBy']))
 				$queryOptions['orderBy'] = [(is_array($label) ? end($label) : $label) => SORT_ASC];
-			
+
 			$items = self::locateItems($queryOptions);
 			switch(count($items) >= 1)
 			{
@@ -303,7 +304,7 @@ trait Data {
 					$ret_val[$item['id']] = $class::getLabel($item, $label, $separator);
 				}
 				break;
-				
+
 				default:
 				$ret_val[] = ["No ".$class::isWhat()." found"];
 				break;
@@ -312,7 +313,7 @@ trait Data {
 		}
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Get a multi dimensional associative array suitable for Json return values
 	 * @param mixed $label
@@ -324,19 +325,19 @@ trait Data {
 		$class = $this->locateClassForItems($options);
 
 		$cacheKey = CacheHelper::getKey(is_string($key) ? $key : $class::formName(), null, 'list', true);
-		
+
 		if(CacheHelper::cache()->exists($cacheKey))
 			$ret_val = CacheHelper::cache()->get($cacheKey);
 		else {
 			$ret_val = [];
 			$separator = is_null($separator) ? ' ' : $separator;
-			
+
 			foreach(self::locateItems($options) as $item)
 			{
 				$_ = [
 					"id" => $item->getId(),
-					"value" => $item->getId(), 
-					"text" =>  $item->$label, 
+					"value" => $item->getId(),
+					"text" =>  $item->$label,
 					"label" => static::getLabel($item, $label, $separator)
 				];
 				if(isset($options['with']))
@@ -356,10 +357,10 @@ trait Data {
 							$viewOptions = isset($options['view']['options']) ? $options['view']['options'] : ["model" => $item];
 							$_['html'] = \Yii::$app->getView()->renderAjax($view, $viewOptions);
 							break;
-							
+
 							case 'icon':
 							/*$_['label'] = \lab1\widgets\Thumbnail::widget([
-								"model" => $item->getIcon()->one(), 
+								"model" => $item->getIcon()->one(),
 								"htmlIcon" => $item->html_icon,
 								"size" => "tiny",
 								"options" => [
@@ -399,7 +400,7 @@ trait Data {
 		$this->success = (!is_null($ret_val)) ? true : false;
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Get the label for use based on
 	 * @param $model The model being resolved
@@ -435,7 +436,7 @@ trait Data {
 					case true:
 					$resolvedLabel .= $separator[0].$workingItem.$separator[1];
 					break;
-					
+
 					default:
 					$resolvedLabel .= $workingItem.(is_array($separator) ? $separator[2] : $separator);
 					break;
@@ -443,20 +444,20 @@ trait Data {
 			}
 			$ret_val= $resolvedLabel;
 			break;
-			
+
 			default:
 			$ret_val = $model->hasAttribute($label) || $model->hasProperty($label) ? $model->$label : $label;
 			break;
 		}
 		return $ret_val;
 	}
-	
-	
+
+
 	/**
 	 * Get the parent list
 	 * @param boolean $url Get the url?
 	 * @return string
-	 */	
+	 */
 	public function getParentList($url=true, $titleAttr='name')
 	{
 		return \nitm\helpers\Helper::concatAttributes($this->parents(), function ($model) use($url, $titleAttr){

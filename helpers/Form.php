@@ -13,7 +13,7 @@ class Form extends Behavior
 	public static function getVariables($model, $options=[], $modalOptions=[], $setViewOptions=true)
 	{
 		$ret_val = [
-			"success" => false, 
+			"success" => false,
 			'data' => \yii\helpers\Html::tag('h3', "No form found", ['class' => 'alert alert-danger text-center'])
 		];
 		switch(!empty($options['scenario']) && (is_a($model, \nitm\models\Data::className())))
@@ -39,7 +39,7 @@ class Form extends Behavior
 						 */
 						case true:
 						break;
-						
+
 						default:
 						/**
 						 * Otherwise we need to make sure this model exists
@@ -57,7 +57,7 @@ class Form extends Behavior
 						break;
 					}*/
 					break;
-					
+
 					default:
 					//Get the data according to get$options['param'] functions
 					$model->requestModel->queryOptions['limit'] = 1;
@@ -80,7 +80,7 @@ class Form extends Behavior
 				switch(!is_null($model) || $force)
 				{
 					case true:
-					
+
 					/**
 					 * Get scenario and form options
 					 */
@@ -101,7 +101,7 @@ class Form extends Behavior
 							'role' => $scenario.$model->formName().' ajaxForm'
 						]
 					], \yii\helpers\ArrayHelper::getValue($options, 'formOptions', []));
-					
+
 					/**
 					 * Setup view options
 					 */
@@ -110,17 +110,17 @@ class Form extends Behavior
 						'class' => $model->isNewRecord ? 'btn btn-success' : 'btn btn-primary',
 						'form' => $formOptions['options']['id'],
 					]);
-					
+
 					$formArgs = [
 						"view" => $options['view'],
 						'modalOptions' => static::getModalOptions($modalOptions, $model),
 						'title' => static::getTitle($model, $options['title']),
 						'footer' => $footer
 					];
-						
+
 					if($setViewOptions)
 						Response::viewOptions(null, $formArgs);
-					
+
 					/**
 					 * Get data provider information
 					 */
@@ -130,7 +130,7 @@ class Form extends Behavior
 						'force' => null
 					]);
 					$ret_val['data'] = static::getDataProvider($model, $dataProviderOptions);
-					
+
 					$formArgs['args'] = array_merge([
 						'scenario' => $scenario,
 						"formOptions" => $formOptions,
@@ -139,7 +139,7 @@ class Form extends Behavior
 						'action' => $action,
 						'type' => $model->isWhat(),
 					], $options['viewArgs']);
-					
+
 					if($setViewOptions) {
 						Response::viewOptions("args", $formArgs['args']);
 						switch(\Yii::$app->request->isAjax)
@@ -165,7 +165,7 @@ class Form extends Behavior
 		}
 		return $ret_val;
 	}
-	
+
 	protected static function findQuery($id, $modelClass, $options=[])
 	{
 		$find = $modelClass::find()->select('*')->where([$modelClass::primaryKey()[0] => $id]);
@@ -178,7 +178,7 @@ class Form extends Behavior
 		}
 		return $find;
 	}
-	
+
 	public static function getDataProvider($model, $options)
 	{
 		$ret_val = new \yii\data\ArrayDataProvider;
@@ -202,7 +202,7 @@ class Form extends Behavior
 			}
 			$ret_val->setModels((array)$object);
 			break;
-			
+
 			default:
 			if($model->hasMethod($options['provider']) || (isset($options['force']) && $options['force'] == true))
 				$ret_val->setModels(call_user_func_array([$model, $options['provider']], (array)@$options['args']));
@@ -212,7 +212,7 @@ class Form extends Behavior
 		}
 		return $ret_val;
 	}
-	
+
 	public static function getTitle($model, $options)
 	{
 		switch(1)
@@ -220,26 +220,26 @@ class Form extends Behavior
 			case is_callable($options):
 			$title = $options($model);
 			break;
-			
+
 			case ($model->hasProperty(@$options[0]) || $model->hasAttribute(@$options[0])):
 			$title = $model->getAttribute($options[0]);
 			break;
-			
+
 			case is_string($options):
 			$title = $options;
 			break;
-			
+
 			case is_array($options):
 			$title = @$options[1];
 			break;
-			
+
 			default:
 			$title = ($model->getIsNewRecord() ? "Create" : "Update")." ".ucfirst($model->properName($model->isWhat()));
 			break;
 		}
 		return $title;
 	}
-	
+
 	protected static function getModalOptions($options, $model)
 	{
 		foreach($options as $option=>$settings)
@@ -249,7 +249,7 @@ class Form extends Behavior
 				case true:
 				$options[$option] = $settings($model);
 				break;
-				
+
 				default:
 				$options[$option] = (array) $settings;
 				break;
@@ -257,7 +257,7 @@ class Form extends Behavior
 		}
 		return $options;
 	}
-	
+
 	public static function getHtmlOptions($items=[], $idKey='id', $valueKey = 'name')
 	{
 		$ret_val = [];
@@ -268,7 +268,7 @@ class Form extends Behavior
 				case true:
 				$ret_val[$idx] = static::getHtmlOptions($item->$valueKey);
 				break;
-				
+
 				default:
 				$ret_val[$item->$idKey] = $item->$valueKey;
 				break;
@@ -276,6 +276,6 @@ class Form extends Behavior
 		}
 		return $ret_val;
 	}
-	
+
 }
 ?>

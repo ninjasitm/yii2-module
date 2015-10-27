@@ -2,10 +2,11 @@
 
 namespace nitm\controllers;
 use yii\helpers\Html;
-use yii\helpers\ArrayHelper;
+use nitm\helpers\ArrayHelper;
 use nitm\models\Category;
 use nitm\helpers\Response;
 use nitm\helpers\Helper;
+use nitm\helpers\Icon;
 
 class DefaultController extends BaseController
 {
@@ -481,7 +482,7 @@ class DefaultController extends BaseController
 		return $this->finalAction($saved, [
 			'logLevel' => 1,
 			'actionName' => $actionTitle,
-			'message' => implode(' ', ["Successfully", $actionTitle, $this->model->isWhat().':', $this->model->title()])
+			'message' => implode(' ', ["Successfully", $actionTitle, $this->model->isWhat(false).':', $this->model->title()])
 		]);
 	}
 
@@ -514,14 +515,14 @@ class DefaultController extends BaseController
 					extract(static::booleanActions()[$this->action->id]);
 					$ret_val['success'] = true;
 					$booleanValue = (bool)$this->model->getAttribute($attributes['attribute']);
-					$ret_val['title'] = ArrayHelper::getValue((array)$title, $booleanValue, '');
-					$iconName = ArrayHelper::getValue((array)$icon, $booleanValue, $this->action->id);
+					$ret_val['title'] = @ArrayHelper::getValue((array)$title, $booleanValue, '');
+					$iconName = @ArrayHelper::getValue((array)$icon, (int)$booleanValue, $this->action->id);
 					$ret_val['actionHtml'] = Icon::forAction($iconName, $booleanValue);
 					$ret_val['action'] = isset($action) ? $action : $this->action->id;
 					$ret_val['data'] = $this->boolResult;
 					$ret_val['class'] = [];
 					$ret_val['indicate'] = $this->model->getStatus();
-					switch(\Yii::$app->request->get(static::ELEM_TYPE_PARAM))
+					switch(\Yii::$app->request->get(self::ELEM_TYPE_PARAM))
 					{
 						case 'li':
 						if(method_exists($this->model, 'getStatus'))

@@ -118,6 +118,9 @@ class QueryFilter
 
 		foreach($query->select as $idx=>$field) {
 
+			if(is_string($idx))
+				$field = $idx;
+
 			if($field instanceof Query || $field instanceof Expression)
 					continue;
 			if((strpos($field, '(') || strpos($field, ')')) !== false)
@@ -257,45 +260,34 @@ class QueryFilter
 				if(in_array($table, $with)) {
 					$toJoin = $table;
 					if($relation = $model->hasRelation($toJoin)) {
+
 						$relationClass = $relation->modelClass;
 						$relationTable = $relationClass::tableName();
 
-						//We will skip for various conditions
-
-						//If we already joined this relation
-						if(in_array($toJoin, $joined))
-							continue;
+						//Left join to return the values from the subject table only
+						//$on = '0=1';
+						//$query->innerJoin(static::joinFields([$relationTable, $alias], ' '), $on);
+						$relationLink = array_filter($relation->link, function ($attribute) {
+							return $attribute != 'id';
+						});
 
 						if($relationClass::tableName() == $class::tableName())
 							$alias = '';
 						else
 							$alias = $toJoin;
 
-						//We join on the relation links
-						$on = [];
-						foreach($relation->link as $relationField=>$targetAttr)
-						{
-							$on[$alias.'.'.$relationField] = new Expression(static::joinFields([
-								$db->quoteTableName($class::tableName()),
-								$db->quoteColumnName($targetAttr)
-							]));
-						}
-
-						//We join on the where as well;
-						static::aliasWhereFields($relation, new $relationClass, $alias);
-						if(is_array($relation->where))
-							$on += $relation->where;
-
-						//Left join to return the values from the subject table only
-						$query->leftJoin(static::joinFields([$relationTable, $alias], ' '), $on);
-						$aliasField = static::joinFields($field instanceof Expression ? [$field] : [$alias, $field]);
+						$query->innerJoinWith([
+							$toJoin => function ($relation) use($db, $class, $alias) {
+								$relationClass = $relation->modelClass;
+								$relationTable = $relationClass::tableName();
+								$relation->from([$alias => $relation->from[0]]);
+								$relation->select($alias.'.*');
+							}
+						]);
+						$aliasField = static::joinFields($field instanceof Expression ? [$field] : [$table, $field]);
 						$newOrderBy[$aliasField] = $order;
 						//Ignore the universal 'id' attribute
-						$relationLink = array_filter($relation->link, function ($attribute) {
-							return $attribute != 'id';
-						});
 						$ret_val[static::joinFields($relationLink, ', ')] = $order;
-						$ret_val[$toJoin] = $order;
 					}
 				} else {
 					$newOrderBy[static::joinFields([$table, $field])] = $order;
@@ -333,8 +325,11 @@ class QueryFilter
 						foreach($sortParams[$order] as $field=>$fieldDirection)
 						{
 							unset($dataProvider->sort->attributes[$key][$order][$field]);
-							$field = unserialize($field);
-							$dataProvider->sort->attributes[$key][$order][substr($field, strpos($field, '.')+1)] = $fieldDirection;
+							$field = ($unserialized = @unserialize($field)) !== false ? $unserialized : $field;
+							/*$newField = explode('.', $field);
+							$newField[0] .= 'OrderBy';
+							$field = static::joinFields($newField);*/
+							$dataProvider->sort->attributes[$key][$order][$field] = $fieldDirection;
 						}
 					}
 				} catch (\Exception $e) {}

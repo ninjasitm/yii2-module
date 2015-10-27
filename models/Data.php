@@ -22,16 +22,16 @@ use ReflectionClass;
  * @property array $settings
  * @property array $filter
  */
- 
+
 class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 {
 	use \nitm\traits\Configer,
 	\nitm\traits\Query,
 	\nitm\traits\Relations,
 	\nitm\traits\Cache,
-	\nitm\traits\Data, 
+	\nitm\traits\Data,
 	\nitm\traits\Alerts;
-	
+
 	//public members
 	public $initLocalConfig = true;
 	public $unique;
@@ -54,10 +54,10 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			'name' => null
 		]
 	];
-	
+
 	protected $connection;
 	protected static $supported;
-	
+
 	//private members
 
 	public function init()
@@ -67,7 +67,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		if(((bool)$this->initLocalConfig || (bool)static::$initClassConfig) && !\Yii::$app->getModule('nitm')->config->exists($this->isWhat()))
 			$this->initConfig($this->isWhat(true));
 	}
-	
+
 	public function rules()
 	{
 		return [
@@ -75,7 +75,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			[['unique'], 'safe']
 		];
 	}
-	
+
 	public function scenarios()
 	{
 		return [
@@ -86,14 +86,14 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			'deleted' => ['unique']
 		];
 	}
-	
+
 	public function attributes()
 	{
 		return array_merge(parent::attributes(), [
 			'_count', '_newCount'
 		]);
 	}
-	
+
 	public function behaviors()
 	{
 		$behaviors = [
@@ -124,7 +124,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 						},
 					];
 					break;
-					
+
 					case 'author':
 					case 'editor':
 					//Setup author/editor
@@ -141,7 +141,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 						break;
 					}
 					break;
-					
+
 					case 'updated_at':
 					case 'created_at':
 					//Setup timestamping
@@ -159,7 +159,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 						break;
 					}
 					break;
-					
+
 					default:
 					//setup special attribute behavior
 					switch(is_array($dataProvider))
@@ -168,21 +168,21 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 						$behaviors[$name] = $dataProvider;
 						break;
 					}
-					break; 
+					break;
 				}
 				break;
 			}
 		}
 		return array_merge(parent::behaviors(), $behaviors);
 	}
-	
+
 	public function afterSave($insert, $attributes)
 	{
 		/**
 		 * Commit the logs after this model is done saving
 		 */
 		$this->commitLog();
-		
+
 		/**
 		 * If this has parents specified then check and add them accordingly
 		 */
@@ -190,12 +190,12 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			$this->addParentMap();
 		return parent::afterSave($insert, $attributes);
 	}
-	
+
 	public static function tableName()
 	{
 		return static::$tableName;
 	}
-	
+
 	/*
 	 * Check to see if somethign is supported
 	 * @param mixed $what
@@ -208,14 +208,14 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			case true:
 			$thisSupports = static::$supported;
 			break;
-			
+
 			default:
 			$thisSupports = @$this->setting('supported');
 			break;
 		}
 		return (isset($thisSupports[$what]) &&  ($thisSupports[$what] == true));
 	}
-	
+
 	/*
 	 * Change the database login information
 	 * @param string $db_host
@@ -228,7 +228,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		$this->username = ($db_user != NULL) ? $db_user : \Yii::$app->params['components.db']['username'];
 		$this->password = ($db_pass != NULL) ? $db_pass : \Yii::$app->params['components.db']['password'];
 	}
-	
+
 	/*
 	 * set the current table
 	 * @param string $table
@@ -245,7 +245,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 				case null:
 				static::$active['table']['name'] = '';
 				break;
-				
+
 				default:
 				static::$active['table']['name'] = $table;
 				$this->tableName = $table;
@@ -255,7 +255,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		}
 		return $ret_val;
 	}
-	
+
 	/*
 	 * Remove the second db component
 	 */
@@ -264,7 +264,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		static::$connection = null;
 		static::setDb();
 	}
-	
+
 	/**
 	 * Returns the database connection used by this AR class.
 	 * By default, the "db" application component is used as the  database connection.
@@ -284,14 +284,14 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 				break;
 			}
 			break;
-			
+
 			default:
 			$ret_val = \Yii::$app->get('db');
 			break;
 		}
 		return $ret_val;
 	}
-	
+
 	/*
 	 * set the current database
 	 * @param string $db
@@ -308,7 +308,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			Yii::$app->set('db2', static::getConnection($this->username, $this->password, $this->host));
 			static::$active = array();
 			break;
-			
+
  			default:
 			switch(!empty($db) && ($force || ($db != static::$active['db']['name'])))
 			{
@@ -319,7 +319,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 					case true:
 					throw new \yii\base\ErrorException("Invalid driver and host parameters. Please call ".$this->className()."->changeLogin to change host and conneciton info");
 					break;
-					
+
 					default:
 					Yii::$app->set('db2', static::getConnection($this->username, $this->password, $this->host));
 					break;
@@ -334,7 +334,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		}
 		return $ret_val;
 	}
-	
+
 	/*
 	 * Temporarily change the database or table for operation
 	 * @param string $db
@@ -367,7 +367,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			$this->old['table']['name'] = null;
 		}
 	}
-	
+
 	/*
 	 *Reset the database and table back
 	 */
@@ -390,7 +390,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		$this->old['db'] = [];
 		$this->old['table'] = [];
 	}
-	
+
 	/**
 	 * Overriding default find function
 	 */
@@ -421,19 +421,19 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		}
 		return $query;
 	}
-	
+
 	protected function addSortParams(&$to, array $labels, $params=[])
 	{
 		foreach($labels as $attr=>$options)
 		{
 			@list($relation, $label, $orderAttr) = (array)$options;
 			$relation = is_null($relation) ? $attr : $relation;
-			
+
 			if($orderAttr instanceof \yii\db\Expression)
 				$relation = serialize(new \yii\db\Expression($relation.'.'.$orderAttr));
 			else
 				$relation .= is_null($orderAttr) ? '' : '.'.$orderAttr;
-			
+
 			$to[$attr] = array_merge([
 				'asc' => [$relation => SORT_ASC],
 				'desc' => [$relation => SORT_DESC],
@@ -442,7 +442,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			], $params);
 		}
 	}
-	
+
 	/**
 	 * Get the query that orders items by their activity
 	 */
@@ -451,47 +451,47 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		$ret_val = [];
 		//Create the user sort parameters
 		static::addSortParams($ret_val, [
-			'author_id' => ['author', 'Author', 'username'], 
-			'editor_id' => ['editor', 'Editor', 'username'], 
-			'resolved_by' => ['resolvedBy', 'Resolved By', 'username'], 
-			'closed_by' => ['closedBy', 'Closed By', 'username'], 
-			'disabled_by' => ['disabledBy', 'Disabled By', 'username'], 
-			'deleted_by' => ['deletedBy', 'Deleted By', 'username'], 
+			'author_id' => ['author', 'Author', 'username'],
+			'editor_id' => ['editor', 'Editor', 'username'],
+			'resolved_by' => ['resolvedBy', 'Resolved By', 'username'],
+			'closed_by' => ['closedBy', 'Closed By', 'username'],
+			'disabled_by' => ['disabledBy', 'Disabled By', 'username'],
+			'deleted_by' => ['deletedBy', 'Deleted By', 'username'],
 			'completed_by' => ['completedBy', 'Completed By', 'username']
 		]);
-		
+
 		//Create the date sort parameters
 		static::addSortParams($ret_val, [
-			'created_at' => [null, 'Created At'], 
-			'updated_at' => [null, 'Updated At'], 
-			'resolved_at' => [null, 'Resolved At'], 
-			'closed_at' => [null, 'Closed At'], 
-			'disabled_at' => [null, 'Disabled At'], 
-			'deleted_at' => [null, 'Deleted At'], 
+			'created_at' => [null, 'Created At'],
+			'updated_at' => [null, 'Updated At'],
+			'resolved_at' => [null, 'Resolved At'],
+			'closed_at' => [null, 'Closed At'],
+			'disabled_at' => [null, 'Disabled At'],
+			'deleted_at' => [null, 'Deleted At'],
 			'completed_at' => [null, 'Completed At']
 		]);
-		
+
 		$ret_val['date'] = [
 			'asc' => ['created_at' => SORT_ASC, 'updated_at' => SORT_ASC],
 			'desc' => ['created_at' => SORT_DESC, 'updated_at' => SORT_DESC],
 			'default' => SORT_DESC,
 			'label' => 'Date'
 		];
-		
+
 		//Create the category sort parameters
 		static::addSortParams($ret_val, [
-			'type_id' => ['type', 'Type', 'name'], 
-			'category_id' => ['category', 'Category', 'name'], 
-			'level_id' => ['level', 'Level', 'name'], 
+			'type_id' => ['type', 'Type', 'name'],
+			'category_id' => ['category', 'Category', 'name'],
+			'level_id' => ['level', 'Level', 'name'],
 		]);
-		
+
 		return $ret_val;
 	}
-	
+
 	/*---------------------
 		Protected Functions
 	---------------------*/
-	
+
 	/**
 	 * Log a transaction to the logger
 	 * @param string $action
@@ -513,13 +513,13 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 				'category' => 'Model Activity',
 				'table_name' => static::tableName(),
 				'message' => $message,
-				'action' => $action, 
+				'action' => $action,
 			], $options);
 			return \Yii::$app->getModule('nitm')->log($level, $options, static::className());
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Commit the logs to the database
 	 * @return boolean
@@ -528,7 +528,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	{
 		return \Yii::$app->getModule('nitm')->commitLog();
 	}
-	
+
 	/**
 	 * Adds the parents for this model
 	 * ParentMap are specieid in the parent_ids attribute
@@ -539,11 +539,11 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		if(count($parents) >= 1)
 		{
 			$attributes = [
-				'remote_type', 'remote_id', 'remote_class', 'remote_table', 
+				'remote_type', 'remote_id', 'remote_class', 'remote_table',
 				'parent_type', 'parent_id', 'parent_class', 'parent_table'
 			];
 			sort($attributes);
-			
+
 			/**
 			 * Go through the parents and make sure the id mapping is correct
 			 */
@@ -557,22 +557,22 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 					'remote_class' => $this->className(),
 					'remote_table' => $this->tableName(),
 				], $parent);
-				
+
 				ksort($parents[$parent['parent_id']]);
 				unset($parents[$idx]);
 			}
-			
+
 			$query = ParentMap::find();
 			foreach($parents as $parent)
 				$query->orWhere($parent);
-			
+
 			$toAdd = array_diff_key($parents, $query->indexBy('parent_id')->asArray()->all());
 			if(count($toAdd) >= 1)
 				\Yii::$app->db->createCommand()->batchInsert(ParentMap::tableName(), $attributes, array_map('array_values', $toAdd))->execute();
 		}
 		return isset($toAdd) ? $toAdd : false;
 	}
-	
+
 	/**
 	 * Create the connection to the database
 	 * @param string $username
@@ -597,8 +597,8 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		 }
 		return static::$connection;
 	 }
-	
-	
+
+
 	/*---------------------
 		Private Functions
 	---------------------*/
