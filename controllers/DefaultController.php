@@ -108,7 +108,8 @@ class DefaultController extends BaseController
 			],
 		], $options);
 
-        $searchModel = new $className($options['construct']);
+		$searchModelFilter = ArrayHelper::getValue($options['params'], (new $className)->formName(), $options['params']);
+        $searchModel = new $className(array_merge($searchModelFilter, $options['construct']));
 
 		$options['with'] = $this->extractRelationParameters($options);
 		$searchModel->queryOptions['with'] = $options['with'];
@@ -135,8 +136,87 @@ class DefaultController extends BaseController
 		if(!Response::formatSpecified())
 			$this->setResponseFormat('html');
 
-        return $this->renderResponse($dataProvider->getModels(), Response::viewOptions(), false);
+        return $this->renderResponse($this->getResponseFormat() == 'json' ? $dataProvider->getModels() : null, Response::viewOptions(), false);
     }
+
+	/**
+	 * Performs filtering on models
+	 * @method actionFilter
+	 * @param  array       $options       Options for the view parameters
+	 * @param  array       $modelOptions Options for the search model
+	 * @return string                     Rendered data
+	 */
+	public function actionFilter($options=[], $modelOptions=[])
+	{
+		$options = array_replace_recursive([
+			'params' => \Yii::$app->request->get(),
+			'with' => [],
+			'viewOptions' => [],
+		], $options);
+
+		$ret_val = [
+			"success" => false,
+			'action' => 'filter',
+			"format" => $this->getResponseFormat(),
+			'message' => "No data found for this filter"
+		];
+
+		$searchModelOptions = array_merge([
+			'inclusiveSearch' => true,
+			'booleanSearch' => true,
+			'forceType' => true
+		], $modelOptions);
+
+		$className = ArrayHelper::getValue($options, 'className');
+
+		$this->model = new $className($searchModelOptions);
+		$type = $this->model->isWhat();
+		$this->model->setIndexType($type);
+
+		$this->model->type = $type;
+		$this->model->setIs($type);
+
+
+		$options['with'] = $this->extractRelationParameters(array_merge($options, $modelOptions));
+		$this->model->queryOptions['with'] = $options['with'];
+
+		$dataProvider = $this->model->search($options['params']);
+
+		$this->filterRelationParameters($dataProvider->query, $options['with']);
+
+		$dataProvider->pagination->route = "/$type";
+
+		$view = ArrayHelper::getValue($options, 'view', 'index');
+
+		//Change the context ID here to match the filtered content
+		$this->id = $type;
+
+		$ret_val['data'] = $this->renderAjax($view, array_merge($this->getViewOptions(), [
+			"dataProvider" => $dataProvider,
+			'searchModel' => $this->model,
+			'model' => $this->model,
+			'primaryModel' => $this->model->primaryModel,
+			'isWhat' => $type,
+		]));
+
+		//Add support for Pjax requests here. If somethign was sent based on Pjax always return HTML
+		if(\Yii::$app->getRequest()->get('_pjax') != null)
+			$this->setResponseFormat('html');
+
+		$getParams = array_merge([$type], \Yii::$app->request->get());
+
+		foreach(['__format', '_type', 'getHtml', 'ajax', 'do'] as $prop)
+			unset($getParams[$prop]);
+
+		$ret_val['url'] = \Yii::$app->urlManager->createUrl($getParams);
+		$ret_val['message'] = !$dataProvider->getCount() ? $ret_val['message'] : "Found ".$dataProvider->getTotalCount()." results matching your search";
+
+		Response::viewOptions('args', [
+			"content" => $ret_val['data'],
+		]);
+
+		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
+	}
 
 	/*
 	 * Get the forms associated with this controller
@@ -241,79 +321,6 @@ class DefaultController extends BaseController
 
 		return $this->finalAction($ret_val, $result);
     }
-
-	/**
-	 * Performs filtering on models
-	 * @method actionFilter
-	 * @param  array       $options       Options for the view parameters
-	 * @param  array       $modelOptions Options for the search model
-	 * @return string                     Rendered data
-	 */
-	public function actionFilter($options=[], $modelOptions=[])
-	{
-		$ret_val = [
-			"success" => false,
-			'action' => 'filter',
-			"format" => $this->getResponseFormat(),
-			'message' => "No data found for this filter"
-		];
-
-		$searchModelOptions = array_merge([
-			'inclusiveSearch' => true,
-			'booleanSearch' => true,
-		], $modelOptions);
-
-		$className = ArrayHelper::getValue($options, 'className');
-
-		$options['with'] = $this->extractRelationParameters(array_merge($options, $modelOptions));
-		$this->model = new $className($searchModelOptions);
-		$type = $this->model->isWhat();
-		$this->model->setIndexType($type);
-
-		$dataProvider = $this->model->search(array_merge($_REQUEST, [
-			'forceType' => true,
-			'types' => $type,
-			'isWhat' => $type,
-			'queryOptions' => [
-				'with' => $options['with']
-			]
-		]));
-
-		$this->filterRelationParameters($dataProvider->query, $options['with']);
-
-		$dataProvider->pagination->route = "/$type";
-
-		$view = ArrayHelper::getValue($options, 'view', 'index');
-
-		//Change the context ID here to match the filtered content
-		$this->id = $type;
-
-		$ret_val['data'] = $this->renderAjax($view, array_merge($this->getViewOptions(), [
-			"dataProvider" => $dataProvider,
-			'searchModel' => $this->model,
-			'model' => $this->model,
-			'primaryModel' => $this->model->primaryModel,
-			'isWhat' => $type,
-		]));
-
-		//Add support for Pjax requests here. If somethign was sent based on Pjax always return HTML
-		if(\Yii::$app->getRequest()->get('_pjax') != null)
-			$this->setResponseFormat('html');
-
-		$getParams = array_merge([$type], \Yii::$app->request->get());
-
-		foreach(['__format', '_type', 'getHtml', 'ajax', 'do'] as $prop)
-			unset($getParams[$prop]);
-
-		$ret_val['url'] = \Yii::$app->urlManager->createUrl($getParams);
-		$ret_val['message'] = !$dataProvider->getCount() ? $ret_val['message'] : "Found ".$dataProvider->getTotalCount()." results matching your search";
-
-		Response::viewOptions('args', [
-			"content" => $ret_val['data'],
-		]);
-
-		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
-	}
 
     /**
      * Deletes an existing Category model.

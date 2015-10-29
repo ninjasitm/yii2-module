@@ -201,11 +201,11 @@ class QueryFilter
 
 		if($query instanceof Query)
 			$with =& $query->with;
-		else
-			$with = [];
+
+		$with = (array)$with;
 
 		$db =  $query->createCommand()->db;
-		$newOrderBy = [];
+		$newOrderBy = $groupBy = [];
 		foreach($orderBy as $field=>$order)
 		{
 			if($order instanceof Query || $order instanceof Expression) {
@@ -275,9 +275,7 @@ class QueryFilter
 						//Left join to return the values from the subject table only
 						//$on = '0=1';
 						//$query->innerJoin(static::joinFields([$relationTable, $alias], ' '), $on);
-						$relationLink = array_filter($relation->link, function ($attribute) {
-							return $attribute != 'id';
-						});
+						$relationLink = $relation->link;
 
 						if($relationClass::tableName() == $class::tableName())
 							$alias = '';
@@ -285,10 +283,10 @@ class QueryFilter
 							$alias = $toJoin;
 
 						$query->innerJoinWith([
-							$toJoin => function ($relation) use($db, $class, $alias) {
+							$toJoin => function ($relation) use($db, $class, $alias, $relationTable) {
 								$relationClass = $relation->modelClass;
 								$relationTable = $relationClass::tableName();
-								$relation->from([$alias => $relation->from[0]]);
+								$relation->from([$alias => $relationTable]);
 								$relation->select($alias.'.*');
 							}
 						]);
@@ -296,6 +294,9 @@ class QueryFilter
 						$newOrderBy[$aliasField] = $order;
 						//Ignore the universal 'id' attribute
 						$ret_val[static::joinFields($relationLink, ', ')] = $order;
+						$relationLink = array_merge($relationLink, array_keys((array)$relation->where));
+						self::aliasSelectFields($relationLink, $alias);
+						$groupBy = array_unique(array_merge($groupBy, $relationLink));
 					}
 				} else {
 					$newOrderBy[static::joinFields([$table, $field])] = $order;
@@ -304,9 +305,11 @@ class QueryFilter
 				$joined[] = $table;
 			}
 		}
-		if($query instanceof Query)
+		if($query instanceof Query) {
 			$query->orderBy($newOrderBy);
-		else {
+			if(!empty($groupBy))
+				$query->groupBy($groupBy);
+		} else {
 			$query = $newOrderBy;
 		}
 		//Return the original fields that were sorted by

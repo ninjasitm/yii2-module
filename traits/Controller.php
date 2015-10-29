@@ -312,8 +312,8 @@ use yii\helpers\Html;
 			\yii\mongodb\ActiveQuery::className()
 		]))
 			$query->with = null;
-		else
-			$query->with($with);
+
+		$query->with = array_unique((array)$query->with);
 		return true;
 	}
 

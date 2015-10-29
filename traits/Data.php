@@ -212,7 +212,7 @@ trait Data {
 			->select([
 				'_count' => "COUNT(".$primaryKey.")",
 			])
-			->limit(1);
+			->groupBy(array_values($link));
 		foreach(['where', 'orwhere', 'andwhere'] as $option)
 			if(isset($this->queryOptions[$option]))
 				$query->$option($this->queryOptions[$option]);
