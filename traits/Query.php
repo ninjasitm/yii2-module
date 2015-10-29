@@ -48,7 +48,18 @@ trait Query {
 	public static function applyFilters($query, $filters=null)
 	{
 		//search for special filters
-		$target = isset($query->primaryModel) ? $query->primaryModel : $query->from[0];
+		switch(true)
+		{
+			case $query instanceof \yii\mongo\ActivQuery:
+			case $query instanceof \yii\elasticsearch\ActivQuery:
+			$target = null;
+			break;
+
+			default:
+			$target = isset($query->primaryModel) ? $query->primaryModel : $query->from[0];
+			break;
+		}
+
 		switch(is_array($filters))
 		{
 			case true:
