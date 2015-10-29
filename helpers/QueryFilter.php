@@ -112,11 +112,18 @@ class QueryFilter
 	 */
 	public static function aliasSelectFields(&$query, $model)
 	{
-		$query->select = !$query->select ? '*' : $query->select;
-		if(!is_array($query->select))
-			$query->select = [$query->select];
+		if(is_object($query)) {
+			$query->select = !$query->select ? '*' : $query->select;
+			if(!is_array($query->select)) {
+				$class = $query->modelClass;
+				$query->select = array_keys($class::getTableSchema()->columns);
+			}
+			$select =& $query->select;
+		} else {
+			$select =& (array)$query;
+		}
 
-		foreach($query->select as $idx=>$field) {
+		foreach($select as $idx=>$field) {
 
 			if(is_string($idx))
 				$field = $idx;
@@ -129,9 +136,9 @@ class QueryFilter
 			if(is_string($field) && strpos($field, '.') !== false)
 				continue;
 			if(is_string($field) && $model instanceof ActiveRecord)
-				$query->select[$idx] = $model->tableName().'.'.$field;
+				$select[$idx] = $model->tableName().'.'.$field;
 			else if(is_string($field) && is_string($model))
-				$query->select[$idx] = $model.'.'.$field;
+				$select[$idx] = $model.'.'.$field;
 		}
 	}
 
