@@ -150,14 +150,15 @@ class QueryFilter
 		if(!isset($where) || !is_array($where))
 			return;
 
-		$alias = is_null($alias) ? $model->tableName() : $alias;
+		//Model will be the tablename if a string is passed for $model
+		$alias = is_null($alias) ? is_object($model) ? $model->tableName() : $model : $alias;
 		foreach($where as $field=>$value) {
 			if(is_string($field) && strpos('.', $field) === false) {
 				//If an object was passed get the table name
 				if(is_object($model) && $model->hasAttribute($field))
 					$where[$alias.'.'.$field] = $value;
 				//Otherwise only a table name could have been passed
-				else if(!is_object($model))
+				else if(is_string($model))
 					$where[$model.'.'.$field] = $value;
 				unset($where[$field]);
 			} else if(is_array($value))

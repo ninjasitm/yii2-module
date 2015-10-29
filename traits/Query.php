@@ -5,9 +5,9 @@ namespace nitm\traits;
  * Traits defined for expanding query scopes until yii2 resolves traits issue
  */
 trait Query {
-	
+
 	protected $success;
-	
+
 	/*
 	 * Sets the successfull parameter for query
 	 */
@@ -15,11 +15,11 @@ trait Query {
 	{
 		return $this->success === true;
 	}
-	
+
 	public static function filters()
 	{
 		return [
-				'author' => null, 
+				'author' => null,
 				'editor' => null,
 				'status' => null,
 				'order' => null,
@@ -31,7 +31,7 @@ trait Query {
 				'boolean' => null,
 		];
 	}
-	
+
 	public static function has()
 	{
 		return [
@@ -48,6 +48,7 @@ trait Query {
 	public static function applyFilters($query, $filters=null)
 	{
 		//search for special filters
+		$target = isset($query->primaryModel) ? $query->primaryModel : $query->from[0];
 		switch(is_array($filters))
 		{
 			case true:
@@ -59,24 +60,28 @@ trait Query {
 					switch(strtolower($name))
 					{
 						case 'select':
-						\nitm\helpers\QueryFilter::aliasSelectFields($value, $this);
+						\nitm\helpers\QueryFilter::aliasSelectFields($value, $target);
 						break;
-						
+
 						case 'orderby':
-						\nitm\helpers\QueryFilter::aliasOrderByFields($value, $this);
+						\nitm\helpers\QueryFilter::aliasOrderByFields($value, $target);
 						if(isset($filters['order']))
 							unset($filters['order']);
 						break;
-						
+
 						case 'groupby':
-						\nitm\helpers\QueryFilter::aliasOrderByFields($value, $this);
+						\nitm\helpers\QueryFilter::aliasOrderByFields($value, $target);
+						break;
+
+						case 'where':
+						\nitm\helpers\QueryFilter::aliasWhereFields($value, $target);
 						break;
 					}
 					$filters[$name] = $value;
 					break;
 				}
 			}
-			
+
 			foreach($filters as $type=>$args)
 			{
 				try {
@@ -84,16 +89,16 @@ trait Query {
 					unset($filters[$type]);
 				} catch (\Exception $e) {}
 			}
-			
+
 			if(is_array($filters) && (sizeof($filters) >= 1)) {
-				\nitm\helpers\QueryFilter::aliasWhereFields($filters);
+				\nitm\helpers\QueryFilter::aliasWhereFields($filters, $target);
 				$query->andWhere($filters);
 			}
 			break;
 		}
 		return $query;
 	}
-	
+
 	/*
 	 * Some common filters
 	 * @param $name The name of the filter
@@ -120,7 +125,7 @@ trait Query {
 						$method = @$filters[$name][1];
 						$args = @$filters[$name][2];
 						break;
-					
+
 						case 2:
 						$class = get_class($this);
 						$method = @$filters[$name][0];
@@ -137,7 +142,7 @@ trait Query {
 					break;
 				}
 				break;
-				
+
 				default:
 				$class = null;
 				break;
@@ -154,30 +159,30 @@ trait Query {
 					$o->addWith('profile');
 					$filters = $o->getList(['profile.name', 'username'], ['(', ')', ' ']);
 					break;
-					
+
 					default:
 					$filters = call_user_func_array(array($class, $method), $args);
 					break;
 				}
 				$ret_val = $filters;
 				break;
-				
+
 				case 'status':
 				$ret_val = ['0' => 'Disabled', '1' => 'Enabled'];
 				$ret_val = ($default === true) ? array_merge(['' => 'Any'], $ret_val) : $ret_val;
 				break;
-				
+
 				case 'boolean':
 				$ret_val = ['0' => 'No', '1' => 'Yes'];
 				break;
-				
+
 				case 'rating':
 				break;
-				
+
 				case 'order':
 				$ret_val = ['desc' => 'Descending', 'asc' => 'Ascending'];
 				break;
-				
+
 				case 'order_by':
 				foreach($this->getTableSchema()->columns as $colName=>$info)
 				{
@@ -186,7 +191,7 @@ trait Query {
 						case 'text':
 						case 'binary':
 						break;
-						
+
 						default:
 						if($info->isPrimaryKey) {
 							$primaryKey = [$colName => $this->properName($colName)];
@@ -196,30 +201,30 @@ trait Query {
 						break;
 					}
 				}
-				
+
 				foreach($this->getSort() as $attr=>$options)
 				{
 					@list($relation, $label, $orderAttr) = (array)$options;
 					if($this->hasMethod('get'.$relation))
 						$ret_val[$attr] = $options['label'];
 				}
-				
+
 				ksort($ret_val);
-				
+
 				if(isset($primaryKey)) {
 					$ret_val = array_reverse($ret_val, true);
 					$ret_val[key($primaryKey)] = current($primaryKey);
 					$ret_val = array_reverse($ret_val, true);
 				}
 				break;
-				
+
 				default:
 				switch($class == null)
 				{
 					case true:
 					$filters = isset(static::$settings[static::isWhat()]['filter'][$name]) ? static::$settings[static::isWhat()]['filter'][$name] : [];
 					break;
-					
+
 					default:
 					$filters = call_user_func_array(array($class, $method), $args);
 					break;
@@ -231,7 +236,7 @@ trait Query {
 		}
 		return $ret_val;
 	}
-	
+
 	/*
 	 * Does this object support this filter?
 	 * @param string|int #name
@@ -241,7 +246,7 @@ trait Query {
 	{
 		return array_key_exists($name, static::filters());
 	}
-	
+
 	/*
 	 * Set the aliased fields according to the class columns() function
      * @param ActiveQuery $query
@@ -263,12 +268,12 @@ trait Query {
 					$property = $special[1];
 					$column = $special[0];
 					break;
-					
+
 					case 1:
 					$property = $special[0];
 					$column = $property;
 					break;
-					
+
 					default:
 					$column = $property;
 					break;
@@ -280,7 +285,7 @@ trait Query {
 			$query->select(array_merge($ret_val, array_keys($class::getTableSchema()->columns)));
 		else
 			$query->select('*');
-			
+
 		\nitm\helpers\QueryFilter::aliasFields($query, $class::tableName());
 		return $query;
 	}
