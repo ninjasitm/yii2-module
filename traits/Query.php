@@ -56,7 +56,7 @@ trait Query {
 			break;
 
 			default:
-			$target = isset($query->primaryModel) ? $query->primaryModel : $query->from[0];
+			$target = isset($query->primaryModel) ? $query->primaryModel : $query instanceof \yii\db\ActiveQuery  ?  $query->from[0] : null;
 			break;
 		}
 

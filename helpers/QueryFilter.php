@@ -105,6 +105,16 @@ class QueryFilter
 		return $where;
 	}
 
+	public static function isExpression($string)
+	{
+		return is_string($string) && (strpos($string, '(') !== false || strpos($string, ')') !== false);
+	}
+
+	public static function joinFields($parts, $glue='.')
+	{
+		return (string)implode($glue, array_filter($parts, 'strlen'));
+	}
+
 	/**
 	 * Alias the select fields for a query
 	 * @param Query|array $query THe query or conditions being modified
@@ -120,10 +130,10 @@ class QueryFilter
 			}
 			$select =& $query->select;
 		} else {
-			$select =& (array)$query;
+			$select =& $query;
 		}
 
-		foreach($select as $idx=>$field) {
+		foreach((array)$select as $idx=>$field) {
 
 			if(is_string($idx))
 				$field = $idx;
@@ -171,16 +181,6 @@ class QueryFilter
 			} else if(is_array($value))
 				static::aliasWhereFields($value, $model);
 		}
-	}
-
-	public static function isExpression($string)
-	{
-		return is_string($string) && (strpos($string, '(') !== false || strpos($string, ')') !== false);
-	}
-
-	public static function joinFields($parts, $glue='.')
-	{
-		return (string)implode($glue, array_filter($parts, 'strlen'));
 	}
 
 	/**
