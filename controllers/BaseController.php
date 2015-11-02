@@ -12,15 +12,15 @@ use nitm\helpers\ArrayHelper;
 class BaseController extends Controller
 {
 	use \nitm\traits\Configer, \nitm\traits\Controller, \nitm\traits\ControllerActions;
-	
+
 	public $model;
 	public $metaTags = array();
 
 	private $_cssFiles = array();
 	private $_jsFiles = array();
-	
+
 	const ELEM_TYPE_PARAM = '__elemType';
-	
+
 	public function behaviors()
 	{
 		$behaviors = [
@@ -57,13 +57,13 @@ class BaseController extends Controller
 		//$this->initConfig(@Yii::$app->controller->id);
 		parent::init();
 	}
-	
+
 	public static function assets()
 	{
 		return [
 		];
 	}
-	
+
 	/*
 	 * Initialize any css needed for this controller
 	 */
@@ -74,7 +74,7 @@ class BaseController extends Controller
 			return;
 		$this->_cssFiles = is_array($this->_cssFiles) ? $this->_cssFiles : array($this->_cssFiles);
 		$this->_cssFiles[] = $this->id;
-		
+
 		switch(!empty($this->_cssFiles))
 		{
 			case true:
@@ -89,7 +89,7 @@ class BaseController extends Controller
 					case strpos($file, '@') !== false:
 					$this->publishFile(\Yii::getAlias($file), $options);
 					break;
-					
+
 					default:
 					$file = Yii::$app->basePath.'/web/css/'.$file;
 					switch(file_exists(\Yii::getAlias($file)))
@@ -104,7 +104,7 @@ class BaseController extends Controller
 			break;
 		}
 	}
-	
+
 	/*
 	 * Initialize any javascript needed for this controller
 	 * @param boolean $defaults
@@ -121,7 +121,7 @@ class BaseController extends Controller
 			$this->_jsFiles[] = array('src' => $this->id, 'position' => \yii\web\View::POS_END);
 			break;
 		}
-		
+
 		switch(!empty($this->_jsFiles))
 		{
 			case true:
@@ -132,10 +132,10 @@ class BaseController extends Controller
 					case $js['src'][0] == ':':
 					$js['src'] = substr($js['src'], 1, strlen($js['src']));
 					break;
-					
+
 					case $js['src'][0] == '@':
 					break;
-					
+
 					default:
 					$js['src'] = '/js/'.$js['src'];
 					break;
@@ -147,7 +147,7 @@ class BaseController extends Controller
 					$js['src'] = Yii::$app->UrlManager->baseUrl.$js['src'];
 					$this->view->registerJsFile($js['src'], ["position" => $js['position']]);
 					break;
-					
+
 					case file_exists(\Yii::getAlias($js['src'])):
 					$this->publishFile(\Yii::getAlias($js['src']), [
 						'jsOptions' => ["position" => $js['position']]
@@ -158,7 +158,7 @@ class BaseController extends Controller
 			break;
 		}
 	}
-	
+
 	protected function publishFile($path, $options=[], $type='css')
 	{
 		$f = pathinfo($path);
@@ -218,7 +218,7 @@ class BaseController extends Controller
 			}
 		}
 	}
-	
+
 	/*
 	 * Initialize any meta tags needed for this controller
 	 * @param mixed $metaTags
@@ -239,10 +239,10 @@ class BaseController extends Controller
 					break;
 				}
 			}
-		} 
-        
+		}
+
     }
-	
+
 	/**
 	 * load the main navigation variables
 	 * @param string from
@@ -267,7 +267,7 @@ class BaseController extends Controller
 						$priority = isset($val['priority']) ? $val['priority'] : sizeof($ret_val);
 						@$ret_val[$priorities[$name]."_".$name][$property][$property_name] = $val;
 						break;
-						
+
 						//this is a mainlink
 						default:
 						$priority = isset($val['priority']) ? $val['priority'] : sizeof($ret_val);
@@ -283,7 +283,7 @@ class BaseController extends Controller
 		ksort($ret_val);
 		return $ret_val;
 	}
-	
+
 	/*
 	 * Get the HTML encoded navigation information
 	 * @param mixed $navigation
@@ -299,7 +299,7 @@ class BaseController extends Controller
 		{
 			if(isset($item['adminOnly']) && !\Yii::$app->user->identity->isAdmin())
 			continue;
-			
+
 			$submenu = null;
 			switch(isset($options['sub']) && is_array($options['sub']))
 			{
@@ -307,7 +307,7 @@ class BaseController extends Controller
 				$options['sub'] = static::getNavHtml($options['sub']);
 				$submenu = $options['sub'];
 				break;
-			} 
+			}
 			if(is_array($options))
 			{
 				$label = ArrayHelper::remove($options, 'name', 'no-name');
@@ -322,7 +322,7 @@ class BaseController extends Controller
 					'items' => $submenu,
 					'url' => $url,
 					"options" => array_merge($itemOptions, [
-						"class" => $class, 
+						"class" => $class,
 						"encode" => false
 					]),
 					'linkOptions' => $options
@@ -330,7 +330,7 @@ class BaseController extends Controller
 				$ret_val[$idx] = $item;
 				if(!empty($encapsulate)){
 					$ret_val[$idx]['label'] = Html::tag($encapsulate, $ret_val[$idx]['label'], [
-						"class" => $class, 
+						"class" => $class,
 						"encode" => false
 					]);
 					$ret_val[$idx]['options']['class'] = null;
@@ -339,7 +339,7 @@ class BaseController extends Controller
 		}
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Get the class indicator value for the users status
 	 * @param Edit $token
@@ -358,7 +358,7 @@ class BaseController extends Controller
 				case '':
 				$ret_val = 'default';
 				break;
-				
+
 				case 'Public':
 				$ret_val = 'info';
 				break;
@@ -368,7 +368,7 @@ class BaseController extends Controller
 		$indicator = \nitm\helpers\Statuses::getIndicator($ret_val);
 		return $indicator;
 	}
-	
+
 	/**
 	 * Get the javascript requested for this ajax view
 	 */
@@ -392,7 +392,7 @@ class BaseController extends Controller
 						break;
 					 }
 				 }
-			});			
+			});
 			$ret_val .= Html::script(
 				array_walk($view->js[static::POS_READY], function ($v) {
 					return $v;

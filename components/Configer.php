@@ -33,14 +33,14 @@ class Configer extends Model
 	//public data
 	public $storeIn = 'session';
 	public static $config = [];
-	
+
 	/**
 	 * @array The global settings used by all models and the app
 	 */
 	public $settings = [];
-	
+
 	public $container = 'settings';
-	
+
 	//Form variables
 	public $id;				//The id of the value
 	public $name;			//The name of a key/value pair
@@ -51,7 +51,7 @@ class Configer extends Model
 	public $convert;		//Convert
 	public $convertTo;		//Convert to what engine?
 	public $getValues;		//Should we try to get values as well?
-	
+
 	//protected data
 	protected $engine;			//Current engine. Database or file?
 	protected $_config;
@@ -60,38 +60,31 @@ class Configer extends Model
 		"failure" => "warning",
 		"info" => "info"
 	];
-	
+
 	//constant data
 	const dm = 'configer';
 	const NO_DEC = 'nodec:';
-	
+
 	//private data
 	private $_supported = ["file" => "File", "db" => "Database"];
 	private $_event;
 	private $_engineIsSet;
 	private $_store;
-	
+
 	public function __destruct()
 	{
-		$this->setExternal('nitm-settings', $this->settings, 120);
+		$this->setExternal('nitm-settings:'.\Yii::$app->id, $this->settings, 120);
 	}
-	
+
 	public function init()
 	{
-		parent::init();	
+		parent::init();
 		$this->setEngine();
 		$this->initEvents();
-		$this->settings = $this->getExternal('nitm-settings');
+		$this->settings = $this->getExternal('nitm-settings:'.\Yii::$app->id);
 		$this->config('supported', $this->_supported);
 	}
-	
-	public function behaviors()
-	{ 
-		$behaviors = [
-		];
-		return array_merge(parent::behaviors(), $behaviors);
-	}
-	
+
 	public function rules()
 	{
 		return [
@@ -109,7 +102,7 @@ class Configer extends Model
 			[['engine'], 'safe'],
 		];
 	}
-	
+
 	public function scenarios()
 	{
 		return [
@@ -127,7 +120,7 @@ class Configer extends Model
 			'convert' => ['convert', 'engine']
 		 ];
 	}
-	
+
 	public function attributeLabels()
 	{
 		return [
@@ -139,7 +132,7 @@ class Configer extends Model
 		    'what' => 'Action',
 		];
 	}
-	
+
 	/*
 	 * Initiate the event handlers for this class
 	 */
@@ -151,13 +144,13 @@ class Configer extends Model
 			$this->config($this->uriOf(self::dm.'.'.$this->event('key'), true), $this->event('value'));
 			$this->trigger('logData');
 		});
-		
+
 		$this->on("afterUpdate", function($e) {
 			$this->set($this->event('key'), $this->event('value'));
 			$this->config($this->uriOf(self::dm.'.'.$this->event('key'), true), $this->event('value'));
 			$this->trigger('logData');
 		});
-		
+
 		$this->on("afterDelete", function($e) {
 			switch($this->event('action'))
 			{
@@ -167,28 +160,28 @@ class Configer extends Model
 			}
 			$this->config('current.section', $this->event('section'));
 			$this->remove($this->uriOf(self::dm.'.'.$this->event('key'), true), true);
-			
+
 			if($this->container == \Yii::$app->getModule('nitm')->config->container)
 				$this->remove(Session::settings.'.'.$this->event('key'));
 			else
 				$this->remove($this->container.'.'.$this->event('key'), $value);
-				
+
 			$this->trigger('logData');
 		});
-		
+
 		$this->on('logData', function ($e) {
 			$data = array_merge($this->getEventData(), $this->_event->data);
 			\Yii::$app->getModule('nitm')->logger->log($data);
 			$this->_event->handled = true;
 		});
 	}
-	
+
 	protected function setEventData($data) {
 		$this->_event = new Event([
 			'data' => $data
 		]);
 	}
-	
+
 	protected function getEventData()
 	{
 		return [
@@ -204,7 +197,7 @@ class Configer extends Model
 			])
 		];
 	}
-	
+
 	/*
      * Prepare the config info for updating
 	 * @param string $container
@@ -226,7 +219,7 @@ class Configer extends Model
 				break;
 			}
 			break;
-			
+
 			default:
 			$this->setType($container);
 			//if the selected config is not loaded then load it
@@ -241,10 +234,10 @@ class Configer extends Model
 				$this->config('current.config', $this->getExternal(self::dm.'.'.$this->_store->is.'.config'));
 				$this->config('current.sections', array_merge(["" => "Select section..."], $this->getSections()));
 			}
-			
+
 			if(!$getValues)
 				$this->config('current.config', null);
-				
+
 			$this->config('load.current', $this->section && (bool)count($this->config('current.config.'.$this->section))>=1);
 			$this->config('load.sections', (bool)count($this->config('current.sections'))>=1);
 			$this->set(self::dm.'.current.location', $key);
@@ -252,12 +245,12 @@ class Configer extends Model
 			break;
 		}
 	}
-	
+
 	/*
      * Set the configuration type
 	 * @param string $container
 	 * @param string $from
-     */	
+     */
 	public function setType($container=null, $from='default')
 	{
 		$this->config('surround', []);
@@ -282,7 +275,7 @@ class Configer extends Model
 				$this->config('current.surround', ['open' => "<code>", "close" => "</code>"]);
 				$this->config('current.type_text', 'an xml file');
 				break;
-			
+
 				default:
 				switch(in_array($container, $this->config('containers')))
 				{
@@ -290,7 +283,7 @@ class Configer extends Model
 					$this->config('current.container', $container);
 					$this->config('current.path', "@$container");
 					break;
-				
+
 					default:
 					$this->config('current.container', "globals");
 					$this->config('current.path', '@globals');
@@ -302,12 +295,12 @@ class Configer extends Model
 			break;
 		}
 	}
-	
+
 	public function getEngine()
 	{
 		return $this->engine;
 	}
-	
+
 	/*
 	 * Set the storage engine
 	 * @param string $loc Either file or database
@@ -315,10 +308,10 @@ class Configer extends Model
 	public function setEngine($loc=null)
 	{
 		$loc = is_null($loc) ? $this->engine : $loc;
-		
+
 		if(isset($this->_store) && $this->_store->is == $loc && $this->_engineIsSet)
 			return;
-			
+
 		switch($this->isSupported($loc))
 		{
 			case true:
@@ -327,7 +320,7 @@ class Configer extends Model
 				case 'db':
 				$this->_store = new configer\DBStore;
 				break;
-				
+
 				case 'file':
 				$this->_store = new configer\FileStore;
 				break;
@@ -343,19 +336,19 @@ class Configer extends Model
 			$this->set(self::dm.'.current.engine', $this->_store->is);
 			$this->engine = $loc;
 			$this->_engineIsSet = true;
-		} else 
+		} else
 			throw new \yii\base\ErrorException("Specified an unsupported engine: $loc");
 	}
-	
+
 	public function setBase($container)
 	{
 		if(!empty($container))
 			$this->container = $this->_store->getContainerBase($container);
 	}
-	
+
 	public function uriOf($key, $internal=false)
 	{
-		$key = $originalKey = explode('.', $key);		
+		$key = $originalKey = explode('.', $key);
 		switch(1)
 		{
 			case $key[0] == self::dm:
@@ -365,7 +358,7 @@ class Configer extends Model
 			else if($key[0] != $this->container)
 				array_unshift($key, self::dm, $this->_store->is, 'config');
 			break;
-			
+
 			default:
 			if($internal === true)
 				if($key[0] == $this->container)
@@ -381,12 +374,12 @@ class Configer extends Model
 		}
 		return implode('.', $key);
 	}
-	
+
 	public function getDm()
 	{
 		return self::dm;
 	}
-	
+
 	/**
 	 * Set or get a current setting
 	 * @param string|array $name the name of the setting to get
@@ -398,18 +391,18 @@ class Configer extends Model
 		$name = is_array($name) ? implode('.', $name) : $name;
 		return (new \nitm\helpers\ArrayHelper)->getOrSetValue($this->_config, $name, $value, $append);
 	}
-	
+
 	protected function event($name=null, $value=null, $append = false)
 	{
 		$name = is_array($name) ? implode('.', $name) : $name;
 		return (new \nitm\helpers\ArrayHelper)->getOrSetValue($this->_event->data, $name, $value, $append);
 	}
-	
+
 	/**
 	 * Find out where configuration information is being stored in
 	 * @return classname of stroage adapter
-	 */	
-	protected function resolveStoredIn() 
+	 */
+	protected function resolveStoredIn()
 	{
 		switch($this->storeIn)
 		{
@@ -419,10 +412,11 @@ class Configer extends Model
 				return Session::getPath($name);
 			};
 			break;
-			
+
 			default:
 			$class = Session::className();
 			$prefix = function ($name) {
+				$name = array_shift(explode(':', $name));
 				if($name == 'nitm-settings')
 					return Session::settings;
 				else
@@ -432,15 +426,15 @@ class Configer extends Model
 		}
 		return [$class, $prefix];
 	}
-	
-	public function getPath($for) 
+
+	public function getPath($for)
 	{
 		$for = explode('.', $for);
 		if($for[0] == Session::settings)
 			$for[0] = 'globals';
 		return implode('.', $for);
 	}
-	
+
 	/**
 	 * Set a local config value based on the storage location
 	 * @param string $name
@@ -452,7 +446,7 @@ class Configer extends Model
 		$value = Json::isJson($value) ? Json::decode($value) : $value;
 		ArrayHelper::setValue($this->settings, $this->getPath($this->uriOf($name)), $value);
 	}
-	
+
 	/**
 	 * Get a local config value based on the storage location
 	 * @param string $name
@@ -462,7 +456,7 @@ class Configer extends Model
 	{
 		return @ArrayHelper::getValue($this->settings, $this->getPath($this->uriOf($name)), null);
 	}
-	
+
 	/**
 	 * Remove a local config value based on the storage location
 	 * @param string $name
@@ -472,17 +466,17 @@ class Configer extends Model
 	{
 		return ArrayHelper::remove($this->settings, $this->getPath($this->uriOf($name)));
 	}
-	
+
 	/**
 	 * Does a local config value exist?
 	 * @param string $name
 	 * @return boolean
-	 */	
+	 */
 	public function exists($name)
 	{
 		return ArrayHelper::exists($this->settings, $this->getPath($this->uriOf($name)));
 	}
-	
+
 	public function containerExists($container)
 	{
 		$ret_val = true;
@@ -495,7 +489,7 @@ class Configer extends Model
 		}
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Set a config value based on the storage location
 	 * @param string $name
@@ -507,7 +501,7 @@ class Configer extends Model
 		list($class, $prefix) = $this->resolveStoredIn();
 		return call_user_func_array([$class, 'set'], [$prefix($name), $value, $duration]);
 	}
-	
+
 	/**
 	 * Get a config value based on the storage location
 	 * @param string $name
@@ -518,7 +512,7 @@ class Configer extends Model
 		list($class, $prefix) = $this->resolveStoredIn();
 		return call_user_func_array([$class, 'get'], [$prefix($name), $asArray]);
 	}
-	
+
 	/**
 	 * Remove a config value based on the storage location
 	 * @param string $name
@@ -529,18 +523,18 @@ class Configer extends Model
 		list($class, $prefix) = $this->resolveStoredIn();
 		return call_user_func_array([$class, 'delete'], [$prefix($name)]);
 	}
-	
+
 	/**
 	 * Doesa config value exist?
 	 * @param string $name
 	 * @return boolean
-	 */	
+	 */
 	private function existsExternal($name)
 	{
 		list($class, $prefix) = $this->resolveStoredIn();
 		return call_user_func_array([$class, 'exists'], [$prefix($name)]);
 	}
-	
+
 	/*
 	 * Write/save the configuration
 	 * @param string $container
@@ -563,7 +557,7 @@ class Configer extends Model
 		$this->_store->write($container, $data);
 		return $ret_val;
 	}
-	
+
 	/*
      * Get the configuration information depending on container and location and store it in $this->config
 	 * @param string $container
@@ -581,8 +575,8 @@ class Configer extends Model
 		}
 		$this->config('containers', [$container => $container], true);
 		return $this->readFrom($this->loadFrom($container, false, true), 'json', $updating);
-	}	
-	
+	}
+
 	/*
 	 * Convert configuration betwen formats
 	 * @param string $container
@@ -592,7 +586,7 @@ class Configer extends Model
 	public function convert($container, $from, $to)
 	{
 		$ret_val = [
-			"success" => false, 
+			"success" => false,
 			"message" => "Unable to convert $container from $from to $to"
 		];
 		switch($this->isSupported($from) && $this->isSupported($to))
@@ -611,7 +605,7 @@ class Configer extends Model
 			break;
 		}
 	}
-	
+
 	/*
 	 * Load the configuration
 	 * @param string $container
@@ -628,7 +622,7 @@ class Configer extends Model
 			case true:
 			$ret_val = $this->get(self::dm.'.'.$container);
 			break;
-			
+
 			default:
 			$this->setBase($container);
 			$ret_val = $this->_store->load($container, $this->section, $force);
@@ -636,7 +630,7 @@ class Configer extends Model
 		}
 		return $ret_val;
 	}
-	
+
 	/*
 	 * Read the configuration from a database or file
 	 * @param mixed $contents
@@ -645,7 +639,7 @@ class Configer extends Model
 	 * @param boolean $updating
 	 * @return mixed $ret_val
 	 */
-	public function readFrom($contents=null, $decode='json', $updating=false) 
+	public function readFrom($contents=null, $decode='json', $updating=false)
 	{
 		$ret_val = [];
 		$decode = is_array($decode) ? $decode : [$decode];
@@ -671,11 +665,11 @@ class Configer extends Model
 									case is_array($v) && isset($v['value']) && is_array($v['value']):
 									continue;
 									break;
-									
+
 									case is_array($v) && substr($v['value'], 0, strlen(self::NO_DEC)) == self::NO_DEC:
 									$v['value'] = substr($v['value'], strlen(self::NO_DEC), strlen($v['value']));
 									break;
-									
+
 									case((@$v['value'][0] == "{") && ($v['value'][strlen($v['value'])-1] == "}")) && ($updating === false):
 									$v['value'] = ((!is_null($data = json_decode(trim($v['value']), true))) ? $data : $v['value']);
 									break;
@@ -685,7 +679,7 @@ class Configer extends Model
 									case false:
 									$v = $v['value'];
 									break;
-									
+
 									default:
 									$v = array_merge($v, array_intersect_key($v, array_flip([
 											'section_name',
@@ -702,7 +696,7 @@ class Configer extends Model
 							$ret_val[$sectionName] = $section;
 						}
 						break;
-						
+
 						case 'csv':
 						array_walk_recursive($ret_val, function (&$v) {
 							switch((@$v['value'][0] == "{") && ($v['value'][strlen($v['value'])-1] == "}") && ($updating === false))
@@ -721,7 +715,7 @@ class Configer extends Model
 		}
 		return $ret_val;
 	}
-	
+
 	/*
 	 * Comment on a value
 	 * @param string $key
@@ -735,10 +729,10 @@ class Configer extends Model
 		]));
 		$uriOf = $this->uriOf($key);
 		$ret_val = [
-			"success" => true, 
+			"success" => true,
 			"message" => "Updated comment successfully"
 		];
-		
+
 		$result = $this->_store->comment(($id ? $id : $key), $uriOf, $value, $container);
 		if($result['success'])
 		{
@@ -753,13 +747,13 @@ class Configer extends Model
 				'message' => "updated comment ($key to '".var_export($value, true)."') in ".$container
 			]));
 			$this->trigger('afterUpdate');
-		}		
+		}
 		$ret_val['action'] = 'update';
 		$ret_val['value'] = rawurlencode($value);
 		$this->config('current.action', $ret_val);
 		$this->set(self::dm.'.action', $ret_val);
-	} 
-	
+	}
+
 	/*
 	 * Create a value to the configuration
 	 * @param string $key
@@ -776,15 +770,15 @@ class Configer extends Model
 		]));
 		$uriOf = $this->uriOf($key);
 		$ret_val = [
-			"success" => false, 
-			"message" => "Couldn't create: $key [$value] in $container", 
-			"action" => 'create', 
+			"success" => false,
+			"message" => "Couldn't create: $key [$value] in $container",
+			"action" => 'create',
 			"class" => $this->classes["failure"]
 		];
-		
-		$this->setBase($container);	
+
+		$this->setBase($container);
 		$this->container($container);
-		
+
 		$ret_val = array_merge($ret_val, array_filter($this->_store->create($uriOf, $value, $container, $this->isSection())));
 		if($ret_val['success']) {
 			$ret_val += [
@@ -797,11 +791,11 @@ class Configer extends Model
 			]));
 			$this->trigger('afterCreate');
 		}
-		
+
 		$this->config('current.action', $ret_val);
 		$this->set(self::dm.'.action', $ret_val);
 	}
-	
+
 	/*
 	 * Update a value in the configuration
 	 * @param string $key
@@ -818,7 +812,7 @@ class Configer extends Model
 		]));
 		$uriOf = $this->uriOf($key);
 		$value = is_array($value) ? json_encode($value) : $value;
-		
+
 		if(is_array($container)) {
 			debug_print_backtrace();
 			exit;
@@ -831,7 +825,7 @@ class Configer extends Model
 			'key' => $uriOf,
 			'message' => "Unable to update value '".$key."' to '".$value."'"
 		];
-		
+
 		$ret_val = array_merge($ret_val, array_filter($this->_store->update(($id ? $id : $key), $uriOf, $value, $container, $this->isSection())));
 		if($ret_val['success']) {
 			$ret_val += [
@@ -845,13 +839,13 @@ class Configer extends Model
 				'message' => "updated value ($key from '".var_export($ret_val['oldValue'], true)."' to '".var_export($value, true)."') in ".$container
 			]));
 			$this->trigger('afterUpdate');
-		}		
+		}
 		$ret_val['action'] = 'update';
 		$ret_val['value'] = rawurlencode($value);
 		$this->config('current.action', $ret_val);
 		$this->set(self::dm.'.action', $ret_val);
 	}
-	
+
 	/*
 	 * Delete a value in the configuration
 	 * @param string $key
@@ -864,19 +858,19 @@ class Configer extends Model
 			'key' => $key,
 			'container' => $container
 		]));
-		
+
 		$uriOf = $this->uriOf($key);
 		$this->setBase($container);
-		
+
 		$ret_val = [
 			'success' => false,
 			'container' => $container,
 			'key' => $uriOf,
 			'message' => "Unable to delete ".$uriOf,
-			"action" => 'delete', 
+			"action" => 'delete',
 			"class" => $this->classes["failure"]
 		];
-		
+
 		$ret_val = array_merge($ret_val, array_filter($this->_store->delete((!$id ? $key : $id), $uriOf, $container, $this->isSection())));
 		if($ret_val['success'])
 		{
@@ -895,7 +889,7 @@ class Configer extends Model
 		$this->config('current.action', $ret_val);
 		$this->set(self::dm.'.action', $ret_val);
 	}
-	
+
 	/**
 	 * Create a container: file, db entry...etc
 	 * @param string $name
@@ -919,11 +913,11 @@ class Configer extends Model
 		$this->config('current.action', $ret_val);
 		return $ret_val;
 	}
-	
+
 	/*---------------------
 		Protected Functions
 	---------------------*/
-	
+
 	/*
 	 * Log the data to the DB
 	 * @param mixed $data
@@ -933,7 +927,7 @@ class Configer extends Model
 		$this->initLogging();
 		$this->l->addTrans($data['table'], $data['db'], $data['action'], $data['message']);
 	}
-	
+
 	/*
 	 * Get the configuration containers: file or database
 	 * @param string $in
@@ -949,7 +943,7 @@ class Configer extends Model
 		$this->config('load.containers', true);
 		return $ret_val;
 	}
-	
+
 	/*
 	 * Get the configuration containers: file or database
 	 * @param string $in
@@ -963,21 +957,21 @@ class Configer extends Model
 		$this->config('load.sections', true);
 		return $ret_val;
 	}
-	
+
 	protected function isSection()
 	{
 		return $this->what == 'section';
 	}
-	
+
 	/*---------------------
 		Private Functions
 	---------------------*/
-	
+
 	private  function removeContainer($in, $name, $ext)
 	{
 		return $this->_store->removeContainer($in, $name, $ext);
 	}
-	
+
 	/*
 	 * Is this engine supported?
 	 * @param string $engine
@@ -987,7 +981,7 @@ class Configer extends Model
 	 {
 		return isset($this->_supported[$engine]);
 	 }
-	 
+
 	 /*
 	  * Get the container for a given value
 	  * @param string|int $container
@@ -998,7 +992,7 @@ class Configer extends Model
 		$container = is_null($container) ? $this->container : $container;
 		return $this->_store->container($container);
 	 }
-	 
+
 	/*
 	 * Get the section id for a given value
 	 * @param string|int $section
@@ -1008,7 +1002,7 @@ class Configer extends Model
 	{
 		return $this->_store->section($section);
 	}
-	 
+
 	/*
 	 * Get the section id for a given value
 	 * @param string|int $section
@@ -1019,12 +1013,12 @@ class Configer extends Model
 	{
 		return $this->_store->value($section, $id);
 	}
-	 
+
 	private static function hasNew()
 	{
 		return $this->_store->hasNew();
 	}
-	
+
 	private function getParams($params=[])
 	{
 		$ret_val = [
@@ -1039,11 +1033,11 @@ class Configer extends Model
 			case 'value':
 			$ret_val['key'] = $this->name;
 			break;
-			
+
 			case 'section':
 			$ret_val['key'] = $this->section;
 			break;
-			
+
 			case 'container':
 			$ret_val['key'] = $this->container;
 			break;
