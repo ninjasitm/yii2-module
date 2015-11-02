@@ -27,14 +27,14 @@ use nitm\helpers\Cache;
 class User extends \dektrium\user\models\User
 {
 	use \nitm\traits\Data, \nitm\traits\Query, \nitm\traits\relations\User;
-	
+
 	public $updateActivity;
 	public $useFullnames;
-	
+
 	protected $useToken;
-	
+
 	private $_lastActivity = '__lastActivity';
-	
+
 	public function init()
 	{
 		if($this->updateActivity) $this->updateActivity();
@@ -61,21 +61,21 @@ class User extends \dektrium\user\models\User
 					$ret_val[$user['id']] = $user['f_name'].' '.$user['l_name'];
 				}
 				break;
-				
+
 				default:
 				$ret_val = $users;
 				break;
 			}
 			Cache::cache()->set('nitm-user-list', urlencode($url), 3600);
 			break;
-			
+
 			default:
 			$ret_val = urldecode(Cache::cache()->get('nitm-user-list'));
 			break;
 		}
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Get the actvity counter
 	 * @param boolean $update Should the activity be updated
@@ -93,7 +93,7 @@ class User extends \dektrium\user\models\User
 				if($user)
 					$ret_val = !$user->getId() ? strtotime('now') : $user->logged_in_at;
 				break;
-				
+
 				default:
 				$ret_val = $sessionActivity;
 				break;
@@ -102,7 +102,7 @@ class User extends \dektrium\user\models\User
 		} catch (\Exception $error) {}
 		return date('Y-m-d G:i:s', $ret_val);
 	}
-	
+
 	/**
 	  * Update the user activity counter
 	  */
@@ -110,7 +110,7 @@ class User extends \dektrium\user\models\User
 	{
 		return \Yii::$app->getSession()->set($this->_lastActivity, strtotime('now'));
 	}
-	
+
 	/**
 	 * Should we use token authentication for this user?
 	 * @param boolean $use
@@ -119,7 +119,7 @@ class User extends \dektrium\user\models\User
 	{
 		$this->useToken = ($use === true) ? true : false;
 	}
-	
+
 	/**
 	 * Does this user have tokens?
 	 * @param User $user object
@@ -128,5 +128,12 @@ class User extends \dektrium\user\models\User
 	public function hasApiTokens()
 	{
 		return security\User::hasApiTokens($this);
+	}
+
+	public function getSort()
+	{
+		$sort = [
+		];
+		return array_merge(\nitm\models\Data::getSort(), $sort);
 	}
 }

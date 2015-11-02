@@ -275,7 +275,7 @@ use yii\helpers\Html;
 				foreach($queryOptions as $type=>$options)
 					$query->$type($options);
 
-			if(($ret_val = $query->one()) instanceof $className)
+			if(($ret_val = $query->one()) != null)
             	return $ret_val;
 			else
 				if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))

@@ -12,23 +12,23 @@ use nitm\search\Module as NitmSearch;
 /**
  */
 class Entity extends Data
-{	
+{
 	use \nitm\traits\Nitm, \nitm\traits\Relations;
-	
-	public $hasNewActivity;	
-	
+
+	public $hasNewActivity;
+
 	public function init()
 	{
 		parent::init();
 	}
-	
+
 	public function scenarios()
 	{
 		return array_merge(parent::scenarios(), [
 			'default' => []
 		]);
 	}
-	
+
 	public function initalizeEventData(&$event)
 	{
 		$event->data = [
@@ -36,16 +36,16 @@ class Entity extends Data
 			'variables' => [
 				'%id%' => $event->sender->getId(),
 				"%viewLink%" => \yii\helpers\Html::a(
-				\Yii::$app->urlManager->createAbsoluteUrl($event->sender->isWhat()."/view/".$event->sender->getId()), 
+				\Yii::$app->urlManager->createAbsoluteUrl($event->sender->isWhat()."/view/".$event->sender->getId()),
 				\Yii::$app->urlManager->createAbsoluteUrl($event->sender->isWhat()."/view/".$event->sender->getId()))
 			],
 		];
 	}
-	
+
 	public function getAlertOptions($event)
 	{
 		$event->sender->initalizeEventData($event);
-		$options = [	
+		$options = [
 			'criteria' => [
 				'action' => $event->sender->getScenario(),
 				'priority' => 'normal',
@@ -58,10 +58,10 @@ class Entity extends Data
 			if($event->sender->hasAttribute($dateAttribute)) {
 				$attribute = '%'.\nitm\helpers\ClassHelper::variableName($dateAttribute).'%';
 				$date = $event->sender->$dateAttribute instanceof \yii\db\Expression ? strtotime('now') : $event->sender->$dateAttribute;
-				$options['variables'][$attribute] = \Yii::$app->formatter->asDatetime($date);
+				$options['variables'][$attribute] = \Yii::$app->formatter->asDatetime(strtotime($date));
 			}
 		}
-			
+
 		switch($event->sender->getScenario())
 		{
 			case 'create':
@@ -73,7 +73,7 @@ class Entity extends Data
 				]
 			]);
 			break;
-			
+
 			case 'complete':
 			case 'resolve':
 			case 'disable':

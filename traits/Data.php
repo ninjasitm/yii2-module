@@ -101,7 +101,7 @@ trait Data {
 	public function getId()
 	{
 		$key = $this->primaryKey();
-		return (int)(string)$this->$key[0];
+		return (int)$this->getAttribute($key[0]);
 	}
 
 	public function hasRelation($name)
@@ -463,5 +463,32 @@ trait Data {
 		return \nitm\helpers\Helper::concatAttributes($this->parents(), function ($model) use($url, $titleAttr){
 			return \yii\helpers\Html::tag('strong', ($url ? $model->url('id', $titleAttr) : $model->$titleAttr));
 		}, ', ', true);
+	}
+
+	/**
+	 * Yii DataProvider sort creator
+	 * @param array $to     Add the sort options to $to
+	 * @param array  $labels THe labels for the sort
+	 * @param array $params THe params for the sort
+	 */
+	public function addSortParams(&$to, array $labels, array $params=[])
+	{
+		foreach($labels as $attr=>$options)
+		{
+			@list($relation, $label, $orderAttr) = (array)$options;
+			$relation = is_null($relation) ? $attr : $relation;
+
+			if($orderAttr instanceof \yii\db\Expression)
+				$relation = serialize(new \yii\db\Expression($relation.'.'.$orderAttr));
+			else
+				$relation .= is_null($orderAttr) ? '' : '.'.$orderAttr;
+
+			$to[$attr] = array_merge([
+				'asc' => [$relation => SORT_ASC],
+				'desc' => [$relation => SORT_DESC],
+				'default' => SORT_DESC,
+				'label' => $label
+			], $params);
+		}
 	}
 }

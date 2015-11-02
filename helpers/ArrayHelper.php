@@ -24,18 +24,18 @@ class ArrayHelper extends BaseArrayHelper
 			case 'assoc':
 			$difference = static::diffAssoc($array1, $array2);
 			break;
-			
+
 			case 'key':
 			$difference = static::diffKey($array1, $array2);
 			break;
-			
+
 			default:
 			$difference = static::diffSimple($array1, $array2);
 			break;
 		}
 		return $difference;
 	}
-	
+
 	/**
 	 * Lazy copy pasta
 	 * http://php.net/manual/en/function.array-diff-assoc.php
@@ -58,14 +58,14 @@ class ArrayHelper extends BaseArrayHelper
 		}
 		return $difference;
 	}
-	
+
 	/**
 	 * Lazy copy pasta
 	 * http://php.net/manual/en/function.array-diff.php
 	 */
 	function diffSimple($array1, $array2) {
 		$aReturn = array();
-	  
+
 		foreach ($array1 as $mKey => $mValue) {
 			if (array_key_exists($mKey, $array2)) {
 				if (is_array($mValue)) {
@@ -80,10 +80,10 @@ class ArrayHelper extends BaseArrayHelper
 				$aReturn[$mKey] = $mValue;
 			}
 		}
-	  
+
 		return $aReturn;
-	} 
-	
+	}
+
 	/**
 	* @author Gajus Kuizinas <gk@anuary.com>
 	* @version 1.0.0 (2013 03 19)
@@ -91,17 +91,17 @@ class ArrayHelper extends BaseArrayHelper
 	function diffKey(array $array1, array $array2) {
 		$diff = array_diff_key($array1, $array2);
 		$intersect = array_intersect_key($array1, $array2);
-	   
+
 		foreach ($intersect as $k => $v) {
 			if (is_array($array1[$k]) && is_array($array2[$k])) {
 				$d = static::diffKey($array1[$k], $array2[$k]);
-			   
+
 				if ($d) {
 					$diff[$k] = $d;
 				}
 			}
 		}
-	   
+
 		return $diff;
 	}
 
@@ -119,7 +119,7 @@ class ArrayHelper extends BaseArrayHelper
 		}
         return $array;
     }
-	
+
 	public static function filterRecursive(&$array, $callback)
 	{
 		$ret_val = true;
@@ -140,19 +140,19 @@ class ArrayHelper extends BaseArrayHelper
 		}
 		return $ret_val;
 	}
-	
+
 	public function setValue(&$array, $key, $value, $append=false)
 	{
         if ($key instanceof \Closure) {
             return $key($array, $default);
         }
-		
+
         if (($pos = strrpos($key, '.')) !== false) {
 			$keys = explode('.', $key);
 			$name = array_shift($keys);
 			if(!isset($array[$name]))
 				$array[$name] = [];
-				
+
 			self::setValue($array[$name], implode('.', $keys), $value, $append);
         } else {
 			if (is_array($array) && array_key_exists($key, $array)) {
@@ -176,7 +176,7 @@ class ArrayHelper extends BaseArrayHelper
 			return false;
 		}
     }
-	
+
 	public function getOrSetValue(&$array, $key=null, $value=null, $append=false)
 	{
 		//Merge the view options with this array
@@ -194,7 +194,7 @@ class ArrayHelper extends BaseArrayHelper
 		else
 			return null;
 	}
-    
+
 	/**
      * Check to see if a certain key exists in an array
      * @param array|object $array
@@ -206,7 +206,7 @@ class ArrayHelper extends BaseArrayHelper
 		//By default the path exists
 		$ret_val = true;
 		$hierarchy = explode('.', $key);
-		
+
 		foreach($hierarchy as $key)
 		{
 			if(is_array($array) && isset($array[$key]))
@@ -220,8 +220,8 @@ class ArrayHelper extends BaseArrayHelper
 		}
 		return $ret_val;
     }
-		
-	
+
+
 	/*
 	 * Search and delete values in $array
 	 * @param mixed $array
@@ -250,5 +250,32 @@ class ArrayHelper extends BaseArrayHelper
 				break;
 		}
 		return !$ret_val ? $default : $ret_val;
+	}
+
+
+	/**
+	 * Return data from source specified by $getter
+	 * @param array $source. Indexed by the ids of the items
+	 * @param boolean $dsOnly Only return the ids
+	 * @param array|callablke $getter
+	 * @return array
+	 */
+	public static function filter(array $source, $idsOnly=false, $getter=null)
+	{
+		$ret_val = $source;
+		if($idsOnly) {
+			$ret_val = parent::getColumn($source, 'id');
+		} else
+			foreach((array)$source as $id=>$d)
+			{
+				if(is_callable($getter))
+					$ret_val[$id] = call_user_func($getter, $d);
+				else if(is_array($getter)) {
+					$d = $d instanceof \yii\data\Arrayable ? $d->toArray() : (array)$d;
+					$ret_val[$id] = array_intersect_key($d, $getter);
+				} else
+					$ret_val[$id] = $d;
+			}
+		return $ret_val;
 	}
 }

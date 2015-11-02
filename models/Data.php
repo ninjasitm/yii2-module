@@ -422,27 +422,6 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		return $query;
 	}
 
-	protected function addSortParams(&$to, array $labels, $params=[])
-	{
-		foreach($labels as $attr=>$options)
-		{
-			@list($relation, $label, $orderAttr) = (array)$options;
-			$relation = is_null($relation) ? $attr : $relation;
-
-			if($orderAttr instanceof \yii\db\Expression)
-				$relation = serialize(new \yii\db\Expression($relation.'.'.$orderAttr));
-			else
-				$relation .= is_null($orderAttr) ? '' : '.'.$orderAttr;
-
-			$to[$attr] = array_merge([
-				'asc' => [$relation => SORT_ASC],
-				'desc' => [$relation => SORT_DESC],
-				'default' => SORT_DESC,
-				'label' => $label
-			], $params);
-		}
-	}
-
 	/**
 	 * Get the query that orders items by their activity
 	 */
