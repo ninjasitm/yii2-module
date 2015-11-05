@@ -15,7 +15,7 @@ trait Profile {
 	 */
 	public function getUser()
 	{
-		return $this->hasOne(\Yii::$app->getModule('user')->modelMap['User'], ['id' => 'user_id']);
+		return $this->hasOne(\Yii::$app->getModule('user')->modelMap['User'], ['id' => 'user_id'])->limit(1);
 	}
 }
 ?>

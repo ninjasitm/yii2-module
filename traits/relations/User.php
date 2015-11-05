@@ -16,10 +16,10 @@ trait User {
 	 */
 	public function getProfile()
 	{
-		return $this->hasOne(\Yii::$app->getModule('user')->modelMap['Profile'], ['user_id' => 'id']);
+		return $this->hasOne(\Yii::$app->getModule('user')->modelMap['Profile'], ['user_id' => 'id'])->limit(1);
 	}
-	
-	
+
+
 	/**
 	 * Get the status value for a user
 	 * @return string
@@ -28,12 +28,12 @@ trait User {
 	{
 		return \nitm\models\User::getStatus($this);
 	}
-	
+
 	public function indicator($user)
 	{
 		return \nitm\models\User::getIndicator($user);
 	}
-	
+
 	/**
      * Get the role value for a user
 	 * @return string name of role
@@ -42,7 +42,7 @@ trait User {
 	{
 		return \nitm\models\User::getRole($this);
 	}
-	
+
 	/**
 	 *
 	 */
@@ -50,7 +50,7 @@ trait User {
 	{
 		return \nitm\models\User::getIsAdmin($this);
 	}
-	
+
 	/**
 	 * Does this user have tokens?
 	 * @param User $user object
@@ -60,31 +60,31 @@ trait User {
 	{
 		return $this->hasMany(\nitm\models\api\Token::className(), ['userid' => 'id'])->all();
 	}
-	
-	public function url($fullName=false, $url=null, $options=[]) 
+
+	public function url($fullName=false, $url=null, $options=[])
 	{
 		$url = is_null($url) ? 'user/profile/'.$this->getId() : $url;
 		$urlOptions = array_merge([$url], $options);
 		$text = ($fullName === false) ? $this->username : $this->fullname();
 		$htmlOptions = [
-			'href' => \Yii::$app->urlManager->createUrl($urlOptions), 
-			'role' => 'userLink', 
+			'href' => \Yii::$app->urlManager->createUrl($urlOptions),
+			'role' => 'userLink',
 			'id' => 'user'.uniqid()
 		];
 		return \yii\helpers\Html::tag('a', $text, $htmlOptions);
 	}
-	
+
 	public function avatarImg($options=[])
 	{
 		return \yii\helpers\Html::img($this->avatar(), $options);
 	}
-	
+
 	/**
 	 * Get the avatar
 	 * @param mixed $options
 	 * @return string
 	 */
-	public function avatar() 
+	public function avatar()
 	{
 		switch(Cache::cache()->exists('user-avatar'.$this->getId()))
 		{
@@ -95,7 +95,7 @@ trait User {
 				//Support for old NITM avatar/local avatar
 				$url = $this->avatar;
 				break;
-				
+
 				//Fallback to dektriuk\User gravatar info
 				default:
 				$profile = $this->profile instanceof ProfileModel ? $this->profile : ProfileModel::find()->where(['user_id' => $this->getId()])->one();
@@ -104,14 +104,14 @@ trait User {
 			}
 			Cache::cache()->set('user-avatar'.$this->getId(), urlencode($url), 3600);
 			break;
-			
+
 			default:
 			$url = urldecode(Cache::cache()->get('user-avatar'.$this->getId()));
 			break;
 		}
 		return $url;
 	}
-	
+
 	public static function getAvatar($key, $profile=null)
 	{
 		if(is_array($key) || is_object($key)) {
@@ -126,11 +126,11 @@ trait User {
 					case !empty($profile['gravatar_id']):
 					$key = $profile['gravatar_id'];
 					break;
-					
+
 					case !empty($profile['gravatar_email']):
 					$key = $profile['gravatar_email'];
 					break;
-					
+
 					default:
 					$key = $profile['public_email'];
 					break;
@@ -141,7 +141,7 @@ trait User {
 		return "https://gravatar.com/avatar/".md5($key);
 	}
 
-	
+
 	/**
 	 * Get the fullname of a user
 	 * @param boolean $withUsername
@@ -154,14 +154,14 @@ trait User {
 			case true:
 			$ret_val = $this->profile->name.($withUsername ? '('.$this->username.')' : '');
 			break;
-			
+
 			default:
 			$ret_val = $this->username;
 			break;
 		}
 		return $ret_val;
 	}
-	
+
 	public function getSort()
 	{
 		$sort = [
