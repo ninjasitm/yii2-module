@@ -3,6 +3,7 @@ namespace nitm\helpers;
 
 use yii\base\Behavior;
 use nitm\helpers\Response;
+use nitm\helpers\ArrayHelper;
 use yii\helpers\Html;
 
 /**
@@ -32,30 +33,15 @@ class Form extends Behavior
 				switch(ltrim($options['modelClass'], '\\'))
 				{
 					case $model->className():
-					switch(is_null(ArrayHelper::getValue($options, 'id', null)))
+					if(!is_null(ArrayHelper::getValue($options, 'id', null)))
 					{
-						/**
-						 * If there's no ID for the given model then use it as is
-						 */
-						case true:
-						break;
-
-						default:
 						/**
 						 * Otherwise we need to make sure this model exists
 						 */
-						$queryOptions = isset($options['queryOptions']) ? $options['queryOptions'] : [];
+						$queryOptions = ArrayHelper::getValue($options, 'queryOptions',  ArrayHelper::getValue($options, 'modelOptions.queryOptions', []), []);
 						$found = static::findQuery($options['id'], $options['modelClass'], $queryOptions)->one();
 						$model = ($found instanceof $options['modelClass']) ? $found : $model;
-						break;
 					}
-					/*switch(isset($options['provider']) && !is_null($options['provider']) && $model->hasMethod($options['provider']))
-					{
-						case true:
-						$model = call_user_func_array([$model, $options['provider']], $options['args']);
-						$model->requestModel = $model;
-						break;
-					}*/
 					break;
 
 					default:

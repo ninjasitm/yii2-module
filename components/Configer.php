@@ -470,11 +470,12 @@ class Configer extends Model
 	/**
 	 * Does a local config value exist?
 	 * @param string $name
+	 * @param boolean $emptyCheck Should we also check to see if the value is empty? Specifically for Array values
 	 * @return boolean
 	 */
-	public function exists($name)
+	public function exists($name, $emptyCheck=false)
 	{
-		return ArrayHelper::exists($this->settings, $this->getPath($this->uriOf($name)));
+		return ArrayHelper::exists($this->settings, $this->getPath($this->uriOf($name)), $emptyCheck);
 	}
 
 	public function containerExists($container)

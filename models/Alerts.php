@@ -24,23 +24,25 @@ use yii\base\Event;
 class Alerts extends Entity
 {
 	public $requiredFor;
-	
+	public $initLocalConfigOnEmpty = true;
+	public static $initClassConfigOnEmpty = true;
+
 	protected $link = [
 		'remote_type' => 'remote_type',
 		'remote_id' => 'remote_id'
 	];
-	
+
 	public function init()
 	{
 		parent::init();
 		$this->initEvents();
 	}
-	
+
 	protected function initEvents()
 	{
 		Event::on(ActiveRecord::className(), ActiveRecord::EVENT_BEFORE_VALIDATE, [$this, 'beforeValidateEvent']);
 	}
-	
+
     /**
      * @inheritdoc
      */
@@ -48,7 +50,7 @@ class Alerts extends Entity
     {
         return 'alerts';
     }
-	
+
     public function behaviors()
     {
 		$behaviors = [
@@ -89,7 +91,7 @@ class Alerts extends Entity
 			[['priority'], 'filter', 'filter' => [$this, 'filterPriority']]
         ];
     }
-	
+
 	public function scenarios()
 	{
 		$scenarios = [
@@ -98,12 +100,12 @@ class Alerts extends Entity
 		];
 		return array_merge(parent::scenarios(), $scenarios);
 	}
-	
+
 	public function filterMethods($value)
 	{
 		return \nitm\components\alerts\DispatcherData::filterMethods($value);
 	}
-	
+
 	public function filterPriority($value)
 	{
 		switch($value)
@@ -113,14 +115,14 @@ class Alerts extends Entity
 			case 'normal':
 			$ret_val = $value;
 			break;
-			
+
 			default:
 			$ret_val = 'any';
 			break;
 		}
 		return $ret_val;
 	}
-	
+
 	/**
 	* This method is invoked before validation starts.
 	*/
@@ -133,7 +135,7 @@ class Alerts extends Entity
 		}
 		return $event->isValid;
 	}
-	
+
 	public function validateRemoteFor($attribute, $params)
 	{
 		$ret_val = '';
@@ -144,7 +146,7 @@ class Alerts extends Entity
 			{
 				case in_array($this->$attribute, $this->requiredFor[$this->remote_type]):
 				break;
-				
+
 				default:
 				$ret_val = [];
 				$ret_val['message'] = "Option requred for ".$this->remote_type;

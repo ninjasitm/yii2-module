@@ -228,6 +228,7 @@ class DefaultController extends BaseController
 	public function actionForm($type=null, $id=null, $options=[], $returnData=false)
 	{
 		$options = $this->getVariables($type, $id, $options);
+
 		$this->determineResponseFormat('html');
 
 		if(\Yii::$app->request->isAjax)

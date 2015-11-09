@@ -10,9 +10,9 @@ use nitm\helpers\ArrayHelper;
   * Configuration traits that can be shared
   */
 trait Configer {
-	
+
 	/**
-	 * Get a setting value 
+	 * Get a setting value
 	 * @param string $setting the locator for the setting
 	 */
 	public function setting($setting='@')
@@ -27,12 +27,12 @@ trait Configer {
 				case '@':
 				array_pop($hierarchy);
 				break;
-				
+
 				case $isWhat:
 				case null:
 				$hierarchy = sizeof($hierarchy) == 1 ? $isWhat : $hierarchy;
 				break;
-				
+
 				default:
 				array_unshift($hierarchy, $isWhat);
 				break;
@@ -40,7 +40,7 @@ trait Configer {
 			return $module->config->get(implode('.', array_filter($hierarchy)));
 		}
 	}
-	
+
 	/*
 	 * Initialize configuration
 	 * @param string $container

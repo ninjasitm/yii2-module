@@ -89,19 +89,8 @@ trait User {
 		switch(Cache::cache()->exists('user-avatar'.$this->getId()))
 		{
 			case false:
-			switch($this->hasAttribute('avatar') && !empty($this->avatar) && file_exists($this->avatar))
-			{
-				case true:
-				//Support for old NITM avatar/local avatar
-				$url = $this->avatar;
-				break;
-
-				//Fallback to dektriuk\User gravatar info
-				default:
-				$profile = $this->profile instanceof ProfileModel ? $this->profile : ProfileModel::find()->where(['user_id' => $this->getId()])->one();
-				$url = $this->getAvatar($this->email, $profile);
-				break;
-			}
+			$profile = $this->profile instanceof ProfileModel ? $this->profile : $this->getProfile()->one();
+			$url = $this->getAvatar($this->email, $profile);
 			Cache::cache()->set('user-avatar'.$this->getId(), urlencode($url), 3600);
 			break;
 
@@ -117,24 +106,22 @@ trait User {
 		if(is_array($key) || is_object($key)) {
 			if(is_null($profile))
 				$profile = $key['profile'];
-			else
-				$profile = ArrayHelper::toArray($profile);
-			if(is_array($profile))
+		}
+		$profile = ArrayHelper::toArray($profile);
+		if(is_array($profile))
+		{
+			switch(1)
 			{
-				switch(1)
-				{
-					case !empty($profile['gravatar_id']):
-					$key = $profile['gravatar_id'];
-					break;
+				case !empty($profile['gravatar_email']):
+				$key = $profile['gravatar_email'];
+				break;
 
-					case !empty($profile['gravatar_email']):
-					$key = $profile['gravatar_email'];
-					break;
+				case !empty($profile['gravatar_id']):
+				$key = $profile['gravatar_id'];
+				break;
 
-					default:
-					$key = $profile['public_email'];
-					break;
-				}
+				default:
+				$key = $profile['public_email'];
 				break;
 			}
 		}

@@ -17,11 +17,6 @@ class Entity extends Data
 
 	public $hasNewActivity;
 
-	public function init()
-	{
-		parent::init();
-	}
-
 	public function scenarios()
 	{
 		return array_merge(parent::scenarios(), [

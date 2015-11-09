@@ -201,7 +201,7 @@ class ArrayHelper extends BaseArrayHelper
 	 * @param string $key
 	 * @return mixed
      */
-    public static function exists($array, $key)
+    public static function exists($array, $key, $emptyCheck=false)
     {
 		//By default the path exists
 		$ret_val = true;
@@ -209,11 +209,15 @@ class ArrayHelper extends BaseArrayHelper
 
 		foreach($hierarchy as $key)
 		{
-			if(is_array($array) && isset($array[$key]))
+			if(is_array($array) && isset($array[$key])) {
 				$array = $array[$key];
-			else if(is_object($array) && property_exists($object, $key))
+			} else if(is_object($array) && property_exists($object, $key)) {
 				$array = $object->$key;
-			else {
+			} else {
+				$ret_val = false;
+				break;
+			}
+			if (($emptyCheck === true) && $array == []) {
 				$ret_val = false;
 				break;
 			}

@@ -34,9 +34,11 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 
 	//public members
 	public $initLocalConfig = true;
+	public $initLocalConfigOnEmpty = false;
 	public $unique;
 	public $requestModel;
 	public static $initClassConfig = true;
+	public static $initClassConfigOnEmpty = false;
 	public static $active = [
 		'driver' => 'mysql',
 		'db' => [
@@ -64,8 +66,9 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	{
 		if(!$this->noDbInit)
 			parent::init();
-		if(((bool)$this->initLocalConfig || (bool)static::$initClassConfig) && !\Yii::$app->getModule('nitm')->config->exists($this->isWhat()))
+		if(((bool)$this->initLocalConfig || (bool)static::$initClassConfig) && !\Yii::$app->getModule('nitm')->config->exists($this->isWhat(true), $this->initLocalConfigOnEmpty || static::$initClassConfigOnEmpty)) {
 			$this->initConfig($this->isWhat(true));
+		}
 	}
 
 	public function rules()
