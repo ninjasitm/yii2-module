@@ -29,7 +29,7 @@ class Form extends Behavior
 				$model->requestModel = new $options['modelClass']($options['modelOptions']);
 				$model->requestModel->id = @$options['id'];
 				//this means we found our object
-				switch($options['modelClass'])
+				switch(ltrim($options['modelClass'], '\\'))
 				{
 					case $model->className():
 					switch(is_null(ArrayHelper::getValue($options, 'id', null)))
@@ -62,10 +62,10 @@ class Form extends Behavior
 					//Get the data according to get$options['param'] functions
 					$model->requestModel->queryOptions['limit'] = 1;
 					$model->requestModel->queryOptions[$model->requestModel->primaryKey()[0]] = $model->requestModel->getId();
-					$model = array_shift($model->requestModel->getModels());
+					$model = $model->requestModel->find()->one();
 					if(!$model)
 						$model = new $options['modelClass'](@$options['construct']);
-					else
+					else {
 						switch($model->hasMethod($options['provider']))
 						{
 							case true:
@@ -75,6 +75,7 @@ class Form extends Behavior
 							$model = empty($found) ? $model : $found[0];
 							break;
 						}
+					}
 					break;
 				}
 				switch(!is_null($model) || $force)

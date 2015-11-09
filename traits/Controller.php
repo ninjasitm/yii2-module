@@ -308,8 +308,8 @@ use yii\helpers\Html;
 	protected function filterRelationParameters($query, $with=[])
 	{
 		if(in_array($query->className(), [
-			\yii\elasticsearch\ActiveQuery::className(),
-			\yii\mongodb\ActiveQuery::className()
+			'\yii\elasticsearch\ActiveQuery',
+			'\yii\mongodb\ActiveQuery'
 		]))
 			$query->with = null;
 

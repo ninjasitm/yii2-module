@@ -19,15 +19,17 @@ use nitm\helpers\Cache as CacheHelper;
 
 trait Nitm
 {
-	public function url($attribute='id', $text=null, $url=null, $options=[]) 
+	public function url($attribute='id', $text=null, $url=null, $options=[])
 	{
 		if(is_array($text)){
 			$object = is_object(($text[0])) ? array_shift($text) : $this;
 			$property = empty($text) ? [$attribute] : (array)$text;
 			$text = \nitm\helpers\Helper::concatAttributes($object, $property, ' ');
 		}
-		else
+		else {
+			$text = is_null($text) ? $attribute : $text;
 			$text = $this->hasAttribute($text) ? ArrayHelper::getValue($this, $text, $text) : $text;
+		}
 
 		$url = is_null($url) ? \Yii::$app->request->url : $url;
 		$urlOptions = array_merge(\Yii::$app->request->queryParams, [
@@ -35,14 +37,14 @@ trait Nitm
 		]);
 		array_unshift($urlOptions, $url);
 		$htmlOptions = array_merge([
-			'href' => \Yii::$app->urlManager->createUrl($urlOptions), 
-			'role' => $this->formName().'Link', 
+			'href' => \Yii::$app->urlManager->createUrl($urlOptions),
+			'role' => $this->formName().'Link',
 			'id' => $this->isWhat().'-link-'.uniqid(),
 			'data-pjax' => 1
 		], $options);
 		return Html::tag('a', $text, $htmlOptions);
 	}
-	
+
 	public function nitmScenarios()
 	{
 		return [
@@ -52,7 +54,7 @@ trait Nitm
 			'resolve' => ['resolved', 'resolved_at', 'closed']
 		];
 	}
-	
+
 	public function getStatuses()
 	{
 		return [
@@ -61,7 +63,7 @@ trait Nitm
 			'Critical'
 		];
 	}
-	
+
 	public function getLevelCssClass()
 	{
 		$ret_val = 'default';
@@ -70,11 +72,11 @@ trait Nitm
 			case $this->level()->slug == 'visibility-private':
 			$ret_val = 'error';
 			break;
-			
+
 			case $this->level()->slug == 'visibility-admin':
 			$ret_val = 'info';
 			break;
-			
+
 			default:
 			$ret_val = 'success';
 			break;
@@ -82,14 +84,14 @@ trait Nitm
 		return $ret_val;
 	}
 
-	
+
 	public function getStatusTag($text = null, $label = null)
 	{
 		$label = is_null($label) ? $this->getStatus() : $label;
 		$text = is_null($text) ? $this->getStatusName() : $text;
 		return Html::tag('span', $text, ['class' => 'label label-'.$label]);
 	}
-	
+
 	public function getStatus()
 	{
 		$ret_val = 'default';
@@ -98,73 +100,73 @@ trait Nitm
 			case $this->hasAttribute('duplicate') && $this->duplicate:
 			$ret_val = 'duplicate'; //need to add duplicate css class
 			break;
-			
+
 			case $this->hasAttribute('closed') && $this->hasAttribute('resolved'):
 			switch(1)
 			{
 				case $this->closed && $this->resolved:
 				$ret_val = 'success';
 				break;
-			
+
 				case $this->closed && !$this->resolved:
 				$ret_val = 'warning';
 				break;
-				
+
 				case !$this->closed && $this->resolved:
 				$ret_val = 'info';
 				break;
-				
+
 				default:
 				$ret_val = 'danger';
 				break;
 			}
 			break;
-			
+
 			case $this->hasAttribute('closed') && $this->hasAttribute('completed'):
 			switch(1)
 			{
 				case $this->closed && $this->completed:
 				$ret_val = 'success';
 				break;
-			
+
 				case $this->closed && !$this->completed:
 				$ret_val = 'warning';
 				break;
-				
+
 				case !$this->closed && $this->completed:
 				$ret_val = 'info';
 				break;
-				
+
 				default:
 				$ret_val = 'danger';
 				break;
 			}
 			break;
-			
+
 			case $this->hasAttribute('disabled'):
 			switch(1)
 			{
 				case $this->disabled:
 				$ret_val = 'disabled';
 				break;
-				
+
 				default:
 				$ret_val = 'success';
 				break;
 			}
 			break;
-			
+
 			case isset(self::$statuses):
 			$ret_val = isset(self::$statuses[$this->getAttribute('status')]) ? self::$statuses[$this->getAttribute('status')] : 'default';
 			break;
-			
+
 			default:
 			$ret_val = 'default';
 			break;
 		}
 		return $ret_val;
 	}
-	
+
 	public function getStatusName()
 	{
 		$ret_val = 'status';
@@ -174,60 +176,60 @@ trait Nitm
 			case $this->hasAttribute($attribute = 'level'):
 			$ret_val = $this->$attribute;
 			break;
-			
+
 			case $this->hasAttribute('duplicate') && $this->duplicate:
 			$ret_val = 'duplicate'; //need to add duplicate css class
 			break;
-			
+
 			case $this->hasAttribute('closed') && $this->hasAttribute('resolved'):
 			switch(1)
 			{
 				case $this->closed && $this->resolved:
 				$ret_val = 'closed resolved';
 				break;
-			
+
 				case $this->closed && !$this->resolved:
 				$ret_val = 'closed un-resolved';
 				break;
-				
+
 				case !$this->closed && $this->resolved:
 				$ret_val = 'open resolved';
 				break;
-				
+
 				default:
 				$ret_val = 'open un-resolved';
 				break;
 			}
 			break;
-			
+
 			case $this->hasAttribute('closed') && $this->hasAttribute('completed'):
 			switch(1)
 			{
 				case $this->closed && $this->completed:
 				$ret_val = 'closed completed';
 				break;
-			
+
 				case $this->closed && !$this->completed:
 				$ret_val = 'closed incomplete';
 				break;
-				
+
 				case !$this->closed && $this->completed:
 				$ret_val = 'open completed';
 				break;
-				
+
 				default:
 				$ret_val = 'open incomplete';
 				break;
 			}
 			break;
-			
+
 			case $this->hasAttribute('disabled'):
 			switch(1)
 			{
 				case $this->disabled:
 				$ret_val = 'disabled';
 				break;
-				
+
 				default:
 				$ret_val = 'enabled';
 				break;
@@ -235,7 +237,7 @@ trait Nitm
 			break;
 		}
 		return $ret_val;
-	}	
+	}
 
     /**
 	 * Get Categories
@@ -283,7 +285,7 @@ trait Nitm
 			$ret_val = $model->getList('name', null, [], $key);
 			CacheHelper::cache()->set($key, $ret_val, 600);
 			break;
-			
+
 			default:
 			$ret_val = CacheHelper::cache()->get($key);
 			break;
@@ -291,7 +293,7 @@ trait Nitm
 		asort($ret_val);
 		return $ret_val;
     }
-	
+
 	/*
 	 * Return a string imploded with ucfirst characters
 	 * @param string $name
