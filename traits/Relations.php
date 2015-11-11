@@ -339,10 +339,7 @@ trait Relations {
 		$callers = debug_backtrace(null, 3);
 		$relation = $callers[2]['function'];
 		$options['select'] = isset($options['select']) ? $options['select'] : null;
-		$options['groupBy'] = array_keys($link);
-		//Disabled due to Yii framework inability to return statistical relations
-		//if(static::className() != $className)
-			//$ret_val->with(['count', 'newCount']);
+		$options['groupBy'] = array_keys(isset($options['groupBy']) ? $options['groupBy'] : $link);
 		$relationFunction = ($many === true) ? 'hasMany' : 'hasOne';
 		$ret_val = $this->$relationFunction($className, $link);
 		if(is_array($options) && !empty($options))

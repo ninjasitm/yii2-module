@@ -7,7 +7,7 @@ namespace nitm\helpers;
  */
 
 class Relations
-{	
+{
 	/**
 	 * Get a relation. Either a model or array of models
 	 * @param string $name The name of the relation
@@ -29,7 +29,7 @@ class Relations
 			 */
 			if(is_object($ret_val) && $model->hasAttribute($name) && is_array($model->$name)) $ret_val->load($model->$name, false);
 			break;
-			
+
 			/**
 			 * This provides support for ElasticSearch which doesn't properly populate records. May be bad codding but for now this works
 			 */
@@ -53,7 +53,7 @@ class Relations
 					else
 						$ret_val = $attributes;
 					break;
-					
+
 					default:
 					if(is_array($attributes) && (!is_array(current($attributes)) && !is_object(current($attributes))))
 						$ret_val = current($attributes);
@@ -72,9 +72,9 @@ class Relations
 			$model->populateRelation($name, $ret_val);
 			break;
 		}
-		return $ret_val;
+		return $ret_val = $array == true ? (array)$ret_val : $ret_val;
 	}
-	
+
 	/**
 	 * Get a cached relation. Either a model or array of models
 	 * @param string|array $idKey  The properties that makeup the cacheKey
@@ -84,17 +84,17 @@ class Relations
 	 * @param Object $model The model this relation is attached to
 	 * @param return array|object of class modelClass
 	 */
-	
+
 	public function getCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, $options=[], &$model=null, $duration=120)
 	{
 		if(isset($this) && is_null($model))
 			$model = $this;
-		
+
 		$many = $many === true ? true : false;
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 		$modelClass = is_null($modelClass) ? $model->getRelation($relation)->modelClass : $modelClass;
 		$key = Cache::cacheKey($model, $idKey, $relation, $many);
-		
+
 		if(Cache::exists($key)) {
 			$ret_val = Cache::getModel($this, $key, $many, $modelClass, $relation, $options);
 		}
@@ -104,7 +104,7 @@ class Relations
 		}
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Set a cached relation. Either a model or array of models
 	 * @param string|array $idKey  The properties that makeup the cacheKey
@@ -118,7 +118,7 @@ class Relations
 	{
 		if(isset($this) && is_null($model))
 			$model = $this;
-		
+
 		if(is_array($relation)) {
 			$related = array_pop($relation);
 			$relation = array_pop($relation);
@@ -127,12 +127,12 @@ class Relations
 			$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 			$related = self::getRelatedRecord($relation, $model, $modelClass, [], $many);
 		}
-		
+
 		$modelClass = is_null($modelClass) ? $model->getRelation($relation)->modelClass : $modelClass;
-		
+
 		return Cache::setModel(Cache::cacheKey($model, $idKey, $relation, $many), $related, $modelClass, $duration);
 	}
-	
+
 	/**
 	 * Delete a cached relation. Either a model or array of models
 	 * @param Object $model The model this relation is attached to
@@ -142,10 +142,10 @@ class Relations
 	 * @param return boolean value was deleted
 	 */
 	public function deleteCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, &$model=null)
-	{		
+	{
 		return Cache::delete(Cache::cacheKey($model, $idKey, $relation, $many));
 	}
-	
+
 	/**
 	 * Resolve a cached relation. Either a model or array of models
 	 * @param string|array $idKey  The properties that makeup the cacheKey

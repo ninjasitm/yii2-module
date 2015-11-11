@@ -7,7 +7,7 @@ use yii\base\Event;
  * Controller actions
  */
 trait EventTraits {
-	
+
 	/*
 	 * Map the class events to the specified classes. Two formats are supported:
 	 * The first format uses default events
@@ -25,7 +25,7 @@ trait EventTraits {
 	 * ]
 	 */
 	public $eventClassMap;
-	
+
 	protected function initEventClassMap()
 	{
 		$this->eventClassMap = $this->eventClassMap == [] ? [\nitm\models\Entity::className()] : $this->eventClassMap;
@@ -35,7 +35,7 @@ trait EventTraits {
 		} else if(is_array($this->eventClassMap))
 			$this->eventClassMap = array_merge($this->getDefaultEventsFor($class), $this->eventClassMap);
 	}
-	
+
 	protected function getDefaultEventsFor($class)
 	{
 		return [
@@ -51,12 +51,12 @@ trait EventTraits {
 			]
 		];
 	}
-	
-	protected function attachToEvents($events) 
+
+	protected function attachToEvents($events)
 	{
 		if($this->eventClassMap === false)
 			return;
-			
+
 		if($this->eventClassMap !== false) {
 			$this->initEventClassMap();
 		}
@@ -74,7 +74,7 @@ trait EventTraits {
 				$class = $k;
 				$events = (array)$v;
 				break;
-				
+
 				default:
 				$class = $v;
 				$events = $this->getDefaultEventsFor($class);
@@ -97,7 +97,7 @@ trait EventTraits {
 			}
 		}
 	}
-	
+
 	protected function setDefaultEventClassMap()
 	{
 	}
