@@ -90,9 +90,7 @@ function Tools ()
 	};
 
 	this.visibility = function (object, removeListener) {
-
 		$($nitm).trigger('nitm-animate-submit-start', [object]);
-
 
 		var _visSelf = this;
 		var $object = $nitm.getObj(object);
@@ -121,6 +119,7 @@ function Tools ()
 				type: ($object.data('method') !== undefined) ? $object.data('method') : 'get',
 				dataType: $object.data('type') ? $object.data('type') : 'html',
 				complete: function (result) {
+					console.log(_visSelf.target);
 					$nitm.module('tools').replaceContents(result.responseText, object, _visSelf);
 				}
 			});
@@ -377,6 +376,7 @@ function Tools ()
 			}
 		});
 		if (typeof callback == 'function') {
+			//We do this here so that the js gets loaded ONLY after the ajax calls are done
 			$(document).one('ajaxStop', function () {
 				var existing, wrapperId, wrapper;
 				if(options !== undefined) {
@@ -602,6 +602,8 @@ function Tools ()
 			class: ((disabled == 1) ? 'bg-disabled' : 'bg-success')
 		};
 		var elemEvents = ['click'], _class, _icon;
+		var trigger = function (event) {$(this).trigger(event);};
+		var triggerFalse = function (event) {return false;};
 		parent.find(':input,:button,a').map(function () {
 			switch($(this).attr('role'))
 			{
@@ -622,7 +624,7 @@ function Tools ()
 					{
 						for(var event in elemEvents)
 						{
-							var func = disabled ? function (event) {return false;} : function (event) {$(this).trigger(event);};
+							var func = disabled ? triggerFalse(event) : trigger(event);
 							$(this).on(event, func);
 						}
 						if(disabled)
@@ -637,12 +639,12 @@ function Tools ()
 		});
 
 		var _parentOptions = {};
-		for(var attribute in _defaultParentOptions)
+		for(var _attribute in _defaultParentOptions)
 		{
 			try {
-				_parentOptions[attribute] = (parentOptions.hasOwnProperty(attribute)) ? parentOptions[attribute] : _defaultParentOptions[attribute];
+				_parentOptions[_attribute] = (parentOptions.hasOwnProperty(_attribute)) ? parentOptions[_attribute] : _defaultParentOptions[_attribute];
 			} catch(error) {
-				_parentOptions[attribute] = _defaultParentOptions[attribute];
+				_parentOptions[_attribute] = _defaultParentOptions[_attribute];
 			}
 
 		}

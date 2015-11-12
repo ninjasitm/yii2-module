@@ -84,7 +84,7 @@ class User extends \dektrium\user\models\User
 	public function lastActive($update=false)
 	{
 		$ret_val = strtotime('now');
-		try {
+		if(\Yii::$app instanceof \yii\web\Application) {
 			$sessionActivity = \Yii::$app->getSession()->get($this->_lastActivity);
 			switch(is_null($sessionActivity))
 			{
@@ -99,7 +99,7 @@ class User extends \dektrium\user\models\User
 				break;
 			}
 			if($update) $this->updateActivity();
-		} catch (\Exception $error) {}
+		}
 		return date('Y-m-d G:i:s', $ret_val);
 	}
 
@@ -108,6 +108,8 @@ class User extends \dektrium\user\models\User
 	  */
 	public function updateActivity()
 	{
+		if(\Yii::$app instanceof \yii\console\Application)
+			return false;
 		return \Yii::$app->getSession()->set($this->_lastActivity, strtotime('now'));
 	}
 

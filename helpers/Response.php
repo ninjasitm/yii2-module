@@ -14,7 +14,7 @@ class Response extends Behavior
 	public static $forceAjax = false;
 	public static $viewPath = '@nitm/views/response/index';
 	public static $viewModal = '@nitm/views/response/modal';
-	
+
 	protected static $viewOptions = [
 		'content' => '',
 		'view' => '@nitm/views/response/index', //The view file
@@ -25,7 +25,7 @@ class Response extends Behavior
 	protected static $layouts = [
 		'column1' => '@nitm/views/layouts/column1'
 	];
-	
+
 	public static function getFormat()
 	{
 		switch(empty(static::$format))
@@ -36,18 +36,18 @@ class Response extends Behavior
 		}
 		return static::$format;
 	}
-	
+
 	public static function initContext($controller=null, $view=null)
 	{
 		static::$controller = !($controller) ? \Yii::$app->controller : $controller;
 		static::$view = !($view) ? static::$controller->getView() : $view;
 	}
-	
+
 	public static function viewOptions($name=null, $value=null, $append=false)
 	{
 		return ArrayHelper::getOrSetValue(static::$viewOptions, $name, $value, $append);
 	}
-	
+
 	/*
 	 * Determine how to return the data
 	 * @param mixed $result Data to be displayed
@@ -61,11 +61,11 @@ class Response extends Behavior
 			case static::$forceAjax === true:
 			$render = 'renderAjax';
 			break;
-			
+
 			case $partial == true:
 			$render = 'renderPartial';
 			break;
-			
+
 			default:
 			$render = 'render';
 			break;
@@ -74,7 +74,7 @@ class Response extends Behavior
 		if(isset($params['js'])) $params['js'] = is_array($params['js']) ? implode(PHP_EOL, $params['js']) : $params['js'];
 		$format = (!\Yii::$app->request->isAjax && (static::getFormat() == 'modal')) ? 'html' : static::getFormat();
 		$params['view'] =  ArrayHelper::getValue((array)$params, 'view', static::$viewPath);
-		
+
 		switch($format)
 		{
 			case 'xml':
@@ -82,14 +82,25 @@ class Response extends Behavior
 			$contentType = "application/xml";
 			$ret_val = $result;
 			break;
-			
+
 			case 'html':
 			$params['options'] = ArrayHelper::getValue(static::$viewOptions, 'options', []);
 			if(isset($params['js'])) static::$view->registerJs($params['js']);
 			static::$view->registerJs('$.extend($nitm, '.json_encode(ArrayHelper::getValue(\Yii::$app->params, 'nitmJs', [])).');');
 			$ret_val = static::$controller->$render($params['view'], ArrayHelper::getValue($params, 'args', []), static::$controller);
 			break;
-			
+
+			//THis is used when rendering pre-rendered HTML. Such as a widget
+			case 'prepared':
+			$params['args']['options'] = ArrayHelper::getValue(static::$viewOptions, 'options', []);
+			if(isset($params['js'])) static::$view->registerJs($params['js']);
+			$ret_val = static::$controller->$render(static::$viewPath, [
+					'content' => static::$controller->$render($params['view'], $params['args'], static::$controller),
+				],
+				static::$controller
+			);
+			break;
+
 			case 'modal':
 			$params['args']['options'] = ArrayHelper::getValue(static::$viewOptions, 'options', []);
 			if(isset($params['js'])) static::$view->registerJs($params['js']);
@@ -102,12 +113,12 @@ class Response extends Behavior
 				static::$controller
 			);
 			break;
-			
+
 			case 'json':
 			$contentType = "application/json";
 			$ret_val = $result;
 			break;
-			
+
 			default:
 			$contentType = "text/plain";
 			$ret_val = @strip_tags($result['data']);
@@ -116,7 +127,7 @@ class Response extends Behavior
 		\Yii::$app->response->getHeaders()->set('Content-Type', $contentType);
 		return $ret_val;
 	}
-	
+
 	/*
 	 * Get the desired display format supported
 	 * @return string format
@@ -132,27 +143,27 @@ class Response extends Behavior
 			$ret_val = 'raw';
 			\Yii::$app->response->format = \yii\web\Response::FORMAT_RAW;
 			break;
-			
+
 			case 'modal':
 			$ret_val = $format;
 			\Yii::$app->response->format = \yii\web\Response::FORMAT_HTML;
 			break;
-			
+
 			case 'xml':
 			$ret_val = $format;
 			\Yii::$app->response->format = \yii\web\Response::FORMAT_XML;
 			break;
-			
+
 			case 'jsonp':
 			$ret_val = $format;
 			\Yii::$app->response->format = \yii\web\Response::FORMAT_JSONP;
 			break;
-			
+
 			case 'json':
 			$ret_val = $format;
 			\Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
 			break;
-			
+
 			default:
 			$ret_val = 'html';
 			\Yii::$app->response->format = \yii\web\Response::FORMAT_HTML;
@@ -161,7 +172,7 @@ class Response extends Behavior
 		static::$format = $ret_val;
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Has the user reuqested a specific format?
 	 * @return boolean
@@ -170,7 +181,7 @@ class Response extends Behavior
 	{
 		return \Yii::$app->request->get('__format') != null;
 	}
-	
+
 	/**
 	 * Get the layout file
 	 * @param string $layout
