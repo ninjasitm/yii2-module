@@ -119,7 +119,6 @@ function Tools ()
 				type: ($object.data('method') !== undefined) ? $object.data('method') : 'get',
 				dataType: $object.data('type') ? $object.data('type') : 'html',
 				complete: function (result) {
-					console.log(_visSelf.target);
 					$nitm.module('tools').replaceContents(result.responseText, object, _visSelf);
 				}
 			});
@@ -418,7 +417,6 @@ function Tools ()
 						}
 					});
 					eval(scriptText);
-					delete scripts;
 				});
 			});
 		}
