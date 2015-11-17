@@ -32,6 +32,11 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	public $enableConfig = true;
 
 	/**
+	 * Should the configuration admin interface be enabled?
+	 */
+	public $enableConfigAdmin = false;
+
+	/**
 	 * Should the logging engine be loaded?
 	 */
 	public $enableLogger = true;
@@ -101,14 +106,31 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 		return isset($this->searchClassMap[strtolower($modelName)]) ? $this->searchClassMap[strtolower($modelName)] : '\nitm\models\\'.\nitm\traits\Data::properName($modelName);
 	}
 
-	public function getUrls($id='nitm')
+	public function getUrls($id = 'nitm')
 	{
-		return [
-            $id => $id,
-            $id . '/<controller:[\w\-]+>' => $id . '/<controller>/index',
-            $id . '/<controller:[\w\-]+>/<action:[\w\-]+>' => $id . '/<controller>/<action>',
-            $id . '/<controller:[\w\-]+>/<action:[\w\-]+>/<type:[\w\-]+>' => $id . '/<controller>/<action>',
-        ];
+		$parameters = [];
+		$routeHelper = new \nitm\helpers\Routes([
+			'moduleId' => $id,
+			'map' => [
+				'type' => '<controller>/<action>/<type>',
+				'action-only' => '<controller>/<action>',
+				'none' => '<controller>'
+			],
+			'controllers' => []
+		]);
+		$parameters = ['type', 'action-only', 'none'];
+		if($this->enableConfigAdmin) {
+			$routeHelper->addRules('configuration', [
+				'config-engine' => 'configuration/load/<engine:\w+>',
+				'config-container' => 'configuration/load/<engine:\w+>/<container:\w+>'
+			]);
+			$parameters += [
+				'config-engine' => ['configuration'],
+				'config-container' => ['configuration']
+			];
+		}
+		$routes = $routeHelper->create($parameters);
+		return $routes;
 	}
 
 	public function bootstrap($app)
