@@ -42,6 +42,11 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	public $enableLogger = true;
 
 	/**
+	 * Should the logging route be loaded?
+	 */
+	public $enableLogs = true;
+
+	/**
 	 * Should the importing engine be loaded?
 	 */
 	public $enableImporter = true;
@@ -118,7 +123,7 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 			],
 			'controllers' => []
 		]);
-		$parameters = ['type', 'action-only', 'none'];
+		$parameters = [];
 		if($this->enableConfigAdmin) {
 			$routeHelper->addRules('configuration', [
 				'config-engine' => 'configuration/load/<engine:\w+>',
@@ -127,6 +132,18 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 			$parameters += [
 				'config-engine' => ['configuration'],
 				'config-container' => ['configuration']
+			];
+		}
+		if($this->enableLogs) {
+			$routeHelper->addRules('log', [
+				'log-type' => 'log/<type>',
+				'log-index' => 'log/index',
+				'log-index-type' => 'log/index/<type>'
+			]);
+			$parameters += [
+				'log-type' => ['log'],
+				'log-index' => ['log'],
+				'log-index-type' => ['log']
 			];
 		}
 		$routes = $routeHelper->create($parameters);
@@ -177,7 +194,7 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 		return $this->enableLogger ? $this->logger->trigger(Logger::EVENT_END) : false;
 	}
 
-	public function log($level, $options)
+	public function log($level, $options, $sender)
 	{
 		if($this->canLog($level)) {
 			try {
@@ -190,6 +207,7 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 					'collectionName' => $collectionName
 				], $options);
 				$this->logger->trigger(Logger::EVENT_PROCESS, new \yii\base\Event([
+					'sender' => $sender,
 					'data' => $options
 				]));
 			} catch (\Exception $e) {

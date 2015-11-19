@@ -109,7 +109,7 @@ use yii\helpers\Html;
 				'message' => $message,
 				'action' => (is_null($action) ? $this->action->id : $action),
 			], $options);
-			return \Yii::$app->getModule('nitm')->log($level, $options, $model->className());
+			return \Yii::$app->getModule('nitm')->log($level, $options, $model);
 		}
 		return false;
 	}

@@ -85,12 +85,9 @@ trait EventTraits {
 					foreach($group as $e) {
 						Event::on($class::className(), $e, function ($event) {
 							$trigger = $event->data['group'];
-							\Yii::trace("Handling [$trigger on $event->name] event for ".get_class($event->sender));
+							\Yii::trace("Handling [$trigger on $event->name] event for ".get_class($event->sender)."\n\n".json_encode($event, JSON_PRETTY_PRINT));
 							unset($event->data['group']);
-							$this->trigger($trigger, new Event([
-								'sender' => $event->sender,
-								'data' => $event->data
-							]));
+							$this->trigger($trigger, $event);
 						}, ['group' => $type]);
 					}
 				}

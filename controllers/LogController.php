@@ -18,7 +18,7 @@ class LogController extends DefaultController
 		parent::init();
 		$this->model = new EntrySearch;
 	}
-	
+
     public function behaviors()
     {
         return [
@@ -31,6 +31,11 @@ class LogController extends DefaultController
         ];
     }
 
+	public function getWith()
+	{
+		return ['user'];
+	}
+
     /**
      * Lists all Log Entry models.
      * @return mixed
@@ -41,11 +46,13 @@ class LogController extends DefaultController
 			Entry::$collectionName = EntrySearch::$collectionName = $type;
 		else
 			Entry::$collectionName = EntrySearch::$collectionName = $this->module->logCollections[0];
-		
+
 		return parent::actionIndex(EntrySearch::className(), [
-			'with' => [
-				'user',
-			],
+			'construct' => [
+				'defaults' => [
+					'sort' => ['timestamp' => SORT_DESC],
+				],
+			]
 		]);
     }
 }

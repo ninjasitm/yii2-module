@@ -54,8 +54,9 @@ class Routes extends \yii\base\Object
 			} else {
 				$controllers = self::getControllersFromMap($group);
 			}
-			if(empty($controllers))
+			if(empty($controllers)) {
 				continue;
+			}
 			$parameterizedRoute = ArrayHelper::getValue($map, $params, null);
 			if($params == 'none')
 				$parameterizedRoute = [$parameterizedRoute => '<controller>/index'];
@@ -102,7 +103,7 @@ class Routes extends \yii\base\Object
 	{
 		$ret_val = [];
 		foreach((array)$group as $alias=>$controllers) {
-			if(isset($controllers['alias']))
+			if(is_array($controllers) && isset($controllers['alias']))
 				$controllers = [$alias => $controllers];
 			$ret_val = array_merge($ret_val, (array)$controllers);
 		}
@@ -112,7 +113,15 @@ class Routes extends \yii\base\Object
 	public function getControllerMap($for=[], $controllers=[])
 	{
 		$allControllers = self::getControllers($controllers);
-		return array_intersect_key($allControllers, array_flip($for));
+		if(ArrayHelper::isAssociative($allControllers) && ArrayHelper::isAssociative($for))
+			return array_intersect_key($allControllers, $for);
+		else if(ArrayHelper::isAssociative($allControllers) && ArrayHelper::isIndexed($for))
+			return array_intersect_key($allControllers, array_flip($for));
+		else if(ArrayHelper::isIndexed($allControllers) && ArrayHelper::isAssociative($for))
+			return array_intersect_key(array_flip($allControllers), $for);
+		//They're both indexed and as such are just controller names
+		else
+			return array_intersect($allControllers, $for);
 	}
 
 	/**
@@ -161,7 +170,8 @@ class Routes extends \yii\base\Object
 		$moduleId = is_string($moduleId) ? $moduleId.'/' : '';
 		$key = is_array($route) ? key($route) : $route;
 		$key = ($global ? $moduleId : '').str_replace(['%controllers%'], '('.implode('|', $controllers).')', $key);
-		$destination = $moduleId.(is_array($route) ? current($route) : '<controller>/<action>');
+		$destination = $moduleId.(is_array($route) ? current($route) : empty($route) ? '<controller>/<action>' : $route);
+		$destination = preg_replace('/(([\/])?<(?!controller|action):?([^>]+)?>([\/])?)/', '', $destination);
 		return [$key => $destination];
 	}
 

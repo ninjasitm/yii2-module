@@ -10,12 +10,12 @@ use nitm\helpers\Network;
 class Logger extends \yii\log\Logger
 {
 	use \nitm\traits\EventTraits;
-	
+
 	//constant data
 	const LT_FILE = 'file';
 	const LT_DB = 'db';
 	const LT_MONGO = 'mongo';
-	
+
 	//public data
 	public $db;
 	public $targets;
@@ -26,27 +26,27 @@ class Logger extends \yii\log\Logger
 	public $oldCollectionName;
 	public $type;
 	public $currentUser;
-	
+
 	//For Logger events
-	const EVENT_START = 'nitm.logger.process';
+	const EVENT_START = 'nitm.logger.prepare';
 	const EVENT_PROCESS = 'nitm.logger.process';
 	const EVENT_END = 'nitm.logger.end';
-	
+
 	public function init()
 	{
 		parent::init();
 		$this->currentUser = (\Yii::$app->hasProperty('user') && \Yii::$app->user->getId()) ? \Yii::$app->user->getIdentity() : new \nitm\models\User(['username' => (php_sapi_name() == 'cli' ? 'console' : 'web')]);
-			
+
 		if(!$this->dispatcher instanceof \yii\log\Dispatcher)
 			$this->initDispatcher();
-			
+
 		$this->attachToEvents([
-			self::EVENT_START => [$this, 'process'],
+			self::EVENT_START => [$this, 'prepare'],
 			self::EVENT_PROCESS => [$this, 'process'],
 			self::EVENT_END => [$this, 'flush']
 		]);
 	}
-	
+
 	public function initTargets($refresh=false)
 	{
 		switch($this->type)
@@ -54,18 +54,18 @@ class Logger extends \yii\log\Logger
 			case self::LT_MONGO:
 			$class = MongoTarget::className();
 			break;
-			
+
 			case self::LT_DB:
 			$class = DbTarget::className();
 			break;
-			
+
 			default:
 			$class = FileTarget::className();
 			break;
 		}
 		return \Yii::createObject(array_merge(['class' => $class, 'levels' => 1], ArrayHelper::toArray($this->db)));
 	}
-	
+
 	public function initDispatcher()
 	{
 		if(\Yii::$app->get('log') && is_array($this->dispatcher) && isset($this->dispatcher['targets'])) {
@@ -85,7 +85,7 @@ class Logger extends \yii\log\Logger
 			$this->dispatcher = \Yii::$app->log;
 		return $this;
 	}
-	
+
 	/**
 	 * Temporarily change the collection name
 	 * @param string $newName
@@ -103,9 +103,56 @@ class Logger extends \yii\log\Logger
 		foreach($this->dispatcher->targets as $target)
 			$target->logTable = $this->collectionName;
 	}
-	
+
 	//- end write
-	
+
+
+	/**
+	 * Prepare a log event
+	 */
+
+	public function prepare($event) {
+		return false;
+	}
+
+	protected function getLevel($scenario)
+	{
+		$ret_val = 1;
+		switch($scenario)
+		{
+			case 'create':
+			case 'update':
+			case 'delete':
+			case 'disable':
+			case 'resolve':
+			case 'close':
+			case 'complete':
+			case 'approve':
+			$ret_val = 3;
+			break;
+
+			case 'view':
+			$ret_val = 2;
+			break;
+		}
+		return $ret_val;
+	}
+
+	protected function getCategory($category=null, $scenario=null)
+	{
+		switch($scenario)
+		{
+			case 'view':
+			$ret_val = 'User Activity';
+			break;
+
+			default:
+			$ret_val = is_null($category) ? 'User Action' : $category;
+			break;
+		}
+		return $ret_val;
+	}
+
 	/**
 	  * Proces a log event
 	  * @param \yii\base\Event $event
@@ -113,10 +160,22 @@ class Logger extends \yii\log\Logger
 	  */
 	public function process($event)
 	{
+		$action = $event->sender->getScenario();
+		$event->data = array_merge((array)$event->data,  [
+			'category' => $this->getCategory(ArrayHelper::getValue($event->data, 'category', null), $event->sender->getScenario()),
+			'level' => $this->getlevel($event->sender->getScenario()),
+			'internal_category' => $event->sender->getScenario(),
+			'timestamp' => strtotime('now'),
+			'message' => implode(' ', [
+				"Succesfully {$action}d",
+				$event->sender->isWhat(),
+				': '.$event->sender->title()."\n\n".json_encode($event->sender->getDirtyAttributes(), JSON_PRETTY_PRINT)
+			])
+		]);
 		$event->handled = $this->log($event->data, ArrayHelper::remove($event->data, 'collectionName', null));
 		return $event->handled;
 	}
-	
+
 	/**
 	 * Log data
 	 * @param array $array
@@ -131,7 +190,7 @@ class Logger extends \yii\log\Logger
 				'message', 'level', 'internal_category', 'timestamp', 'category'
 			]);
 			$array = array_replace($keys, array_intersect_key((array)$array, $keys)) + (array)array_diff_key((array)$array, $keys) + $this->getBaseInfo();
-			
+
 			if(is_string($collectionName))
 				$this->messages[$collectionName.':'.uniqid()] = $array;
 			else
@@ -140,7 +199,7 @@ class Logger extends \yii\log\Logger
 		return $this;
 	}
 	//end fucntion
-	
+
 	/**
 	 * Determine whether this level is loggable
 	 * @param int $level
@@ -151,9 +210,9 @@ class Logger extends \yii\log\Logger
 		if($level != null && $level >= 0)
 			return (int)$level <= (int)$this->level;
 		else
-			return false; 
+			return false;
 	}
-	
+
 	/**
 	 * Return some general log info
 	 * @return array
@@ -181,5 +240,5 @@ class Logger extends \yii\log\Logger
 		];
 	}
 }
-// end log class 
+// end log class
 ?>
