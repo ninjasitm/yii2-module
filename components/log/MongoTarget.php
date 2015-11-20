@@ -34,7 +34,7 @@ class MongoTarget extends \yii\log\DbTarget
 {
 	public $logTable = 'nitm-log';
 	public $enableContextMessage = false;
-	
+
     /**
      * Initializes the DbTarget component.
      * This method will initialize the [[db]] property to make sure it refers to a valid DB connection.
@@ -45,12 +45,12 @@ class MongoTarget extends \yii\log\DbTarget
 		if(!($this->db instanceof Connection))
 			$this->initDb(true);
     }
-	
+
 	public function initDb($refresh=false)
 	{
 		if(($this->db instanceof Connection) && !$refresh)
 			return $this;
-			
+
 		$this->db = \Yii::createObject(array_merge(['class' => Connection::className()], ArrayHelper::toArray($this->db)));
 		return $this;
 	}
@@ -62,26 +62,26 @@ class MongoTarget extends \yii\log\DbTarget
     {
 		$indexes = [];
 		$currentIndexes = [];
-		
+
         foreach ($this->messages as $collection=>$message) {
 			$collection = is_string($collection) ? array_shift(explode(':', $collection)) : $this->logTable;
-			
+
 			if(!isset($currentIndexes[$collection])) {
 				$currentIndexes[$collection] = ($found = array_map(function ($key) {
 					return key($key['key']);
 				}, $this->db->getCollection($collection)->mongoCollection->getIndexInfo())) != [] ? $found : array_keys($message);
 			}
-			
+
 			$message['timestamp'] = !isset($message['timestamp']) ? microtime(true) : $message['timestamp'];
-			
+
 			/**
 			 * Gather the indexes
 			 */
 			$indexes = array_replace($indexes, array_keys($message));
-			
+
 			/**
 			 * If new indexes are introduced update the index
-			 */			 
+			 */
 			if($currentIndexes[$collection] != $indexes) {
 				try {
 					$previous = $this->db->getCollection($collection)->dropAllIndexes();
@@ -101,12 +101,12 @@ class MongoTarget extends \yii\log\DbTarget
 				}
 				$currentIndexes[$collection] = $indexes;
 			}
-			
+
 			$this->db->getCollection($collection)->insert($message);
         }
 		$this->messages = [];
     }
-	
+
     /**
 	 * ***Modified this version to support level and category checking
      * Processes the given log messages.
@@ -126,7 +126,7 @@ class MongoTarget extends \yii\log\DbTarget
 			$extracted['keys'][$key] = array_keys($value);
 			$extracted['values'][$key] = array_values($value);
 		});
-		
+
 		/**
 		 * Now remap the keys to the messages so that insert can work properly
 		 */
@@ -142,11 +142,11 @@ class MongoTarget extends \yii\log\DbTarget
 			}
 		else
 			$messages = [];
-		
-		$this->messages = array_merge($this->messages, $messages);
-		
+
+		$this->messages += $messages;
+
 		$extracted = $messages = [];
-		
+
         $count = count($this->messages);
         if ($count > 0 && ($final || $this->exportInterval > 0 && $count >= $this->exportInterval)) {
             if (($context = $this->getContextMessage()) !== '') {
@@ -159,7 +159,7 @@ class MongoTarget extends \yii\log\DbTarget
             $this->exportInterval = $oldExportInterval;
         }
     }
-	
+
 	protected function getContextMessage()
 	{
 		if($this->enableContextMessage)

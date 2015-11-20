@@ -58,8 +58,9 @@ class Routes extends \yii\base\Object
 				continue;
 			}
 			$parameterizedRoute = ArrayHelper::getValue($map, $params, null);
-			if($params == 'none')
+			if($params == 'none') {
 				$parameterizedRoute = [$parameterizedRoute => '<controller>/index'];
+			}
 			if(is_null($parameterizedRoute)) {
 				continue;
 			}
@@ -112,6 +113,7 @@ class Routes extends \yii\base\Object
 
 	public function getControllerMap($for=[], $controllers=[])
 	{
+		$for = self::getControllersFromMap(self::pluralize($for, true));
 		$allControllers = self::getControllers($controllers);
 		if(ArrayHelper::isAssociative($allControllers) && ArrayHelper::isAssociative($for))
 			return array_intersect_key($allControllers, $for);
@@ -170,8 +172,21 @@ class Routes extends \yii\base\Object
 		$moduleId = is_string($moduleId) ? $moduleId.'/' : '';
 		$key = is_array($route) ? key($route) : $route;
 		$key = ($global ? $moduleId : '').str_replace(['%controllers%'], '('.implode('|', $controllers).')', $key);
-		$destination = $moduleId.(is_array($route) ? current($route) : empty($route) ? '<controller>/<action>' : $route);
-		$destination = preg_replace('/(([\/])?<(?!controller|action):?([^>]+)?>([\/])?)/', '', $destination);
+		$destination = $moduleId;
+		if(is_array($route))
+			$destination .= current($route);
+		else if(empty($route))
+			$destination .= '<controller>/<action>';
+		else
+			$destination .= $route;
+
+		$destination = preg_replace([
+			'/(([\/])?<(?!controller|action):?([^>]+)?>([\/])?)/',
+			'/(<(controller):?([^>]+)?>?)/'
+		], [
+			'',
+			'<controller>'
+		], $destination);
 		return [$key => $destination];
 	}
 
@@ -181,7 +196,7 @@ class Routes extends \yii\base\Object
 	 * @param  array    $controllers The controllers to pluralize
 	 * @return array                 The pluralized controllers indexed by the original values
 	 */
-	public function pluralize(&$controllers=[])
+	public function pluralize(&$controllers=[], $returnOnly=false)
 	{
 		$controllers = empty($controllers) && isset($this) ? $this->controllers : $controllers;
 		$ret_val = [];
@@ -197,9 +212,8 @@ class Routes extends \yii\base\Object
 					$ret_val[$controller]['alias'] = $controller;
 			}
 		}
-		$controllers = self::getControllersFromMap($ret_val);
-		if(isset($this))
-			$this->controllers = $controllers;
+		if(isset($this) && !$returnOnly)
+			$this->controllers = self::getControllersFromMap($ret_val);
 		return $ret_val;
 	}
 

@@ -52,18 +52,21 @@ class Logger extends \yii\log\Logger
 		switch($this->type)
 		{
 			case self::LT_MONGO:
-			$class = MongoTarget::className();
+			$class = log\MongoTarget::className();
 			break;
 
 			case self::LT_DB:
-			$class = DbTarget::className();
+			$class = log\DbTarget::className();
 			break;
 
 			default:
-			$class = FileTarget::className();
+			$class = log\FileTarget::className();
 			break;
 		}
-		return \Yii::createObject(array_merge(['class' => $class, 'levels' => 1], ArrayHelper::toArray($this->db)));
+		$options = ['class' => $class, 'levels' => 1];
+		if($this->db && !empty($this->db))
+			$options += ArrayHelper::toArray($this->db);
+		return \Yii::createObject($options);
 	}
 
 	public function initDispatcher()
@@ -73,7 +76,8 @@ class Logger extends \yii\log\Logger
 				return \Yii::createObject($config);
 			}, $this->dispatcher['targets']);
 			$this->dispatcher = \Yii::$app->log;
-			$this->dispatcher->targets = array_merge($this->dispatcher->targets, $targets);
+			$this->dispatcher->targets = $targets;
+			\Yii::$app->log->targets = array_merge(\Yii::$app->log->targets, $targets);
 		}
 		else if(is_array($this->dispatcher))
 		{
@@ -82,7 +86,7 @@ class Logger extends \yii\log\Logger
 			], ArrayHelper::toArray($this->dispatcher)));
 		}
 		else
-			$this->dispatcher = \Yii::$app->log;
+			$this->dispatcher = \Yii::$app->log->dispatcher;
 		return $this;
 	}
 
@@ -115,6 +119,31 @@ class Logger extends \yii\log\Logger
 		return false;
 	}
 
+	/**
+	  * Proces a log event
+	  * @param \yii\base\Event $event
+	  * @return boolean
+	  */
+	public function process($event)
+	{
+		$action = $event->sender->getScenario();
+		$event->data = array_merge((array)$event->data,  [
+			'internal_category' => $this->getCategoryText(ArrayHelper::getValue($event->data, 'internal_category', null), $event->sender->getScenario()),
+			'level' => $this->getlevel($event->sender->getScenario()),
+			'category' => $this->getCategory(ArrayHelper::getValue($event->data, 'category', null), $event->sender->getScenario()),
+			'action' => $event->sender->getScenario(),
+			'timestamp' => microtime(true),
+			'table_name' => $event->sender->isWhat(),
+			'message' => implode(' ', [
+				"Succesfully {$action}d",
+				$event->sender->isWhat(),
+				': '.$event->sender->title()."[".$event->sender->getId()."]\n\nChanged values: \n".json_encode($event->changedAttributes, JSON_PRETTY_PRINT)
+			])
+		]);
+		$event->handled = $this->log($event->data, ArrayHelper::remove($event->data, 'collectionName', null));
+		return $event->handled;
+	}
+
 	protected function getLevel($scenario)
 	{
 		$ret_val = 1;
@@ -138,7 +167,7 @@ class Logger extends \yii\log\Logger
 		return $ret_val;
 	}
 
-	protected function getCategory($category=null, $scenario=null)
+	protected function getCategoryText($category=null, $scenario=null)
 	{
 		switch($scenario)
 		{
@@ -153,27 +182,19 @@ class Logger extends \yii\log\Logger
 		return $ret_val;
 	}
 
-	/**
-	  * Proces a log event
-	  * @param \yii\base\Event $event
-	  * @return boolean
-	  */
-	public function process($event)
+	protected function getCategory($category=null, $scenario=null)
 	{
-		$action = $event->sender->getScenario();
-		$event->data = array_merge((array)$event->data,  [
-			'category' => $this->getCategory(ArrayHelper::getValue($event->data, 'category', null), $event->sender->getScenario()),
-			'level' => $this->getlevel($event->sender->getScenario()),
-			'internal_category' => $event->sender->getScenario(),
-			'timestamp' => strtotime('now'),
-			'message' => implode(' ', [
-				"Succesfully {$action}d",
-				$event->sender->isWhat(),
-				': '.$event->sender->title()."\n\n".json_encode($event->sender->getDirtyAttributes(), JSON_PRETTY_PRINT)
-			])
-		]);
-		$event->handled = $this->log($event->data, ArrayHelper::remove($event->data, 'collectionName', null));
-		return $event->handled;
+		switch($scenario)
+		{
+			case 'view':
+			$ret_val = 'user-ctivity';
+			break;
+
+			default:
+			$ret_val = is_null($category) ? 'user-action' : $category;
+			break;
+		}
+		return $ret_val;
 	}
 
 	/**
@@ -187,14 +208,14 @@ class Logger extends \yii\log\Logger
 		if(is_array($array) && $array != [])
 		{
 			$keys = array_flip([
-				'message', 'level', 'internal_category', 'timestamp', 'category'
+				'message', 'level', 'category', 'timestamp', 'internal_category'
 			]);
 			$array = array_replace($keys, array_intersect_key((array)$array, $keys)) + (array)array_diff_key((array)$array, $keys) + $this->getBaseInfo();
 
 			if(is_string($collectionName))
-				$this->messages[$collectionName.':'.uniqid()] = $array;
+				\Yii::$app->get('log')->getLogger()->messages[$collectionName.':'.uniqid()] = $array;
 			else
-				$this->messages[] = $array;
+				\Yii::$app->get('log')->getLogger()->messages[] = $array;
 		}
 		return $this;
 	}

@@ -506,12 +506,12 @@ class DefaultController extends BaseController
 
 			/**
 			 * Perform logging if logging is enabled in the module and the controller enables it
+			 * NOTICE: This is now handled at the Model level
 			 */
 			if(\Yii::$app->getModule('nitm')->enableLogger && $this->shouldLog) {
-				call_user_func_array([$this, 'log'], $this->getLogParams($saved, $args, $this->model));
+				//call_user_func_array([$this, 'log'], $this->getLogParams($saved, $args, $this->model));
 				foreach(['logLevel', 'collection_name'] as $remove)
 					unset($ret_val[$remove]);
-				$this->commitLog();
 			}
 
 			switch(\Yii::$app->request->isAjax)

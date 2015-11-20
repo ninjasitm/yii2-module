@@ -136,11 +136,13 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 		}
 		if($this->enableLogs) {
 			$routeHelper->addRules('log', [
-				'log-type' => 'log/<type>',
-				'log-index' => 'log/index',
+				'log-index-base' => ['log' => 'log/index'],
+				'log-type' => ['log/<type:(!index)>' => 'log/index'],
+				'log-index' => ['log/index' => 'log/index'],
 				'log-index-type' => 'log/index/<type>'
 			]);
 			$parameters += [
+				'log-index-base' => ['log'],
 				'log-type' => ['log'],
 				'log-index' => ['log'],
 				'log-index-type' => ['log']

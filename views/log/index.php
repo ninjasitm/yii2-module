@@ -57,7 +57,7 @@ $this->params['breadcrumbs'][] = $this->title;
 				}
 			],
             'level',
-            'category',
+            'internal_category',
            	[
 				'label' => 'Content Type',
 				'attribute' => 'table_name',
@@ -71,9 +71,6 @@ $this->params['breadcrumbs'][] = $this->title;
 				'label' => 'User Agent',
 				'attribute' => 'user_agent',
 				'format' => 'html',
-		   	 	'value' => function ($model) {
-					return Html::tag('strong', $model->getAttribute('user_agent'));
-				}
 			],
             [
 				'label' => 'Remote',
