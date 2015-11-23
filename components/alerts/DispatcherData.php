@@ -358,6 +358,46 @@ class DispatcherData
 				default:
 				$criteria = $this->criteria('action');
 				if(!is_string($this->reportedAction) || empty($this->reportedAction))
+					$ret_val = rtrim(((!$criteria || $criteria == self::UNDEFINED) ? $event->sender->getScenario() : $criteria), 'e').'ed';
+				else
+					$ret_val = $this->reportedAction;
+				break;
+			}
+		} else
+			$ret_val = !is_string($this->reportedAction) || empty($this->reportedAction) ? $this->criteria('action') : $this->reportedAction;
+
+		return $ret_val;
+	}
+
+	public function getStoredAction($event=null)
+	{
+		if($event instanceof \yii\base\Event)
+		{
+			switch($event->sender->getScenario())
+			{
+				case 'resolve':
+				$ret_val = $event->sender->resolved == true ? 'resolve' : 'un-resolve';
+				break;
+
+				case 'complete':
+				$ret_val = $event->sender->completed == true ? 'complete' : 'in-complete';
+				break;
+
+				case 'verify':
+				$ret_val = $event->sender->completed == true ? 'verify' : 'un-verify';
+				break;
+
+				case 'close':
+				$ret_val = $event->sender->closed == true ? 'close' : 're-open';
+				break;
+
+				case 'disable':
+				$ret_val = $event->sender->disabled == true ? 'disable' : 'enable';
+				break;
+
+				default:
+				$criteria = $this->criteria('action');
+				if(!is_string($this->reportedAction) || empty($this->reportedAction))
 					$ret_val = (!$criteria || $criteria == self::UNDEFINED) ? $event->sender->getScenario() : $criteria;
 				else
 					$ret_val = $this->reportedAction;

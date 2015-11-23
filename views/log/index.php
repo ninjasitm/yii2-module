@@ -53,12 +53,17 @@ $this->params['breadcrumbs'][] = $this->title;
 				'attribute' => 'action',
 				'format' => 'html',
 		   	 	'value' => function ($model) {
-					return Html::tag('strong', $model->properName($model->action));
+					return Html::tag('strong', \yii\helpers\Inflector::camel2words($model->action, true));
 				}
 			],
             'level',
-            'internal_category',
-           	[
+            [
+				'attribute' => 'internal_category',
+				'value' => function ($model) {
+					return \yii\helpers\Inflector::camel2words($model->internal_category, true);
+				}
+           	],
+			[
 				'label' => 'Content Type',
 				'attribute' => 'table_name',
 				'format' => 'html',
