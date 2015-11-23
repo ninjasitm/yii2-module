@@ -45,12 +45,6 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	 * Should the logging route be loaded?
 	 */
 	public $enableLogs = true;
-
-	/**
-	 * Should the importing engine be loaded?
-	 */
-	public $enableImporter = true;
-
 	/**
 	 * Should the alerts engine be loaded?
 	 */
@@ -77,11 +71,6 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	public $alerts;
 
 	/**
-	 * @var array options for importer
-	 */
-	public $importer;
-
-	/**
 	 * Use this to map the carious types to their appropriate classes
 	 */
 	public $classMap = [];
@@ -106,11 +95,43 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 		Session::touchSession();
 	}
 
+	public function bootstrap($app)
+	{
+		if($this->enableConfig)
+			$this->config = \Yii::createObject(array_merge([
+				'class' => '\nitm\components\Configer',
+				'engine' => 'db',
+				'container' => 'globals'
+			], (array)$this->config));
+
+		if($this->enableLogger)
+			$this->logger = \Yii::createObject(array_merge([
+				'class' => '\nitm\components\Logger',
+				'dbName' => DB::getDefaultDbName(),
+			], (array)$this->logger));
+
+		if($this->enableAlerts)
+			$this->alerts = \Yii::createObject(array_merge([
+				'class' => '\nitm\components\Dispatcher',
+			], (array)$this->alerts));
+
+		/**
+		 * Setup urls
+		 */
+        $app->getUrlManager()->addRules($this->getUrls(), false);
+	}
+
 	public function getSearchClass($modelName)
 	{
 		return isset($this->searchClassMap[strtolower($modelName)]) ? $this->searchClassMap[strtolower($modelName)] : '\nitm\models\\'.\nitm\traits\Data::properName($modelName);
 	}
 
+	/**
+	 * Generate routes for the module
+	 * @method getUrls
+	 * @param  string  $id The id of the module
+	 * @return array     	The routes
+	 */
 	public function getUrls($id = 'nitm')
 	{
 		$parameters = [];
@@ -152,50 +173,35 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 		return $routes;
 	}
 
-	public function bootstrap($app)
-	{
-		if($this->enableConfig)
-			$this->config = \Yii::createObject(array_merge([
-				'class' => '\nitm\components\Configer',
-				'engine' => 'db',
-				'container' => 'globals'
-			], (array)$this->config));
-
-		if($this->enableLogger)
-			$this->logger = \Yii::createObject(array_merge([
-				'class' => '\nitm\components\Logger',
-				'dbName' => DB::getDefaultDbName(),
-			], (array)$this->logger));
-
-		if($this->enableAlerts)
-			$this->alerts = \Yii::createObject(array_merge([
-				'class' => '\nitm\components\Dispatcher',
-			], (array)$this->alerts));
-
-		if($this->enableImporter)
-			$this->importer = \Yii::createObject(array_merge([
-				'class' => '\nitm\importer\Importer',
-			], (array)$this->importer));
-
-		/**
-		 * Setup urls
-		 */
-        $app->getUrlManager()->addRules($this->getUrls(), false);
-	}
-
 	/**
-	 * Determine whether this level is loggable
+	 * Can the module log this information?
+	 * @method canLog
+	 * @param  int $level The log level
+	 * @return boolean        Whether the module can log
 	 */
 	public function canLog($level=null)
 	{
-		return $this->enableLogger ? $this->logger->canLog($level) : false;
+		return (bool) ($this->enableLogger ? $this->logger->canLog($level) : false);
 	}
 
+	/**
+	 * Commit the entire log tree
+	 * @method commitLog
+	 * @return boolean    The result of the log operation
+	 */
 	public function commitLog()
 	{
 		return $this->enableLogger ? $this->logger->trigger(Logger::EVENT_END) : false;
 	}
 
+	/**
+	 * Add a message to the log queue
+	 * @method log
+	 * @param  string|int $level   The level to log at
+	 * @param  array $options The optional extra data to log
+	 * @param  object $sender  The model to use for this log operation
+	 * @return boolean          [description]
+	 */
 	public function log($level, $options, $sender)
 	{
 		if($this->canLog($level)) {
@@ -217,7 +223,7 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 					throw $e;
 			}
 		}
-		return false;
+		return true;
 	}
 
 	public function getCollectionName(&$from=[])
@@ -225,10 +231,63 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 		return ArrayHelper::remove($from, 'collection_name', (($this->logCollections != []) ? $this->logCollections[0] : 'nitm-log'));
 	}
 
+	/**
+	 * Can this user send this alert?
+	 * @method canSendAlert
+	 * @return boolean       Can the user send the alert?
+	 */
 	public function canSendAlert()
 	{
 		$ret_val =  $this->enableAlerts
 			&& \Yii::$app->getRequest()->get(Dispatcher::SKIP_ALERT_FLAG) != true;
 		return (bool) $ret_val;
+	}
+
+	/**
+	 * Get the alert object
+	 * @method getAlert
+	 * @param  [type]   $force [description]
+	 * @return [type]          [description]
+	 */
+	public function getAlert($force=false)
+	{
+		if(!isset($this->alerts)) {
+			$this->alerts = \Yii::createObject(array_merge([
+				'class' => '\nitm\components\Dispatcher',
+			], (array)$this->alerts));
+		}
+		return $this->alerts;
+	}
+
+	/**
+	 * Get the logger
+	 * @method getLogger
+	 * @param  [type]    $force [description]
+	 * @return [type]           [description]
+	 */
+	public function getLogger($force=false)
+	{
+		if(!isset($this->logger)) {
+			$this->logger = \Yii::createObject(array_merge([
+				'class' => '\nitm\components\Configer',
+			], (array)$this->logger));
+		}
+		return $this->logger;
+	}
+
+	/**
+	 * Get the config component
+	 * @method getConfiger
+	 * @param  [type]      $force [description]
+	 * @return [type]             [description]
+	 */
+	public function getConfiger($force=false)
+	{
+		if(!isset($this->config)) {
+			$this->config = \Yii::createObject(array_merge([
+				'class' => '\nitm\components\Configer',
+			], (array)$this->config));
+		}
+		return $this->config;
 	}
 }

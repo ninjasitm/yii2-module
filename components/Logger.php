@@ -131,7 +131,7 @@ class Logger extends \yii\log\Logger
 			'internal_category' => $this->getCategoryText(ArrayHelper::getValue($event->data, 'internal_category', null), $event->sender->getScenario()),
 			'level' => $this->getlevel($event->sender->getScenario()),
 			'category' => $this->getCategory(ArrayHelper::getValue($event->data, 'category', null), $event->sender->getScenario()),
-			'action' => $event->sender->getScenario(),
+			'action' => \Yii::$app->getModule('nitm')->getAlert()->store()->getReportedAction($event),
 			'timestamp' => microtime(true),
 			'table_name' => $event->sender->isWhat(),
 			'message' => implode(' ', [
