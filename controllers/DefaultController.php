@@ -468,7 +468,7 @@ class DefaultController extends BaseController
 						break;
 
 						case 'date':
-						$this->model->setAttribute($value, (!$this->boolResult ? null : new \yii\db\Expression('NOW()')));
+						$this->model->setAttribute($value, ($this->boolResult ? new \yii\db\Expression('NOW()') : '0000-00-00 00:00:00'));
 						break;
 					}
 					break;

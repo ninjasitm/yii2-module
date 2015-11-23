@@ -19,9 +19,7 @@ class Entity extends Data
 
 	public function scenarios()
 	{
-		return array_merge(parent::scenarios(), [
-			'default' => []
-		]);
+		return array_merge(parent::scenarios(), $this->nitmScenarios());
 	}
 
 	public function initalizeEventData(&$event)

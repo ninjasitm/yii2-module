@@ -82,11 +82,11 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	public function scenarios()
 	{
 		return [
-			'default' => ['unique'],
+			'default' => [],
 			'filter' => ['filter'],
-			'create' => ['author'],
-			'update' => ['editor'],
-			'deleted' => ['unique']
+			'create' => ['author_id'],
+			'update' => ['editor_id'],
+			'deleted' => ['deleted']
 		];
 	}
 
