@@ -356,11 +356,15 @@ class DispatcherData
 				break;
 
 				default:
-				$ret_val = !is_string($this->reportedAction) || empty($this->reportedAction) ? $this->_data->criteria('action') : $this->reportedAction;
+				$criteria = $this->criteria('action');
+				if(!is_string($this->reportedAction) || empty($this->reportedAction))
+					$ret_val = (!$criteria || $criteria == self::UNDEFINED) ? $event->sender->getScenario() : $criteria;
+				else
+					$ret_val = $this->reportedAction;
 				break;
 			}
 		} else
-			$ret_val = !is_string($this->reportedAction) || empty($this->reportedAction) ? $this->_data->criteria('action') : $this->reportedAction;
+			$ret_val = !is_string($this->reportedAction) || empty($this->reportedAction) ? $this->criteria('action') : $this->reportedAction;
 
 		return $ret_val;
 	}
