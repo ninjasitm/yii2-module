@@ -147,8 +147,8 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 		$parameters = [];
 		if($this->enableConfigAdmin) {
 			$routeHelper->addRules('configuration', [
-				'config-engine' => 'configuration/load/<engine:\w+>',
-				'config-container' => 'configuration/load/<engine:\w+>/<container:\w+>'
+				'config-engine' => ['configuration/load/<engine:\w+>' => 'configuration'],
+				'config-container' => ['configuration/load/<engine:\w+>/<container:\w+>' => 'configuration']
 			]);
 			$parameters += [
 				'config-engine' => ['configuration'],

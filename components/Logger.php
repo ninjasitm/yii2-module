@@ -86,7 +86,7 @@ class Logger extends \yii\log\Logger
 			], ArrayHelper::toArray($this->dispatcher)));
 		}
 		else
-			$this->dispatcher = \Yii::$app->log->dispatcher;
+			$this->dispatcher = \Yii::$app->log;
 		return $this;
 	}
 
