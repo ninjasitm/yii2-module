@@ -394,23 +394,6 @@ class Dispatcher extends \yii\base\Component
 
 		if(\Yii::$app->getModule('nitm')->enableLogger && $this->_sendCount) {
 			$logger = \Yii::$app->getModule('nitm')->logger;
-			print_r(array_merge($this->store()->criteria(), [
-				'message' => "Sent ".$this->_sendCount." alerts to destinations.\n\nCriteria: ".json_encode($this->store()->criteria(), JSON_PRETTY_PRINT)."\n\nRecipients: ".json_encode(array_map(function (&$group) {
-					return array_map(function ($recipients) {
-						return array_map(function($recipient) {
-							return ArrayHelper::getValue($recipient, 'user', []);
-						}, $recipients);
-					}, $group);
-				}, $to), JSON_PRETTY_PRINT),
-				'level' => 1,
-				'category' => 'user-activity',
-				'internal_category' => 'Send Alerts',
-				'timestamp' => time(),
-				'action' => 'dispatch-alerts',
-				'table_name' => $this->store()->criteria('remote_type'),
-				'table' => Alerts::tableName(),
-			]));
-			exit;
 			$logger->log(array_merge($this->store()->criteria(), [
 				'message' => "Sent ".$this->_sendCount." alerts to destinations.\n\nCriteria: ".json_encode($this->store()->criteria(), JSON_PRETTY_PRINT)."\n\nRecipients: ".json_encode(array_map(function (&$group) {
 					return array_map(function ($recipients) {
