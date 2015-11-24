@@ -64,7 +64,6 @@ trait EventTraits {
 		//Setup the event handlers for specified events
 		foreach($events as $event=>$handler)
 			$this->on($event, $handler);
-
 		foreach ($this->eventClassMap as $k=>$v)
 		{
 			switch(1)
@@ -87,7 +86,11 @@ trait EventTraits {
 							$trigger = $event->data['group'];
 							\Yii::trace("Handling [$trigger on $event->name] event for ".get_class($event->sender)."\n\n".json_encode($event, JSON_PRETTY_PRINT));
 							unset($event->data['group']);
-							$this->trigger($trigger, $event);
+							$this->trigger($trigger, new \yii\base\Event([
+								'data' => $event->data,
+								'sender' => $event->sender,
+								'name' => $event->name
+							]));
 						}, ['group' => $type]);
 					}
 				}

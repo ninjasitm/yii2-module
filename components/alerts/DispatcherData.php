@@ -114,7 +114,7 @@ class DispatcherData
 		];
 	}
 
-	public function processEventData($data, $handler)
+	public function processEventData($event, $handler)
 	{
 		$runtimeModifiable = [
 			'variables',
@@ -130,15 +130,16 @@ class DispatcherData
 			{
 				case 'reportedAction':
 				if(!$this->$property)
-					$this->$property = ArrayHelper::remove($data, $property);
+					$this->$property = ArrayHelper::remove($event->data, $property);
 				break;
 
 				case 'action':
+				$this->variables('%action%', $this->getReportedAction());
 				break;
 
 				default:
-				$params = ArrayHelper::getValue($data, $property, null);
-				unset($data[$property]);
+				$params = ArrayHelper::getValue($event->data, $property, null);
+				unset($event->data[$property]);
 				switch($property)
 				{
 					case 'variables':

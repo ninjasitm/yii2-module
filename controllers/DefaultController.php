@@ -333,7 +333,7 @@ class DefaultController extends BaseController
     {
 		$deleted = false;
 		$this->getModel('delete', $id);
-
+		$modelClass = !class_exists($modelClass) ? $this->model->className() : $modelClass;
 		if(is_object($this->model))
 		{
 			switch(1)

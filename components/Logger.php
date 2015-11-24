@@ -137,7 +137,7 @@ class Logger extends \yii\log\Logger
 			'message' => implode(' ', [
 				"Succesfully {$action}d",
 				$event->sender->isWhat(),
-				': '.$event->sender->title()."[".$event->sender->getId()."]\n\nChanged values: \n".json_encode($event->changedAttributes, JSON_PRETTY_PRINT)
+				': '.$event->sender->title()."[".$event->sender->getId()."]\n\nChanged values: \n".json_encode(ArrayHelper::getValue($event, 'changedAttributes', ''), JSON_PRETTY_PRINT)
 			])
 		]);
 		$event->handled = $this->log($event->data, ArrayHelper::remove($event->data, 'collectionName', null));

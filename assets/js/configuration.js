@@ -402,6 +402,6 @@ String.prototype.stripslashes = function () {
 	return this.replace('/\0/g', '0').replace('/\(.)/g', '$1');
 };
 
-$nitm.addOnLoadEvent(function () {
-	$nitm.module('entity').initModule(new Configuration());
+$nitm.onModuleLoad('entity', function (module) {
+	module.initModule(new Configuration());
 });

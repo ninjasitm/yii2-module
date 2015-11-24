@@ -58,6 +58,7 @@ function NitmEntity () {
 	};
 
 	this.initModule = function (object, name) {
+		name = name === undefined ? object.id : name;
 		try {
 			self.setCurrent($nitm.getModuleName(object, name));
 			/**
@@ -155,21 +156,20 @@ function NitmEntity () {
 			var roles = self.forms.roles;
 		}
 		$.map(roles, function(role, key) {
+			console.info("Initing forms: "+role+" for "+currentIndex);
 			container.find("form[role~='"+role+"']").map(function() {
 				if(!$(this).data('nitm-entity-form-submit')) {
 					$(this).data('nitm-entity-form-submit', true);
 					var $form = $(this);
+					$form.data('module', currentIndex);
 					$form.on('submit', function (e) {
 						e.preventDefault();
 						if($form.data('yiiActiveForm') !== undefined) {
-							$form.one('beforeSubmit', function (event) {
-								if($form.data('yiiActiveForm').validated)
-									self.operation($form.get(0), null, currentIndex, e);
-							});
+							if($form.data('yiiActiveForm').validated === true)
+								self.operation($form.get(0), null, $form.data('module'), e);
 						}
-						else {
-							self.operation($form.get(0), null, currentIndex, e);
-						}
+						else
+							self.operation($form.get(0), null, $form.data('module'), e);
 					});
 				}
 			});
@@ -177,6 +177,7 @@ function NitmEntity () {
 	};
 
 	this.afterAction = function (action, result, currentIndex, elem, realElem) {
+		console.log("Running afterAction:"+action+" for "+currentIndex);
 		var func = 'after'+$nitm.safeFunctionName(action);
 		try {
 			$nitm.module(currentIndex)[func](result, currentIndex, elem);
@@ -192,7 +193,7 @@ function NitmEntity () {
 				case 'create':
 				var indicate = result.indicate || 'info';
 				break;
-				
+
 				default:
 				var indicate = result.indicate || 'notify';
 				break;
@@ -202,7 +203,6 @@ function NitmEntity () {
 	};
 
 	this.operation = function (form, callback, currentIndex, event) {
-
 		if(self.hasActivity(form.id))
 			return false;
 
@@ -238,7 +238,7 @@ function NitmEntity () {
 							originalEventTarget = event.originalEvent.explicitOriginalTarget;
 						} catch (error) {
 						}
-						self.afterAction(result.action, result, currentIndex, form, originalEventTarget);
+						self.afterAction(result.action || 'none', result, currentIndex, form, originalEventTarget);
 					}
 				},
 				error: function (xhs, status, error) {
@@ -282,6 +282,26 @@ function NitmEntity () {
 			}
 		});
 	};
+
+	this.afterNone = function (result, currentIndex, form) {
+		self.setCurrent(currentIndex);
+		if(result.success === true)
+		{
+			form.reset();
+			var message = result.message || "Success!";
+			if(result.data)
+			{
+				var $module = $nitm.module(currentIndex);
+				$nitm.getObj($nitm.module(currentIndex).views.containerId).find('.empty').hide();
+				$nitm.place({append:false, index:0}, result.data, $nitm.module(currentIndex).views.containerId);
+				self.initMetaActions(self.getIds($module.views.itemId, result.id));
+			}
+		}
+		else
+		{
+			$nitm.notify(result.message || "An error occurred", $nitm.classes.error, form);
+		}
+	}
 
 	this.afterCreate = function (result, currentIndex, form) {
 		self.setCurrent(currentIndex);

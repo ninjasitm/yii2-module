@@ -665,6 +665,7 @@ function Nitm ()
 	this.onModuleLoad = function(module, callback, namespace) {
 		var ns = namespace === undefined ? '' : '.'+namespace;
 		var event = 'nitm:'+module+ns;
+		$(this).queue(event);
 		$('body').queue(event, function () {
 			callback(self.module(module));
 			$(this).dequeue(event);
@@ -680,8 +681,6 @@ function Nitm ()
 	this.moduleLoaded = function(module, namespace) {
 		var ns = namespace === undefined ? '' : '.'+namespace;
 		var event = 'nitm:'+module+ns;
-		if($nitm.debug === true)
-			console.log("Loaded "+module);
 		$('body').dequeue(event);
 	};
 
@@ -724,10 +723,13 @@ function Nitm ()
 				'enumerable': true
 			});
 		}
-		Object.defineProperty(parent.modules, moduleName, {
-			'value': module,
-			'enumerable': true
-		});
+		if(!parent.modules.hasOwnProperty(moduleName)) {
+			Object.defineProperty(parent.modules, moduleName, {
+				'value': module,
+				'enumerable': true
+			});
+		}
+		console.info("Nitm: Loaded "+name);
 		this.moduleLoaded(name);
 	};
 
@@ -754,15 +756,18 @@ function Nitm ()
 			{
 				case false:
 				this.current = name;
-				this.setModule(object, name);
 				switch(document.readyState)
 				{
 					case 'complete':
+					console.info("Nitm: Initing module: "+name);
+					this.setModule(object, name);
 					self.initDefaults(name, object, defaults);
 					break;
 
 					default:
 					$(document).ready(function () {
+						console.info("Nitm: Delaying init of module: "+name);
+						self.setModule(object, name);
 						self.initDefaults(name, object, defaults);
 					});
 					break;
@@ -771,6 +776,7 @@ function Nitm ()
 
 				default:
 				try {
+					console.info("Nitm: Initing non local module: "+name);
 					object.init();
 				} catch(error) {}
 				break;
@@ -780,18 +786,20 @@ function Nitm ()
 	};
 
 	this.initDefaults = function (key, object, defaults, container) {
+		console.info("Nitm: Initing defaults for: "+key);
 		if (object === undefined)
 			object = this.module(key);
 		try {
-			object.init();
-		} catch (error) {}
-		try {
 			$.each(defaults, function () {
 				try {
-					object[this](container);
+					object[this](container, key);
 				} catch (error) {}
 			});
-		} catch (error) {}
+		} catch (error) {
+			try {
+				object.init();
+			} catch (error) {}
+		}
 	};
 }
 
