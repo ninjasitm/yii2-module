@@ -251,7 +251,7 @@ trait Data {
 	 * Function to get items for the List methods
 	 * @return array
 	 */
-	private function locateItems($options)
+	private function locateItems($options, $count=false)
 	{
 		$class = self::locateClassForItems($options);
 
@@ -261,15 +261,21 @@ trait Data {
 				'limit' => 100,
 				'select' => '*',
 			], $options));
-			$items = $this->getModels();
+			if($count === true) {
+				$items = $this->find($this)->count();
+			}
+			else
+				$items = $this->getModels();
 		}
 		else {
-			echo $class;
 			$query = $class::find();
 			foreach($this->queryOptions as $name=>$value)
 				if($query->hasMethod($name))
 					$query->$name($value);
-			$items = $query->all();
+			if($count === true)
+				$items = $query->count();
+			else
+				$items = $query->all();
 		}
 		return $items;
 	}
@@ -291,10 +297,11 @@ trait Data {
 
 		if(CacheHelper::cache()->exists($cacheKey))
 			$ret_val = CacheHelper::cache()->get($cacheKey);
-		else {
-			if(!isset($queryOptions['orderBy']))
-				$queryOptions['orderBy'] = [(is_array($label) ? end($label) : $label) => SORT_ASC];
 
+		if(!isset($queryOptions['orderBy']))
+			$queryOptions['orderBy'] = [(is_array($label) ? end($label) : $label) => SORT_ASC];
+
+		if(count($ret_val) < self::locateItems($queryOptions, true)) {
 			$items = self::locateItems($queryOptions);
 			switch(count($items) >= 1)
 			{

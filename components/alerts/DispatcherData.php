@@ -385,7 +385,7 @@ class DispatcherData
 				break;
 
 				case 'verify':
-				$ret_val = $event->sender->completed == true ? 'verify' : 'un-verify';
+				$ret_val = $event->sender->verified == true ? 'verify' : 'un-verify';
 				break;
 
 				case 'close':

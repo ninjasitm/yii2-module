@@ -103,11 +103,11 @@ function NitmEntity () {
 							$nitm.startSpinner($elem);
 							var successFunc = $elem.data('success-callback') === undefined ? function (result) {
 								$nitm.stopSpinner($elem);
-								self.afterAction(result.action, result, currentIndex, $elem.get(0));
+								self.afterAction(result.action || $(this).data('action'), result, currentIndex, $elem.get(0));
 								if($elem.data('after-callback')) {
 									var afterCallback = $elem.data('after-callback').parseFunction();
 									if(afterCallback && typeof afterCallback == 'function')
-										(function (elem) {afterCallback.call(elem)})($elem.get(0));
+										(function (elem) {afterCallback.call(elem);})($elem.get(0));
 								}
 							} : $elem.data('success-callback').parseFunction();
 
@@ -149,11 +149,11 @@ function NitmEntity () {
 	};
 
 	this.initForms = function (containerId, currentIndex) {
-		var container = $nitm.getObj(this.getContainer(containerId));
+		var container = $nitm.getObj(this.getContainer(containerId)), roles;
 		try {
-			var roles = $nitm.module(currentIndex).forms.roles;
+			roles = $nitm.module(currentIndex).forms.roles;
 		} catch(error) {
-			var roles = self.forms.roles;
+			roles = self.forms.roles;
 		}
 		$.map(roles, function(role, key) {
 			console.info("Initing forms: "+role+" for "+currentIndex);
@@ -178,7 +178,7 @@ function NitmEntity () {
 
 	this.afterAction = function (action, result, currentIndex, elem, realElem) {
 		console.log("Running afterAction:"+action+" for "+currentIndex);
-		var func = 'after'+$nitm.safeFunctionName(action);
+		var func = 'after'+$nitm.safeFunctionName(action || 'none');
 		try {
 			$nitm.module(currentIndex)[func](result, currentIndex, elem);
 		} catch(error) {
@@ -186,16 +186,17 @@ function NitmEntity () {
 				self[func](result, currentIndex, elem);
 			}
 		}
+		var indicate;
 		if(result.message) {
 			switch(result.action)
 			{
 				case 'update':
 				case 'create':
-				var indicate = result.indicate || 'info';
+				indicate = result.indicate || 'info';
 				break;
 
 				default:
-				var indicate = result.indicate || 'notify';
+				indicate = result.indicate || 'notify';
 				break;
 			}
 			$nitm.notify(result.message, indicate, (!realElem ? elem : realElem));
@@ -301,7 +302,7 @@ function NitmEntity () {
 		{
 			$nitm.notify(result.message || "An error occurred", $nitm.classes.error, form);
 		}
-	}
+	};
 
 	this.afterCreate = function (result, currentIndex, form) {
 		self.setCurrent(currentIndex);
@@ -421,12 +422,11 @@ function NitmEntity () {
 	};
 
 	this.getItem = function (elem, id) {
-		var $module = $nitm.module(self.current);
-		var $elem = $(elem);
+		var baseName, $module = $nitm.module(self.current), $elem = $(elem);
 		try {
-			var baseName = $module.views.itemId;
+			baseName = $module.views.itemId;
 		} catch (error) {
-			var baseName = null;
+			baseName = null;
 		}
 		var parent = ($elem.data('parent') !== undefined) ? $elem.data('parent') : '.item';
 		if(!baseName)

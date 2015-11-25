@@ -377,6 +377,7 @@ function Tools ()
 		if (typeof callback == 'function') {
 			//We do this here so that the js gets loaded ONLY after the ajax calls are done
 			$(document).one('ajaxStop', function () {
+				console.info("Nitm->Entity: Running evalScripts after ajaxStop event");
 				var existing, wrapperId, wrapper;
 				if(options !== undefined) {
 					existing = (!options.context) ? false : options.context.attr('id');
@@ -398,12 +399,13 @@ function Tools ()
 					return $.Deferred(function (deferred) {
 						try {
 							//Remove the scripts here so that they don't get run right away.
-							contents.find('script').remove();
-							callback(contents.html());
+							//contents.find('script').remove();
+							//callback(contents.html());
 						} catch (error) {console.log(error);}
 						deferred.resolve();
 					}).promise();
 				})().then(function () {
+					console.info("Nitm->Entity: Initing in evalScripts defaults on #"+wrapperId);
 					self.initDefaults(wrapperId);
 					var scriptText = '';
 					/*
