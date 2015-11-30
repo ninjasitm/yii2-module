@@ -399,8 +399,8 @@ function Tools ()
 					return $.Deferred(function (deferred) {
 						try {
 							//Remove the scripts here so that they don't get run right away.
-							//contents.find('script').remove();
-							//callback(contents.html());
+							contents.find('script').remove();
+							callback(contents.html());
 						} catch (error) {console.log(error);}
 						deferred.resolve();
 					}).promise();
