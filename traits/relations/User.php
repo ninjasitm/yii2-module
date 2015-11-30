@@ -112,16 +112,16 @@ trait User {
 		{
 			switch(1)
 			{
-				case !empty($profile['gravatar_email']):
+				case !empty($email = ArrayHelper::getValue($profile, 'gravatar_email')):
 				$key = $profile['gravatar_email'];
 				break;
 
-				case !empty($profile['gravatar_id']):
+				case !empty($email = ArrayHelper::getValue($profile, 'gravatar_id')):
 				$key = $profile['gravatar_id'];
 				break;
 
 				default:
-				$key = $profile['public_email'];
+				$key = ArrayHelper::getValue($profile, 'public_email');
 				break;
 			}
 		}
