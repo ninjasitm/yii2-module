@@ -148,6 +148,7 @@ class DefaultController extends BaseController
 	 */
 	public function actionFilter($options=[], $modelOptions=[])
 	{
+		\nitm\search\widgets\SearchAsset::register($this->getView());
 		$options = array_replace_recursive([
 			'params' => \Yii::$app->request->get(),
 			'with' => [],
@@ -214,6 +215,9 @@ class DefaultController extends BaseController
 		Response::viewOptions('args', [
 			"content" => $ret_val['data'],
 		]);
+
+		//if(\Yii::$app->request->isAjax)
+		//	$this->getView()->registerJs(new \yii\web\JsExpression
 
 		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
