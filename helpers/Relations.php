@@ -130,7 +130,7 @@ class Relations
 
 		$modelClass = is_null($modelClass) ? $model->getRelation($relation)->modelClass : $modelClass;
 
-		return Cache::setModel(Cache::cacheKey($model, $idKey, $relation, $many), $related, $modelClass, $duration);
+		return Cache::setModel(Cache::cacheKey($model, $idKey, $relation, $many), $related, $many, $duration, $modelClass);
 	}
 
 	/**

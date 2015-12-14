@@ -174,10 +174,11 @@ class Cache extends Model
 
 		return $ret_val;
 	}
-
+	
 	protected static function parseBeforeSet($model)
 	{
 		if(is_array($model)) {
+			$ret_val = [];
 			foreach($model as $m)
 				$ret_val[] = static::parseBeforeSet($m);
 		} else {
@@ -210,41 +211,33 @@ class Cache extends Model
 
 	protected static function parseAfterGet($array, &$model, $modelClass=null)
 	{
-		if(ArrayHelper::isIndexed($array)) {
-			$className = $model->className();
-			$ret_val = array_map(function ($attributes) use($className) {
-				return static::parseAfterGet($attributes, \Yii::createObject($className));
-			}, $array);
-			return $ret_val;
-		} else {
-			foreach((array)$array as $attribute=>$value)
-			{
-				if(is_array($value) && ArrayHelper::getValue($value, '_relation') === true) {
-					//We already determined that this was a relation. Now is it an array of relations?
-					if(ArrayHelper::getValue($value, '_many') === true) {
-						$model->populateRelation($attribute, static::parseAfterGet( $value['_data'], \Yii::createObject($value['_class'])));
-					} else {
-						//If not it's a single related object. Create the object and the poplate any related information
-						$model->populateRelation($attribute, static::parseAfterGet($value['_data'], \Yii::createObject($value['_class'])));
-					}
+		foreach((array)$array as $attribute=>$value)
+		{
+			if(is_array($value) && ArrayHelper::getValue($value, '_relation') === true) {
+				//We already determined that this was a relation. Now is it an array of relations?
+				if(ArrayHelper::getValue($value, '_many') === true) {
+					$model->populateRelation($attribute, static::parseAfterGet([$value['_class'], $value['_data']]));
 				} else {
-					//We're populating properties for a regular object | model | attribute
-					if(is_array($value) && ($modelClass = ArrayHelper::getValue($value, '_class')) !== false) {
-						try {
-							$model = \Yii::createObject($modelClass, $value);
-							$value = $model;
-						} catch (\Exception $e) {
-						}
-					}
-
-					if($model->hasAttribute($attribute))
-						$model->setAttribute($attribute, $value);
-					else if($model->hasProperty($attribute))
-						$model->$attribute = $value;
+					//If not it's a single related object. Create the object and the poplate any related information
+					$model->populateRelation($attribute, static::parseAfterGet($value['_data'], \Yii::createObject($value['_class'])));
 				}
+			} else {
+				//We're populating properties for a regular object | model | attribute
+				if(is_array($value) && ($modelClass = ArrayHelper::getValue($value, '_class')) !== false) {
+					try {
+						$model = \Yii::createObject($modelClass, $value);
+						$value = $model;
+					} catch (\Exception $e) {
+					}
+				}
+
+				if($model->hasAttribute($attribute))
+					$model->setAttribute($attribute, $value);
+				else if($model->hasProperty($attribute))
+					$model->$attribute = $value;
 			}
-			return $model;
 		}
+		return $model;
 	}
 }
 ?>

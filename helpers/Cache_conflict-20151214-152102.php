@@ -210,19 +210,15 @@ class Cache extends Model
 
 	protected static function parseAfterGet($array, &$model, $modelClass=null)
 	{
-		if(ArrayHelper::isIndexed($array)) {
-			$className = $model->className();
-			$ret_val = array_map(function ($attributes) use($className) {
-				return static::parseAfterGet($attributes, \Yii::createObject($className));
-			}, $array);
-			return $ret_val;
-		} else {
+		if(ArrayHelper::isIndexed($array))
+			$ret_val = array_map([static, 'parseAfterGet'], $array);
+		else {
 			foreach((array)$array as $attribute=>$value)
 			{
 				if(is_array($value) && ArrayHelper::getValue($value, '_relation') === true) {
 					//We already determined that this was a relation. Now is it an array of relations?
 					if(ArrayHelper::getValue($value, '_many') === true) {
-						$model->populateRelation($attribute, static::parseAfterGet( $value['_data'], \Yii::createObject($value['_class'])));
+						$model->populateRelation($attribute, static::parseAfterGet([$value['_class'], $value['_data']]));
 					} else {
 						//If not it's a single related object. Create the object and the poplate any related information
 						$model->populateRelation($attribute, static::parseAfterGet($value['_data'], \Yii::createObject($value['_class'])));

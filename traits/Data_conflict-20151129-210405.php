@@ -107,14 +107,11 @@ trait Data {
 	public function hasRelation($name)
 	{
 		$ret_val = null;
-		$method = 'get'.$name;
-		try {
-			if($this->hasMethod($method) && (new \ReflectionMethod($this, $method))->isPublic()) {
-				$ret_val = call_user_func([$this, $method]);
-				if(!($ret_val instanceof \yii\db\ActiveQuery))
-					$ret_val = null;
-			}
-		} catch (\Exception $e) {}
+		if($this->hasMethod('get'.$name)) {
+			$ret_val = $this->{'get'.$name}();
+			if(!($ret_val instanceof \yii\db\ActiveQuery))
+				$ret_val = null;
+		}
 		return $ret_val;
 	}
 

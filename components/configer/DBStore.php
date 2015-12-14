@@ -22,13 +22,13 @@ class DBStore extends BaseStore
 {
 	//public data
 	public $is = 'db';
-	
+
 	public function init()
 	{
 		parent::init();
 		$this->resource = \Yii::$app->db;
 	}
-	
+
 	public function write($container, $data)
 	{
 		$message = "";
@@ -67,29 +67,29 @@ class DBStore extends BaseStore
 			}
 		}
 	}
-	
+
 	public function load($container, $fromSection=false)
 	{
 		$ret_val = \yii\helpers\ArrayHelper::getValue($this->container($container), 'values', []);
 		return $ret_val;
 	}
-	
+
 	public function read($contents)
 	{
 		//convert the raw config to the proper hierarchy;
 		if(!is_array($contents))
 			$contents = !$this->container($contents) ? [] : $this->container($contents)->getValues()->asArray()->all();
 		$ret_val = [];
-		
+
 		if(is_array($contents))
-			foreach($contents as $idx=>$data) 
+			foreach($contents as $idx=>$data)
 			{
 				$section = $data['section_name'];
 				$val_key = $data['name'];
-				
+
 				if(!isset($ret_val[$section]))
 					$ret_val[$section] = [];
-				
+
 				//set the value
 				$ret_val[$section][$val_key] = ArrayHelper::toArray($data);
 			}
@@ -97,11 +97,11 @@ class DBStore extends BaseStore
 			$ret_val = [];
 		return $ret_val;
 	}
-	
+
 	public function create($key, $originalValue, $container, $isSection=false)
 	{
 		$ret_val = ['success' => false];
-		
+
 		list($name, $section, $hierarchy) = array_values($this->resolveNameAndSection($key, true));
 		$containerId = $this->container($container)->id;
 		switch($isSection)
@@ -115,7 +115,7 @@ class DBStore extends BaseStore
 			$model = new Section($value);
 			$message = "Added new section '%name%'";
 			break;
-			
+
 			//We're creating a value
 			default:
 			$value = [
@@ -141,7 +141,7 @@ class DBStore extends BaseStore
 			$ret_val['success'] = true;
 			$ret_val['message'] = $this->getMessage($message, $model);
 			break;
-			
+
 			default:
 			$ret_val['message'] = implode('<br>', array_map(function ($value) {
 				return array_shift($value);
@@ -150,13 +150,13 @@ class DBStore extends BaseStore
 		}
 		return $ret_val;
 	}
-	
+
 	public function update($id, $key, $value, $container, $isSection=false)
 	{
 		$ret_val = ['success' => false];
-		
+
 		list($name, $section, $hierarchy) = array_values($this->resolveNameAndSection($key, true));
-		
+
 		switch($isSection)
 		{
 			//we're updating a section
@@ -165,7 +165,7 @@ class DBStore extends BaseStore
 			$value = ['name' => $value];
 			$model = $this->section($id, $container, false);
 			break;
-		
+
 			//we're updating a value
 			default:
 			$message = "Updated the value '%key%' from '%oldValue%' to '%value%'";
@@ -192,7 +192,7 @@ class DBStore extends BaseStore
 				$ret_val = array_merge($ret_val, $value);
 				$ret_val['success'] = true;
 				break;
-				
+
 				default:
 				$ret_val['message'] = implode('<br>', array_map(function ($value) {
 					return array_shift($value);
@@ -203,13 +203,13 @@ class DBStore extends BaseStore
 		}
 		return $ret_val;
 	}
-	
+
 	public function comment($id, $key, $value, $container, $isSection=false)
 	{
 		$ret_val = ['success' => false];
-		
+
 		list($name, $section, $hierarchy) = array_values($this->resolveNameAndSection($key, true));
-		
+
 		switch($isSection)
 		{
 			//we're updating a section
@@ -219,7 +219,7 @@ class DBStore extends BaseStore
 			$model = null;
 			//$model = $this->section($id, $container, false);
 			break;
-		
+
 			//we're updating a value
 			default:
 			$message = "Updated the comment for '%name%' from '%oldValue%' to '%value%'";
@@ -246,7 +246,7 @@ class DBStore extends BaseStore
 				$ret_val = array_merge($ret_val, $value);
 				$ret_val['success'] = true;
 				break;
-				
+
 				default:
 				$ret_val['message'] = implode('<br>', array_map(function ($value) {
 					return array_shift($value);
@@ -257,13 +257,13 @@ class DBStore extends BaseStore
 		}
 		return $ret_val;
 	}
-	
+
 	public function delete($id, $key, $container, $isSection=false)
 	{
 		$ret_val = ['success' => false, 'value' => null];
-		
+
 		list($name, $section, $hierarchy) = array_values($this->resolveNameAndSection($key, true));
-		
+
 		switch($isSection)
 		{
 			//we're deleting a section
@@ -272,7 +272,7 @@ class DBStore extends BaseStore
 			$message = "Deleted the section: $key";
 			$delete['process'] = true;
 			break;
-		
+
 			//we're deleting a value
 			default:
 			$ret_val['name'] = $id;
@@ -292,7 +292,7 @@ class DBStore extends BaseStore
 				$ret_val['isSection'] = true;
 			$ret_val['success'] = true;
 			break;
-			
+
 			default:
 			$ret_val['success'] = true;
 			$ret_val['message'] = "'$key' may have already been deleted";
@@ -300,7 +300,7 @@ class DBStore extends BaseStore
 		}
 		return $ret_val;
 	}
-	
+
 	public function createContainer($name, $in=null)
 	{
 		$ret_val = ["success" => false];
@@ -313,17 +313,17 @@ class DBStore extends BaseStore
 		{
 			case true:
 			$ret_val['message']  .= "created container for $in";
-			$data["sections"]['containerid'] = $this->containerModel->id; 
+			$data["sections"]['containerid'] = $this->containerModel->id;
 			$data["sections"]['name'] = 'global';
 			break;
-			
+
 			default:
 			$ret_val['message']  ."Counldn't create container $name";
 			break;
 		}
 		return $ret_val;
 	}
-	
+
 	public function removeContainer($container, $in=null)
 	{
 		$ret_val = ["success" => false];
@@ -333,7 +333,7 @@ class DBStore extends BaseStore
 			$ret_val['success'] = true;
 			$message .= "deleted config for $name in $name\n\n";
 			break;
-			
+
 			default;
 			$message .= "couldn't delete config for $name\n\n";
 			break;
@@ -341,7 +341,7 @@ class DBStore extends BaseStore
 		$ret_val['message'] = "I ".$message;
 		return $ret_val;
 	}
-	
+
 	public function getSections($in=null)
 	{
 		$ret_val = [];
@@ -353,7 +353,7 @@ class DBStore extends BaseStore
 			else
 				$result = [];
 			break;
-			
+
 			default:
 			if($this->container($in))
 				$result = (array)$this->container($in)->getSections()->select(['id', 'name'])->all();
@@ -366,7 +366,7 @@ class DBStore extends BaseStore
 		});
 		return $ret_val;
 	}
-	
+
 	public function getContainers($in, $objectsOnly=false)
 	{
 		if(!isset(static::$_containers))
@@ -387,14 +387,14 @@ class DBStore extends BaseStore
 	{
 		if(is_object($container))
 			throw new \yii\base\Exception("Container is an object");
-			
+
 		switch(1)
 		{
 			case $container == null:
 			case $this->containerModel instanceof Container && $container == $this->containerModel->name:
 			$ret_val = $this->containerModel;
 			break;
-			
+
 			default:
 			$ret_val = new Container([
 				'name' => $container
@@ -402,10 +402,10 @@ class DBStore extends BaseStore
 			$ret_val->populateRelation('values', []);
 			break;
 		}
-		
+
 		$containerKey = $this->containerKey($container);
 		$hasNew = static::hasNew();
-		
+
 		if(isset(static::$_containers[$containerKey]))
 			$this->containerModel = $ret_val = static::$_containers[$containerKey];
 		else if(Cache::cache()->exists($containerKey)) {
@@ -415,14 +415,14 @@ class DBStore extends BaseStore
 			{
 				case !$this->containerModel instanceof Container:
 				case (is_object($this->containerModel) && !($this->containerModel->name == $container || $this->containerModel->id == $container)):
-				
+
 				//Are we looking for an id or name?
 				$where = is_numeric($container) ? ['id' => $container] : ['name' => $container];
 				$ret_val = Container::find()
 					->where($where)
 					->with('sections')
 					->one();
-					
+
 				if(!($ret_val instanceof Container)) {
 					$ret_val = new Container(['name' => $container]);
 					$ret_val->populateRelation('values', []);
@@ -430,8 +430,8 @@ class DBStore extends BaseStore
 				}
 				$this->containerModel = $ret_val;
 				Cache::setModel($containerKey, [
-					Container::className(),
-					array_merge(ArrayHelper::toArray($this->containerModel), [
+					'_class' => Container::className(),
+					'_data' => array_merge(ArrayHelper::toArray($this->containerModel), [
 						'values' => ArrayHelper::toArray($this->containerModel->values),
 						'sections' => ArrayHelper::toArray($this->containerModel->sections)
 					])
@@ -441,7 +441,7 @@ class DBStore extends BaseStore
 		}
 		return $ret_val;
 	}
-	 
+
 	public function section($section, $container=null, $asArray=true)
 	{
 		$ret_val = null;
@@ -450,7 +450,7 @@ class DBStore extends BaseStore
 				$container = $this->containerModel->name;
 			else
 				throw new \yii\base\IException("The container has not been instanciated nor was one passed");
-		
+
 		switch(isset($this->container($container)->sections[$section]))
 		{
 			case false:
@@ -466,7 +466,7 @@ class DBStore extends BaseStore
 				Cache::setModel('config-container-'.$this->container()->name, $this->containerModel);
 			}
 			break;
-				
+
 			default:
 			$ret_val = $this->containerModel->sections[$section];
 			break;
@@ -480,7 +480,7 @@ class DBStore extends BaseStore
 	{
 		$ret_val = null;
 		$sectionModel = $this->section($section, null, false);
-		
+
 		if(!($sectionModel instanceof Section))
 			return null;
 		else if(isset($this->containerModel->values[$id])) {
@@ -489,7 +489,7 @@ class DBStore extends BaseStore
 			$ret_val = $this->containerModel->values[$key];
 		} else {
 			$where = is_numeric($id) ? ['id' => $id] : ['name' => $id];
-		
+
 			$where['sectionid'] = $sectionModel->getId();
 			$where['containerid'] = $sectionModel->containerid;
 			$query = Value::find()
@@ -498,12 +498,12 @@ class DBStore extends BaseStore
 				$query->asArray();
 			$ret_val = $query->one();
 		}
-		
+
 		if(!$asArray && is_array($ret_val))
 			$ret_val = new Value($ret_val);
 		return $ret_val;
 	}
-	
+
 	/**
 	 * Get the return message for a model
 	 * @param string $template The tokeniczed string using %token% format
@@ -521,12 +521,12 @@ class DBStore extends BaseStore
 			$section = $model->name;
 			$container = $this->container()->name;
 			break;
-			
+
 			case $model instanceof Container:
 			$container = $model->name;
 			$section = '';
 			break;
-			
+
 			default:
 			$section = $model->getSection()->one()->name;
 			$container = $this->container()->name;
@@ -550,10 +550,10 @@ class DBStore extends BaseStore
 				$model->name,
 				$section,
 				$container
-				
+
 			], $template);
 	}
-	 
+
 	private static function hasNew()
 	{
 		if(!isset(self::$hasNew))

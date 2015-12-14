@@ -19,7 +19,7 @@ use nitm\models\configer\File;
  * See \nitm\components\configer\BaseStore for details
  */
 
-class FileStore extends BaseStore 
+class FileStore extends BaseStore
 {
 	//public data
 	public $is = 'file';
@@ -28,23 +28,23 @@ class FileStore extends BaseStore
 	public $backupExtention = '.cfg.bak';
 	public $commentChar = '#';
 	public $dir = "config";
-	
+
 	protected $defaultDir = 'config/ini/';
-	
+
 	private $_types = ['json' => 'json', 'xml' => 'xml', 'file' => 'cfg'];
-	
+
 	public function init()
 	{
 		parent::init();
 		$this->resource = new File();
 		$this->resource->init();
 	}
-	
+
 	public function prepare($container='config', $getValues=false)
 	{
 		return $this->resource->prepare();
 	}
-	
+
 	public function getContainerBase($container)
 	{
 		$container = explode('.', $container);
@@ -52,7 +52,7 @@ class FileStore extends BaseStore
 		$container = empty($container) ? $this->container : $container;
 		return ($container[0] == '@') ? substr($container, 1, strlen($container)) : $container;
 	}
-	
+
 	/*
 	 * Set the directory for the configuration. Backups will also be stroed here
 	 * @param string $dir
@@ -61,7 +61,7 @@ class FileStore extends BaseStore
 	{
 		$this->dir = (is_dir($dir)) ? $dir : $this->defaultDir;
 	}
-	
+
 	/*
 	 * Write/save the configuration
 	 * @param string $container
@@ -78,28 +78,28 @@ class FileStore extends BaseStore
 		}
 		return $ret_val;
 	}
-	
+
 	public function load($container, $fromSection=false)
 	{
 		$container = $this->resolveDir($this->dir);
 		$container = $container.'.'.$this->_types[$this->type];
 		$ret_val = $this->resource->load($container, $force);
 	}
-	
-	public function read($contents) 
+
+	public function read($contents)
 	{
 		$ret_val = $this->resource->read($contents, $this->commentChar);
 	}
-	
+
 	public function create($name, $value, $container, $isSection=false)
 	{
 		$args = [];
 		$ret_val = [
 			'success' => false,
 		];
-		
+
 		list($name, $section, $hierarchy, $isSection) = $this->resolveNameAndSection($key, true);
-		
+
 		$container = $this->resolveDir($this->dir);
 		$proceed = true;
 		switch(sizeof($hierarchy))
@@ -109,7 +109,7 @@ class FileStore extends BaseStore
 			if(!empty($container))
 				$this->createContainer($container);
 			break;
-		
+
 			default:
 			switch(1)
 			{
@@ -117,7 +117,7 @@ class FileStore extends BaseStore
 				$ret_val['debug'] = "Sorry I cannot create a value to a container that doesn't exist\nPlease try again again by passing the correct parameters to me.\ncreate($key, ".var_export($value).", ".basename($container).", $sess_member) (0);";
 				$proceed = false;
 				break;
-			
+
 				case !$key:
 				$ret_val['debug'] = "Sorry I cannot create an empty key\nPlease try again again by passing the correct parameters to me.\ncreate($key, ".var_export($value, true)."), ".basename($container).", $sess_member) (1);";
 				$proceed = false;
@@ -134,8 +134,8 @@ class FileStore extends BaseStore
 				$success = $this->resource->createSection($name);
 				$message = "Added new section [".$section."] to ".$container;
 				break;
-				
-	
+
+
 				//we're creating a value
 				default:
 				$sucess = $this->resource->createValue($section, $name, $value);
@@ -154,29 +154,29 @@ class FileStore extends BaseStore
 				$ret_val['message'] = $message;
 				$ret_val['success'] = true;
 				break;
-				
+
 			}
 		}
 		return $ret_val;
 	}
-	
+
 	public function update($id, $key, $value, $container, $isSection=false)
 	{
 		$args = [];
 		$ret_val = ['success' => false];
 		$container = $this->resolveDir($this->dir);
-		
+
 		list($name, $section, $hierarchy) = $this->resolveNameAndSection($key, true);
-		
+
 		$proceed = true;
-		
+
 		switch(1)
 		{
 			case !$container:
 			$ret_val['debug'] ="Sorry I cannot update a value in a file that doesn't exist\nPlease try again again by passing the correct parameters to me.\nupdate($key, ".var_export($value).", ".basename($container).", $sess_member) (0);";
 			$proceed = false;
 			break;
-			
+
 			case !$key:
 			$ret_val['debug'] ="Sorry I cannot update an empty key\nPlease try again again by passing the correct parameters to me.\nupdate($key, ".var_export($value, true).", ".basename($container).", $sess_member) (1);";
 			$proceed = false;
@@ -191,9 +191,9 @@ class FileStore extends BaseStore
 				$success = $this->resource->updateSection($section, $value);
 				$message = "Updated the section name from ".$name." to $value";
 				break;
-			
+
 				//no support for updating section names as of yet
-				default:    
+				default:
 				$success = $this->resource->updateValue($section, $name, $name, $value);
 				$message = "Updated the value name from ".$name." to $value";
 				break;
@@ -202,18 +202,18 @@ class FileStore extends BaseStore
 			if($success == 0) {
 				$ret_val['message'] = $message;
 				$ret_val['success'] = true;
-				
+
 			}
 		}
 		return $ret_val;
 	}
-	
+
 	public function delete($id, $key, $container)
-	{	
+	{
 		$args = [];
-		
+
 		list($name, $section, $hierarchy) = $this->resolveNameAndSection($key, true);
-		
+
 		$container = $this->resolveDir($this->dir);
 		$proceed = true;
 		switch(1)
@@ -222,7 +222,7 @@ class FileStore extends BaseStore
 			$ret_val['debug'] = "Sorry I cannot delete a value from a file that doesn't exist\nPlease try again again by passing the correct parameters to me.\delete($key, ".var_export($value, true)."), ".basename($container).", $sess_member) (0);";
 			$proceed = false;
 			break;
-			
+
 			case !$id:
 			$ret_val['debug'] = "Sorry I cannot delete an empty key\nPlease try again again by passing the correct parameters to me.\ndelete($key, ".var_export($value).", ".basename($container).", $sess_member) (1);";
 			$proceed = false;
@@ -239,7 +239,7 @@ class FileStore extends BaseStore
 				$args['args'] = [$name];
 				$message = "Deleted the section ".$name;
 				break;
-				
+
 				//are we deleting a value/line?
 				default:
 				$success = $this->resource->deleteValue($name, $sectionName);
@@ -255,7 +255,7 @@ class FileStore extends BaseStore
 		return $ret_val;
 
 	}
-	
+
 	public function createContainer($name, $in=null)
 	{
 		$ret_val = ["success" => false];
@@ -267,14 +267,14 @@ class FileStore extends BaseStore
 			$ret_val['success'] = true;
 			$ret_val['message'] = "The system was able to create the config file".basename($file);
 			break;
-				
+
 			default:
 			$ret_val['message'] = "The system was unable to create the config file because ".basename($file)." already exists";
 			break;
 		}
 		return $ret_val;
 	}
-	
+
 	public function removeContainer($name, $in=null)
 	{
 		$ret_val = ["success" => false];
@@ -298,7 +298,7 @@ class FileStore extends BaseStore
 			break;
 		}
 	}
-	
+
 	 /*
 	  * Get the container for a given value
 	  * @param string|int $container
@@ -307,7 +307,7 @@ class FileStore extends BaseStore
 	public function container($container)
 	{
 		$containerKey = $this->containerKey($container);
-		
+
 		if(isset(static::$_containers[$containerKey]))
 			$this->containerModel = $ret_val = static::$_containers[$containerKey];
 		else if(Cache::cache()->exists($containerKey)) {
@@ -316,21 +316,21 @@ class FileStore extends BaseStore
 			$construct = is_numeric($section) ? ['id' => $section] : ['name' => $section];
 			$this->containerModel = $ret_val = new File($construct);
 			Cache::setModel($containerKey, [
-				File::className(),
-				array_merge(ArrayHelper::toArray($this->containerModel), [
+				'_class' => File::className(),
+				'_data' => array_merge(ArrayHelper::toArray($this->containerModel), [
 					'values' => ArrayHelper::toArray($this->containerModel->values),
 					'sections' => ArrayHelper::toArray($this->containerModel->sections)
 				])
 			], false, 30);
 		}
 	}
-	
+
 	public function section($section, $container=null, $asArray=true)
 	{
 		$ret_val = null;
 		if(!$this->containerModel)
 			throw new \yii\base\ErrorException("The container model is not set");
-			
+
 		switch(isset($this->container($container)->sections[$section]))
 		{
 			case false:
@@ -338,33 +338,33 @@ class FileStore extends BaseStore
 			{
 				$construct = is_numeric($section) ? ['id' => $section] : ['name' => $section];
 				$construct->container_id = $this->containerModel->id;
-				
+
 				$this->sectionModel = new File($construct);
 				$ret_val = $this->sectionModel;
 				$this->containerModel->sections = array_merge($this->containerModel->sections, [$section => $ret_val]);
 				Cache::setModel($this->containerKey($this->container()->name), $this->containerModel);
 			}
 			break;
-				
+
 			default:
 			$ret_val = $this->containerModel->sections[$section];
 			break;
 		}
 		return $ret_val;
 	}
-	
+
 	public function value($section, $id, $key=null, $asArray=true)
 	{
 		return ArrayHelper::getValue($this->containerModel, 'sections.'.$section.'.'.$id, ArrayHelper::getValue($this->containerModel, 'sections.'.$section.'.'.$key, null));
 	}
-	
+
 	public function getSections($in=null)
 	{
 		$in = ($in == null) ? $this->dir : $in;
 		$ret_val = $this->resource->getNames($in);
 		return $ret_val;
 	}
-	
+
 	public function getContainers($in, $objectsOnly=false)
 	{
 		$in = ($in == null) ? $this->dir : $in;
@@ -372,7 +372,7 @@ class FileStore extends BaseStore
 			static::$_containers = $this->resource->getFiles($in, $objectsOnly);
 		return static::$_containers;
 	}
-	
+
 	/*
 	 * Get the proper path for this directory
 	 * @param string $container
