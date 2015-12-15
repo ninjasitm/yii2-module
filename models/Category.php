@@ -19,9 +19,9 @@ use nitm\helpers\Cache;
 class Category extends Entity
 {
 	public $typeId;
-	
+
 	use \nitm\traits\relations\Category;
-	
+
     /**
      * @inheritdoc
      */
@@ -44,7 +44,7 @@ class Category extends Entity
 			[['parent_ids'], 'filter', 'filter' => [$this, 'setParentIds']]
 		];
     }
-	
+
 	public function scenarios()
 	{
 		return array_merge(parent::scenarios(), [
@@ -67,14 +67,14 @@ class Category extends Entity
             'updated' => Yii::t('app', 'Updated'),
         ];
     }
-	
+
 	public function behaviors()
 	{
 		$behaviors = [
 		];
 		return array_merge(parent::behaviors(), $behaviors);
 	}
-	
+
 	/**
 	 * @param string action
 	 * @param mixed $constrain
@@ -86,7 +86,7 @@ class Category extends Entity
 		$where = is_array($constrain) ? $constrain : ['type_id' => 1];
 		return Category::find()->where($where)->orderBy('slug');
 	}
-	
+
 	/**
 	 * @param string action
 	 * @param mixed $constrain
@@ -94,7 +94,13 @@ class Category extends Entity
 	 */
 	public static function getNav($action=null, $constrain=null)
 	{
-		$categories = static::getCategories($action, $constrain)->all();
+		$cacheKey = 'categories-for-'.static::isWhat();
+		if(Cache::exists($cacheKey))
+			$categories = Cache::get($cacheKey);
+		else {
+			$categories = static::getCategories($action, $constrain)->all();
+			Cache::set($cacheKey, $categories);
+		}
 		switch(sizeof($categories) >= 1)
 		{
 			case true:
@@ -110,7 +116,7 @@ class Category extends Entity
 						'id' => $category['id']
 					];
 					break;
-					
+
 					default:
 					$ret_val[$category['slug']] = [
 						'url' => (is_null($action) ? \Yii::$app->controller->id."/$action/" : ltrim($action, "/"))."/".$category['slug'],
@@ -125,7 +131,7 @@ class Category extends Entity
 				array_unshift($ret_val, $uncategorized);
 			}
 			break;
-			
+
 			default:
 			$ret_val = [
 				[
@@ -144,7 +150,7 @@ class Category extends Entity
 		]);
 		return $ret_val;
 	}
-	
+
 	public function setType()
 	{
 		switch($this->isNewRecord)
@@ -153,18 +159,18 @@ class Category extends Entity
 			$type = static::find()->select('id')->where(['slug' => static::isWhat()])->one();
 			return $type instanceof Category ? $type->id : null;
 			break;
-			
+
 			default:
 			return $this->type_id;
 			break;
 		}
 	}
-	
+
 	public function setParentIds($ids) {
 		$ids = is_array($ids) ? $ids : [$ids];
 		return is_array(array_filter($ids)) ? implode(',', $ids) : null;
 	}
-		
+
 	public function getListViaClass($className=null)
 	{
 		if(!is_null($className) && class_exists($class = ((strpos($className, 'Category') !== false) ? $className : $className.'Category')))
@@ -190,7 +196,7 @@ class Category extends Entity
 			return $ret_val;
 		}
 	}
-	
+
 	/**
 	 * Adds the parents for this model
 	 * ParentMap are specieid in the parent_ids attribute
@@ -215,6 +221,6 @@ class Category extends Entity
 			}
 		}
 		return parent::addParentMap($parents);
-	}	
-	
+	}
+
 }

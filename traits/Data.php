@@ -104,13 +104,14 @@ trait Data {
 		return (int)$this->getAttribute($key[0]);
 	}
 
-	public function hasRelation($name)
+	public function hasRelation($name, $model=null)
 	{
 		$ret_val = null;
+		$model = is_null($model) ? $this : $model;
 		$method = 'get'.$name;
 		try {
-			if($this->hasMethod($method) && (new \ReflectionMethod($this, $method))->isPublic()) {
-				$ret_val = call_user_func([$this, $method]);
+			if($model->hasMethod($method) && (new \ReflectionMethod($model, $method))->isPublic()) {
+				$ret_val = call_user_func([$model, $method]);
 				if(!($ret_val instanceof \yii\db\ActiveQuery))
 					$ret_val = null;
 			}
@@ -304,6 +305,7 @@ trait Data {
 		if(!isset($queryOptions['orderBy']))
 			$queryOptions['orderBy'] = [(is_array($label) ? end($label) : $label) => SORT_ASC];
 
+		$queryOptions['groupBy'] = [$label, 'id'];
 		if(count($ret_val) < self::locateItems($queryOptions, true)) {
 			$items = self::locateItems($queryOptions);
 			switch(count($items) >= 1)

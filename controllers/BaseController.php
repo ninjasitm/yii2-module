@@ -54,7 +54,6 @@ class BaseController extends Controller
 		$this->initMetaTags();
 		$this->initJs();
 		$this->initConfig();
-		//$this->initConfig(@Yii::$app->controller->id);
 		parent::init();
 	}
 

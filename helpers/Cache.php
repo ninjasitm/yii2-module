@@ -121,6 +121,8 @@ class Cache extends Model
 					$model = \Yii::createObject($array['_class']);
 					if(is_array($array['_data']) && count(array_filter($array['_data'])) >= 1) {
 						$ret_val = static::parseAfterGet($array['_data'], $model);
+					} else {
+						$ret_val = $model;
 					}
 				}
 			} else {
@@ -177,6 +179,7 @@ class Cache extends Model
 
 	protected static function parseBeforeSet($model)
 	{
+		$ret_val = $model;
 		if(is_array($model)) {
 			foreach($model as $m)
 				$ret_val[] = static::parseBeforeSet($m);
@@ -190,7 +193,7 @@ class Cache extends Model
 			$ret_val = $attributes;
 			foreach($attributes as $attribute=>$value)
 			{
-				if(($relation = $model->hasRelation($attribute)) !== null) {
+				if(($relation = \nitm\models\Data::hasRelation($attribute, $model)) !== null) {
 					$ret_val[$attribute] = [
 						'_relation' => true,
 						'_many' => is_array($value),

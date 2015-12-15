@@ -127,6 +127,11 @@ class Logger extends \yii\log\Logger
 	public function process($event)
 	{
 		$action = $event->sender->getScenario();
+		try {
+			$changedAttributes = $event->changedAttributes;
+		} catch(\Exception $e) {
+			$changedAttributes = '';
+		}
 		$event->data = array_merge((array)$event->data,  [
 			'internal_category' => $this->getCategoryText(ArrayHelper::getValue($event->data, 'internal_category', null), $event->sender->getScenario()),
 			'level' => $this->getlevel($event->sender->getScenario()),
@@ -137,7 +142,7 @@ class Logger extends \yii\log\Logger
 			'message' => implode(' ', [
 				"Succesfully {$action}d",
 				$event->sender->isWhat(),
-				': '.$event->sender->title()."[".$event->sender->getId()."]\n\nChanged values: \n".json_encode(ArrayHelper::getValue($event, 'changedAttributes', ''), JSON_PRETTY_PRINT)
+				': '.$event->sender->title()."[".$event->sender->getId()."]\n\nChanged values: \n".json_encode($changedAttributes, JSON_PRETTY_PRINT)
 			])
 		]);
 		$event->handled = $this->log($event->data, ArrayHelper::remove($event->data, 'collectionName', null));

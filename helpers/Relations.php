@@ -19,21 +19,17 @@ class Relations
 	 */
 	public static function getRelatedRecord($name, &$model, $className=null, $options=[], $array=false)
 	{
-		switch(1)
-		{
-			case isset($model->getRelatedRecords()[$name]) && !empty($model->getRelatedRecords()[$name]):
-			$ret_val = $model->getRelatedRecords()[$name];
+		$ret_val = ArrayHelper::getValue($model->getRelatedRecords(), $name, '__noRel__');
+		if($ret_val !== '__noRel__' && !empty($ret_val) && !is_null($ret_val)) {
 			/**
 			 * A little hack for elasticSearch since the relations are stored as nested objects
 			 * Pulling relations directly doesn't always work. need to investigate
 			 */
 			if(is_object($ret_val) && $model->hasAttribute($name) && is_array($model->$name)) $ret_val->load($model->$name, false);
-			break;
-
+		} else {
 			/**
 			 * This provides support for ElasticSearch which doesn't properly populate records. May be bad codding but for now this works
 			 */
-			default:
 			if(isset($className) && class_exists((string)$className))
 			{
 				if($model->hasAttribute($name) || $model->hasProperty($name) && (count($options) == 0)) {
@@ -70,7 +66,6 @@ class Relations
 			else
 				$ret_val = null;
 			$model->populateRelation($name, $ret_val);
-			break;
 		}
 		return $ret_val = $array == true ? (array)$ret_val : $ret_val;
 	}
