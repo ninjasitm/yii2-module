@@ -117,6 +117,11 @@ class Cache extends Model
 			case true:
 			$array = static::get($key);
 			if(is_array($array)) {
+				if(!isset($array['_class'])) {
+					echo $key;
+					print_r($array);
+					exit;
+				}
 				if(class_exists($array['_class'])) {
 					$model = \Yii::createObject($array['_class']);
 					if(is_array($array['_data']) && count(array_filter($array['_data'])) >= 1) {
@@ -166,7 +171,10 @@ class Cache extends Model
 				}
 				break;
 			}
-			static::set($key, [$modelClass, ArrayHelper::toArray($ret_val)], 300);
+			static::set($key, [
+				'_class' => $modelClass,
+				'_data' => ArrayHelper::toArray($ret_val)
+			], 300);
 			break;
 		}
 		if(is_array($ret_val) && (count($ret_val)) == 1 && !$asArray)
@@ -181,8 +189,8 @@ class Cache extends Model
 	{
 		$ret_val = $model;
 		if(is_array($model)) {
-			foreach($model as $m)
-				$ret_val[] = static::parseBeforeSet($m);
+			foreach($model as $idx=>$m)
+				$ret_val[$idx] = static::parseBeforeSet($m);
 		} else {
 			if(!is_object($model)) {
 				return $model;
@@ -230,6 +238,9 @@ class Cache extends Model
 						//If not it's a single related object. Create the object and the poplate any related information
 						$model->populateRelation($attribute, static::parseAfterGet($value['_data'], \Yii::createObject($value['_class'])));
 					}
+				//Some caches support whole objects for the model. In that case simply set the model to the value and return it.
+				} else if(is_object($value)) {
+					$model = $value;
 				} else {
 					//We're populating properties for a regular object | model | attribute
 					if(is_array($value) && ($modelClass = ArrayHelper::getValue($value, '_class')) !== false) {
@@ -237,13 +248,19 @@ class Cache extends Model
 							$model = \Yii::createObject($modelClass, $value);
 							$value = $model;
 						} catch (\Exception $e) {
+							\Yii::warning($e);
 						}
 					}
 
 					if($model->hasAttribute($attribute))
 						$model->setAttribute($attribute, $value);
-					else if($model->hasProperty($attribute))
-						$model->$attribute = $value;
+					else if($model->hasProperty($attribute)){
+						try {
+							$model->$attribute = $value;
+						} catch (\Exception $e) {
+							\Yii::warning($e);
+						}
+					}
 				}
 			}
 			return $model;

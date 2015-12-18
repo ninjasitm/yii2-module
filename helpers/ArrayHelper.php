@@ -277,7 +277,7 @@ class ArrayHelper extends BaseArrayHelper
 				else if(is_array($getter)) {
 					$d = $d instanceof \yii\data\Arrayable ? $d->toArray() : (array)$d;
 					$ret_val[$id] = array_intersect_key($d, $getter);
-				} else
+				} else if(!is_null($d) || !empty($d))
 					$ret_val[$id] = $d;
 			}
 		return $ret_val;
