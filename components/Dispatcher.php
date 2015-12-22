@@ -140,6 +140,9 @@ class Dispatcher extends \yii\base\Component
 		if($event->handled)
 			return;
 
+		if($event->hasProperty('result'))
+			$event->data = $event->result;
+
 		if($event->sender->hasMethod('getAlertOptions'))
 			$event->data = array_replace_recursive($event->sender->getAlertOptions($event), (array)$event->data);
 
@@ -169,6 +172,9 @@ class Dispatcher extends \yii\base\Component
 	 */
 	public function prepare($event)
 	{
+		if($event->hasProperty('result'))
+			$event->data = $event->result;
+			
 		$this->store()->processEventData($event, $this);
 		$basedOn = array_merge(
 			(array)ArrayHelper::remove($this->_alertStack, $this->store()->getKey($this->_event->sender)),

@@ -78,8 +78,7 @@ class Logger extends \yii\log\Logger
 			$this->dispatcher = \Yii::$app->log;
 			$this->dispatcher->targets = $targets;
 			\Yii::$app->log->targets = array_merge(\Yii::$app->log->targets, $targets);
-		}
-		else if(is_array($this->dispatcher))
+		} else if(is_array($this->dispatcher))
 		{
 			$this->dispatcher = \Yii::createObject(array_merge([
 				'class' => '\yii\log\Dispatcher'
@@ -126,13 +125,15 @@ class Logger extends \yii\log\Logger
 	  */
 	public function process($event)
 	{
+		if($event->hasProperty('result'))
+			$event->data = $event->result;
 		$action = $event->sender->getScenario();
 		try {
 			$changedAttributes = $event->changedAttributes;
 		} catch(\Exception $e) {
 			$changedAttributes = '';
 		}
-		$event->data = array_merge((array)$event->data,  [
+		$event->data = array_merge([
 			'internal_category' => $this->getCategoryText(ArrayHelper::getValue($event->data, 'internal_category', null), $event->sender->getScenario()),
 			'level' => $this->getlevel($event->sender->getScenario()),
 			'category' => $this->getCategory(ArrayHelper::getValue($event->data, 'category', null), $event->sender->getScenario()),
@@ -142,9 +143,9 @@ class Logger extends \yii\log\Logger
 			'message' => implode(' ', [
 				"Succesfully {$action}d",
 				$event->sender->isWhat(),
-				': '.$event->sender->title()."[".$event->sender->getId()."]\n\nChanged values: \n".json_encode($changedAttributes, JSON_PRETTY_PRINT)
+				':'.$event->sender->title()."[".$event->sender->getId()."]\n\nChanged values: \n".json_encode($changedAttributes, JSON_PRETTY_PRINT)
 			])
-		]);
+		], (array)$event->data);
 		$event->handled = $this->log($event->data, ArrayHelper::remove($event->data, 'collectionName', null));
 		return $event->handled;
 	}
@@ -215,12 +216,16 @@ class Logger extends \yii\log\Logger
 			$keys = array_flip([
 				'message', 'level', 'category', 'timestamp', 'internal_category'
 			]);
-			$array = array_replace($keys, array_intersect_key((array)$array, $keys)) + (array)array_diff_key((array)$array, $keys) + $this->getBaseInfo();
+
+			$array = array_merge(array_replace($keys, 		array_intersect_key((array)$array, $keys)),
+				$this->getBaseInfo(),
+				(array)array_diff_key((array)$array, $keys),
+				$this->getExtraInfo());
 
 			if(is_string($collectionName))
-				\Yii::$app->get('log')->getLogger()->messages[$collectionName.':'.uniqid()] = $array;
+				$this->messages[$collectionName.':'.uniqid()] = $array;
 			else
-				\Yii::$app->get('log')->getLogger()->messages[] = $array;
+				$this->messages[] = $array;
 		}
 		return $this;
 	}
@@ -245,6 +250,22 @@ class Logger extends \yii\log\Logger
 	 */
 	protected function getBaseInfo()
 	{
+		return [
+			'action' => 'log',
+			'db_name' => \nitm\models\DB::getDefaultDbName(),
+			'table_name' => 'logger',
+			'user' => $this->currentUser->username,
+			'user_id' => $this->currentUser->getId(),
+			'error_level' => 0
+		];
+	}
+
+	/**
+	 * Return some general log info
+	 * @return array
+	 */
+	protected function getExtraInfo()
+	{
 		$parser = (\UAParser\Parser::create());
 		$r = $parser->parse(!\Yii::$app->request->userAgent ? $_SERVER['SERVER_SOFTWARE'] : \Yii::$app->request->userAgent);
 		return [
@@ -255,14 +276,8 @@ class Logger extends \yii\log\Logger
 			'device_family' => $r->device->family,
 			'request_method' => \Yii::$app->request->method,
 			'user_agent' => \Yii::$app->request->userAgent,
-			'action' => 'log',
-			'db_name' => \nitm\models\DB::getDefaultDbName(),
-			'table_name' => 'logger',
-			'user' => $this->currentUser->username,
-			'user_id' => $this->currentUser->getId(),
 			'ip_addr' => !\Yii::$app->request->userIp ? 'localhost' : \Yii::$app->request->userIp,
 			'host' => !\Yii::$app->request->userHost ? 'localhost' : \Yii::$app->request->userHost,
-			'error_level' => 0
 		];
 	}
 }

@@ -51,6 +51,8 @@ class Relations
 					break;
 
 					default:
+					if(is_callable($attributes))
+						$attributes = call_user_func($attributes);
 					if(is_array($attributes) && (!is_array(current($attributes)) && !is_object(current($attributes))))
 						$ret_val = current($attributes);
 					if(is_array($attributes) && isset($attributes['construct'])) {
@@ -58,13 +60,16 @@ class Relations
 						$ret_val = is_string($className) ? new $className($construct) : $attributes;
 					} else if(is_object($attributes))
 						$ret_val = $attributes;
-					else
-						$ret_val = new $className;
+					else {
+						$ret_val = new $className();
+						$ret_val->setAttributes($attributes);
+					}
 					break;
 				}
 			}
 			else
 				$ret_val = null;
+			print_r($ret_val);
 			$model->populateRelation($name, $ret_val);
 		}
 		return $ret_val = $array == true ? (array)$ret_val : $ret_val;
@@ -86,8 +91,9 @@ class Relations
 			$model = $this;
 
 		$many = $many === true ? true : false;
+		$relationQuery = $model->getRelation($relation);
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
-		$modelClass = is_null($modelClass) ? $model->getRelation($relation)->modelClass : $modelClass;
+		$modelClass = is_null($modelClass) ? $relationQuery->modelClass : $modelClass;
 		$key = Cache::cacheKey($model, $idKey, $relation, $many);
 
 		if(Cache::exists($key)) {

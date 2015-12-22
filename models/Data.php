@@ -35,7 +35,6 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	//public members
 	public $initLocalConfig = true;
 	public $initLocalConfigOnEmpty = false;
-	public $unique;
 	public $requestModel;
 	public static $initClassConfig = true;
 	public static $initClassConfigOnEmpty = false;

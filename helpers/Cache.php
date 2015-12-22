@@ -192,6 +192,9 @@ class Cache extends Model
 			foreach($model as $idx=>$m)
 				$ret_val[$idx] = static::parseBeforeSet($m);
 		} else {
+			if(is_callable($model)) {
+				$model = call_user_func($model);
+			}
 			if(!is_object($model)) {
 				return $model;
 			}
