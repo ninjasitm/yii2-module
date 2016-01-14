@@ -769,7 +769,7 @@ class Configer extends Model
 			'value' => $value,
 			'container' => $container
 		]));
-		$uriOf = $this->uriOf($key);
+		$uriOf = $this->uriOf($key ?: $value);
 		$ret_val = [
 			"success" => false,
 			"message" => "Couldn't create: $key [$value] in $container",
@@ -897,10 +897,9 @@ class Configer extends Model
 	 * @param string $in
 	 * @return mixed result
 	 */
-	public function createContainer(string $name, string $in=null)
+	public function createContainer($name, $in=null)
 	{
 		$ret_val = ["success" => false, 'class' => 'error'];
-		$ret_val['message'] = "I ".$ret_val['message'];
 		$result = $this->_store->createContainer($name, $in);
 		if($result['success'])
 		{
@@ -910,6 +909,7 @@ class Configer extends Model
 			]);
 			$this->trigger('afterCreate');
 			$ret_val['class'] = $this->classes['success'];
+			$ret_val['message'] = "I created a new config container: ".$name;
 		}
 		$this->config('current.action', $ret_val);
 		return $ret_val;

@@ -7,6 +7,8 @@
 
 namespace nitm\components\log;
 
+use nitm\helpers\ArrayHelper;
+
 /**
  * DbTarget stores log messages in a database table.
  *
@@ -37,7 +39,15 @@ class DbTarget extends \yii\log\DbTarget
     {
         $tableName = $this->db->quoteTableName($this->logTable);
 		$message = [];
+		$toInsert = [];
         foreach ($this->messages as $message) {
+			//If the entry is shorter than standard length then ignore it
+			if(count($message) < 6)
+				continue;
+			$message = $this->restoreFields($message);
+			//If we couldn't restore the entry then ignore it
+			if($message == null || !ArrayHelper::isAssociative($message))
+				continue;
 
             if (isset($message['message']) && !is_string($message['message'])) {
                 // exceptions may not be serializable if in the call stack somewhere is a Closure
@@ -49,14 +59,39 @@ class DbTarget extends \yii\log\DbTarget
             }
 
 			$message['timestamp'] = date('Y-m-d H:i:s', (!isset($message['timestamp']) ? strtotime('now') : $message['timestamp']));
-			$message['log_time'] = $message['timestamp'];
 			$dbEntry = new \nitm\models\log\DbEntry();
 			$dbEntry->load($message, '');
-			try {
-				$dbEntry->getDb()->createCommand()->insert($dbEntry->tableName(), $dbEntry->getDirtyAttributes())->execute();
-			} catch (\Exception $e) {
-				throw ($e);
+			if($dbEntry->validate()) {
+				$toInsert[] = $dbEntry->getDirtyAttributes();
+			} else {
+				throw new \yii\base\ErrorException(json_encode($dbEntry->getErrors()));
 			}
         }
+		if($toInsert != []) {
+			try {
+				$dbEntry->getDb()->createCommand()->batchInsert($dbEntry->tableName(), array_keys(current($toInsert)), $toInsert)->execute();
+			} catch (\Exception $e) {
+				throw $e;
+			}
+		}
+		$this->messages = [];
     }
+
+	/**
+	 * Restore a log message by slicing the first half of the message with the appropriary fields
+	 */
+	protected function restoreFields($entry)
+	{
+		$fields = [
+			'message', 'level', 'category', 'timestamp', 'internal_category'
+		];
+
+		$indexedFields = array_slice($entry, 0, sizeof($fields));
+		$assocFields = array_slice($entry, sizeof($fields));
+
+		if(count($fields) == count($indexedFields))
+			return array_combine($fields, $indexedFields) + $assocFields;
+		else
+			return null;
+	}
 }

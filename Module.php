@@ -148,14 +148,15 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 		if($this->enableConfigAdmin) {
 			$routeHelper->addRules('configuration', [
 				'config-index' => ['configuration' => 'configuration/index'],
-				'config-engine' => ['configuration/load/<engine:\w+>' => 'configuration'],
-				'config-container' => ['configuration/load/<engine:\w+>/<container:\w+>' => 'configuration']
+				'config-engine' => ['configuration/load/<engine>' => 'configuration'],
+				'config-container' => ['configuration/load/<engine:\w+>/<container>' => 'configuration']
 			]);
 			$parameters += [
 				'config-index' => ['configuration'],
 				'config-engine' => ['configuration'],
 				'config-container' => ['configuration']
 			];
+			$parameters['action-only'] = $routeHelper->getControllerMap(['configuration']);
 		}
 		if($this->enableLogs) {
 			$routeHelper->addRules('log', [
@@ -208,7 +209,6 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	{
 		if($this->canLog($level)) {
 			try {
-
 				$collectionName = $this->getCollectionName($options);
 				$options = array_merge([
 					'db_name' => \nitm\models\DB::getDbName(),
@@ -216,12 +216,9 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 					'timestamp' => time(),
 					'collectionName' => $collectionName
 				], $options);
-				$this->logger->trigger(Logger::EVENT_PROCESS, new \yii\base\Event([
-					'sender' => $sender,
-					'data' => $options
-				]));
+				$this->logger->log($options, $collectionName);
 			} catch (\Exception $e) {
-				if(defined("YII_DEBUG"))
+				//if(defined("YII_DEBUG"))
 					throw $e;
 			}
 		}

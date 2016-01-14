@@ -39,6 +39,9 @@ class Relations
 				switch($array === true)
 				{
 					case true:
+					if(is_callable($attributes)) {
+						$attributes = call_user_func($attributes);
+					}
 					if(is_array($attributes) && (!is_array(current($attributes)) && !is_object(current($attributes))))
 						$ret_val = array_map(function ($properties) use ($className) {
 							$model = new $className();
@@ -51,8 +54,9 @@ class Relations
 					break;
 
 					default:
-					if(is_callable($attributes))
+					if(is_callable($attributes)) {
 						$attributes = call_user_func($attributes);
+					}
 					if(is_array($attributes) && (!is_array(current($attributes)) && !is_object(current($attributes))))
 						$ret_val = current($attributes);
 					if(is_array($attributes) && isset($attributes['construct'])) {
@@ -69,7 +73,6 @@ class Relations
 			}
 			else
 				$ret_val = null;
-			print_r($ret_val);
 			$model->populateRelation($name, $ret_val);
 		}
 		return $ret_val = $array == true ? (array)$ret_val : $ret_val;

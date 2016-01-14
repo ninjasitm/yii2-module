@@ -128,6 +128,9 @@ class Logger extends \yii\log\Logger
 		if($event->hasProperty('result'))
 			$event->data = $event->result;
 		$action = $event->sender->getScenario();
+
+		if(!$this->canLog(ArrayHelper::getValue($event->data, 'level', null)))
+			return;
 		try {
 			$changedAttributes = $event->changedAttributes;
 		} catch(\Exception $e) {
@@ -150,24 +153,40 @@ class Logger extends \yii\log\Logger
 		return $event->handled;
 	}
 
+	/**
+	 * Base on the provided scenario determine a log level
+	 * @param  string $scenario The model scenario
+	 * levels
+	 * 	0 - Errors/Critical
+	 * 	1 - Warnings
+	 * 	2 - Informational
+	 * 	3 - Trace information
+	 * 	4 - Application level actions
+	 * 	5 - Application level information
+	 * 	6 - Application level trace
+	 * @return int          The log leve
+	 */
 	protected function getLevel($scenario)
 	{
-		$ret_val = 1;
+		$ret_val = 6;
 		switch($scenario)
 		{
 			case 'create':
-			case 'update':
 			case 'delete':
+			$ret_val = 5;
+			break;
+
 			case 'disable':
 			case 'resolve':
 			case 'close':
 			case 'complete':
 			case 'approve':
-			$ret_val = 3;
+			case 'update':
+			$ret_val = 6;
 			break;
 
 			case 'view':
-			$ret_val = 2;
+			$ret_val = 7;
 			break;
 		}
 		return $ret_val;

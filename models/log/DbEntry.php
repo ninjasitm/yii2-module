@@ -43,8 +43,8 @@ class DbEntry extends \nitm\models\log\Entry
             [['ip_addr', 'message', 'prefix', 'category'], 'string'],
             [['user_id', 'level'], 'integer'],
             [['log_time'], 'safe'],
-            [['host'], 'string', 'max' => 128],
-            [['action', 'db_name', 'table_name'], 'string', 'max' => 24],
+            [['host', 'action'], 'string', 'max' => 128],
+            [['db_name', 'table_name'], 'string', 'max' => 64],
             [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::className(), 'targetAttribute' => ['user_id' => 'id']],
         ];
     }

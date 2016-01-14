@@ -52,6 +52,14 @@ trait EventTraits {
 		];
 	}
 
+	protected function attachToThis($events)
+	{
+		//Setup the event handlers for specified events
+		foreach($events as $event=>$handler) {
+			$this->on($event, $handler);
+		}
+	}
+
 	protected function attachToEvents($events)
 	{
 		if($this->eventClassMap === false)
@@ -61,9 +69,8 @@ trait EventTraits {
 			$this->initEventClassMap();
 		}
 
-		//Setup the event handlers for specified events
-		foreach($events as $event=>$handler)
-			$this->on($event, $handler);
+		$this->attachToThis($events);
+
 		foreach ($this->eventClassMap as $k=>$v)
 		{
 			switch(1)
@@ -82,14 +89,13 @@ trait EventTraits {
 			if(class_exists($class)) {
 				foreach($events as $type=>$group) {
 					foreach($group as $e) {
-						Event::on($class::className(), $e, function ($event) {
+						Event::on($class::className(), $e, function ($event) use($class) {
 							$trigger = $event->data['group'];
 							\Yii::trace("Handling [$trigger on $event->name] event for ".get_class($event->sender)."\n\n".json_encode($event, JSON_PRETTY_PRINT));
 							unset($event->data['group']);
-							$this->trigger($trigger, new \yii\base\Event([
+							Event::trigger($event->sender, $trigger, new \yii\base\ActionEvent([
 								'data' => $event->data,
-								'sender' => $event->sender,
-								'name' => $event->name
+								'result' => $event->data
 							]));
 						}, ['group' => $type]);
 					}

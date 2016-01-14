@@ -64,6 +64,7 @@ trait LogTarget
 			$this->exportInterval = 0;
 			$this->export();
 			$this->exportInterval = $oldExportInterval;
+			$this->messages = [];
 		}
 	}
 }

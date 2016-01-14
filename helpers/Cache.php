@@ -192,10 +192,13 @@ class Cache extends Model
 			foreach($model as $idx=>$m)
 				$ret_val[$idx] = static::parseBeforeSet($m);
 		} else {
-			if(is_callable($model)) {
+			if(is_object($model) && (get_class($model) == 'Closure')) {
+				$model = $model->__invoke();
+			}else if(is_callable($model)) {
 				$model = call_user_func($model);
 			}
-			if(!is_object($model)) {
+
+			if(!is_object($model) || (get_class($model) === 'Closure')) {
 				return $model;
 			}
 			$attributes = $model->getAttributes();
@@ -246,7 +249,7 @@ class Cache extends Model
 					$model = $value;
 				} else {
 					//We're populating properties for a regular object | model | attribute
-					if(is_array($value) && ($modelClass = ArrayHelper::getValue($value, '_class')) !== false) {
+					if(is_array($value) && !is_null($modelClass) && ($modelClass = ArrayHelper::getValue($value, '_class')) !== false) {
 						try {
 							$model = \Yii::createObject($modelClass, $value);
 							$value = $model;
