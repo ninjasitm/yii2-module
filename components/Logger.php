@@ -149,7 +149,7 @@ class Logger extends \yii\log\Logger
 				':'.$event->sender->title()."[".$event->sender->getId()."]\n\nChanged values: \n".json_encode($changedAttributes, JSON_PRETTY_PRINT)
 			])
 		], (array)$event->data);
-		$event->handled = $this->log($event->data, ArrayHelper::remove($event->data, 'collectionName', null));
+		$event->handled = $this->log($event->data, $event->data['level'], $event->data['category'], ArrayHelper::remove($event->data, 'collectionName', null));
 		return $event->handled;
 	}
 
@@ -228,7 +228,7 @@ class Logger extends \yii\log\Logger
 	 * @param string $collectionName
 	 * @return Logger $this
 	 */
-	public function log($array, $collectionName=null)
+	public function log($array, $level, $category='application', $collectionName=null)
 	{
 		if(is_array($array) && $array != [])
 		{

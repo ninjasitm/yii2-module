@@ -27,8 +27,6 @@ class Form extends Behavior
 				case true:
 				$model->setScenario($options['scenario']);
 				$options['modelOptions'] = (isset($options['modelOptions']) && is_array($options['modelOptions'])) ? $options['modelOptions'] : null;
-				$model->requestModel = new $options['modelClass']($options['modelOptions']);
-				$model->requestModel->id = @$options['id'];
 				//this means we found our object
 				switch(ltrim($options['modelClass'], '\\'))
 				{
@@ -46,9 +44,8 @@ class Form extends Behavior
 
 					default:
 					//Get the data according to get$options['param'] functions
-					$model->requestModel->queryOptions['limit'] = 1;
-					$model->requestModel->queryOptions[$model->requestModel->primaryKey()[0]] = $model->requestModel->getId();
-					$model = $model->requestModel->find()->one();
+					$class = $model->className();
+					$model = $class::findOne($options['id']);
 					if(!$model)
 						$model = new $options['modelClass'](@$options['construct']);
 					else {
@@ -139,9 +136,7 @@ class Form extends Behavior
 						}
 					}
 					else
-					{
 						$ret_val['form'] = $formArgs;
-					}
 					$ret_val['success'] = true;
 					$ret_val['action'] = $options['param'];
 					break;
@@ -150,6 +145,7 @@ class Form extends Behavior
 			}
 			break;
 		}
+
 		return $ret_val;
 	}
 
@@ -168,7 +164,7 @@ class Form extends Behavior
 
 	public static function getDataProvider($model, $options)
 	{
-		$ret_val = new \yii\data\ArrayDataProvider;
+		$ret_val = new \yii\data\ArrayDataProvider(ArrayHelper::getValue($options, 'provider.construct', []));
 		if(!isset($options['provider']))
 			return $ret_val;
 
@@ -180,21 +176,25 @@ class Form extends Behavior
 			{
 				if(is_callable($property))
 					$object = call_user_func($property, $object);
-				else if(is_object($property))
+				else if(is_object($property) && $property->hasMethod($func))
 					$object = call_user_func([$property, $func], $object);
-				else if(is_object($object) && $object->hasMethod($property))
+				else if(is_object($object) && is_string($property) && $object->hasMethod($property))
 					$object = call_user_func_array([$object, $property], isset($options['args']) ? $options['args'] : []);
 				else if(is_object($object) && $object->hasAttribute($property))
 					$object = $object->$property;
+				else if(is_object($property) && $property->hasAttribute($func))
+					$object = $property->$func;
 			}
 			$ret_val->setModels((array)$object);
 			break;
 
 			default:
-			if($model->hasMethod($options['provider']) || (isset($options['force']) && $options['force'] == true))
+			if($model->hasMethod($options['provider']) || ArrayHelper::getValue($options, 'force', false) == true)
 				$ret_val->setModels(call_user_func_array([$model, $options['provider']], (array)@$options['args']));
+			else if(is_callable($options['provider']))
+				$ret_val->setModels(call_user_func_array($options['provider'], $model));
 			else if($model->hasAttribute($options['provider']) || $model->hasProperty($options['provider']))
-					$options['dataProvider']->setModels((array)$model->getAttribute($options['provider']));
+					$ret_val->setModels((array)$model->getAttribute($options['provider']));
 			break;
 		}
 		return $ret_val;

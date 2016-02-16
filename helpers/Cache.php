@@ -242,7 +242,8 @@ class Cache extends Model
 						$model->populateRelation($attribute, static::parseAfterGet( $value['_data'], \Yii::createObject($value['_class'])));
 					} else {
 						//If not it's a single related object. Create the object and the poplate any related information
-						$model->populateRelation($attribute, static::parseAfterGet($value['_data'], \Yii::createObject($value['_class'])));
+						$object = \Yii::createObject($value['_class']);
+						$model->populateRelation($attribute, static::parseAfterGet($value['_data'], $object));
 					}
 				//Some caches support whole objects for the model. In that case simply set the model to the value and return it.
 				} else if(is_object($value)) {

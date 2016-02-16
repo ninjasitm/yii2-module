@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * Base Data getter/operation class
+ * @package mhdevnet/yii2-module
+ */
+
 namespace nitm\models;
 
 use Yii;
@@ -9,20 +14,6 @@ use yii\db\ActiveQuery;
 use nitm\helpers\ArrayHelper;
 use ReflectionClass;
 
-/**
- * Base Data getter/operation class
- * @package common\models
- *
- * @property integer $id
- * @property date $added
- * @property date $edited
- * @property author $author
- * @property integer $editor
- * @property integer $edits
- * @property array $settings
- * @property array $filter
- */
-
 class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 {
 	use \nitm\traits\Configer,
@@ -30,34 +21,22 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	\nitm\traits\Relations,
 	\nitm\traits\Cache,
 	\nitm\traits\Data,
+	\nitm\traits\DB,
+	\nitm\traits\Parents,
+	\nitm\traits\Log,
 	\nitm\traits\Alerts;
 
 	//public members
 	public $initLocalConfig = true;
 	public $initLocalConfigOnEmpty = false;
-	public $requestModel;
+
 	public static $initClassConfig = true;
 	public static $initClassConfigOnEmpty = false;
-	public static $active = [
-		'driver' => 'mysql',
-		'db' => [
-			'name' => null
-		],
-		'table' => [
-			'name' => null
-		]
-	];
-	public static $old = [
-		'db' => [
-			'name' => null
-		],
-		'table' => [
-			'name' => null
-		]
-	];
 
-	protected $connection;
 	protected static $supported;
+
+	//Event
+	const AFTER_ADD_PARENT_MAP = 'afterAddParentMap';
 
 	//private members
 
@@ -181,15 +160,10 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	public function afterSave($insert, $attributes)
 	{
 		/**
-		 * Commit the logs after this model is done saving
-		 */
-		$this->commitLog();
-
-		/**
 		 * If this has parents specified then check and add them accordingly
 		 */
-		if(isset($attributes['parent_ids']))
-			$this->addParentMap();
+		if(!empty($this->parent_ids))
+			$this->addParentMap($this->parent_ids);
 		return parent::afterSave($insert, $attributes);
 	}
 
@@ -217,371 +191,5 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		}
 		return (isset($thisSupports[$what]) &&  ($thisSupports[$what] == true));
 	}
-
-	/*
-	 * Change the database login information
-	 * @param string $db_host
-	 * @param string $db_user
-	 * @param string $db_pass
-	 */
-	public function changeLogin($db_host=NULL, $db_user=NULL, $db_pass=NULL)
-	{
-		$this->host = ($db_host != NULL) ? $db_host : 'localhost';
-		$this->username = ($db_user != NULL) ? $db_user : \Yii::$app->params['components.db']['username'];
-		$this->password = ($db_pass != NULL) ? $db_pass : \Yii::$app->params['components.db']['password'];
-	}
-
-	/*
-	 * set the current table
-	 * @param string $table
-	 * @return boolean
-	 */
-	public function setTable($table=null)
-	{
-		$ret_val = false;
-		if(!empty($table))
-		{
-			switch($table)
-			{
-				case DB::NULL:
-				case null:
-				static::$active['table']['name'] = '';
-				break;
-
-				default:
-				static::$active['table']['name'] = $table;
-				$this->tableName = $table;
-				break;
-			}
-			$ret_val = true;
-		}
-		return $ret_val;
-	}
-
-	/*
-	 * Remove the second db component
-	 */
-	public function clearDb()
-	{
-		static::$connection = null;
-		static::setDb();
-	}
-
-	/**
-	 * Returns the database connection used by this AR class.
-	 * By default, the "db" application component is used as the  database connection.
-	 * You may override this method if you want to use a different database connection.
-	 * @return Connection the database connection used by this AR class.
-	 */
-	public static function getDb()
-	{
-		$ret_val = \Yii::$app->getDb();
-		switch(\Yii::$app->has('db2'))
-		{
-			case true:
-			switch(\Yii::$app->get('db2') instanceof \yii\db\Connection)
-			{
-				case true:
-				$ret_val = \Yii::$app->get('db2');
-				break;
-			}
-			break;
-
-			default:
-			$ret_val = \Yii::$app->get('db');
-			break;
-		}
-		return $ret_val;
-	}
-
-	/*
-	 * set the current database
-	 * @param string $db
-	 * @param string $table
-	 * @param bolean force the connection
-	 * @return boolean
-	 */
-	public function setDb($db='__default__', $table=null, $force=false)
-	{
-		$ret_val = false;
-		switch($db)
-		{
-			case '__default__':
-			Yii::$app->set('db2', static::getConnection($this->username, $this->password, $this->host));
-			static::$active = array();
-			break;
-
- 			default:
-			switch(!empty($db) && ($force || ($db != static::$active['db']['name'])))
-			{
-				case true:
-				static::$active['db']['name'] = $db;
-				switch(empty(static::$active['driver']))
-				{
-					case true:
-					throw new \yii\base\ErrorException("Invalid driver and host parameters. Please call ".$this->className()."->changeLogin to change host and conneciton info");
-					break;
-
-					default:
-					Yii::$app->set('db2', static::getConnection($this->username, $this->password, $this->host));
-					break;
-				}
-				break;
-			}
-			break;
-		}
-		if(!empty($table))
-		{
-			$ret_val = static::setTable($table);
-		}
-		return $ret_val;
-	}
-
-	/*
-	 * Temporarily change the database or table for operation
-	 * @param string $db
-	 * @param string $table
-	 */
-	public function changeDb($db, $table=null)
-	{
-		if(empty($this->user) || empty($this->host) || empty($this->password))
-		{
-			$this->changeLogin();
-		}
-		if((!empty($db)))
-		{
-			$this->old['db']['name'] = static::$active['db']['name'];
-			static::$active['db']['name'] = $db;
-			static::setDb(static::$active['db']['name'], null, true);
-		}
-		else
-		{
-			$this->old['db']['name'] = null;
-		}
-		if(!empty($table))
-		{
-			$this->old['table']['name'] = static::$active['table'];
-			static::$active['table']['name'] = $table;
-			static::setTable(static::$active['table']['name']);
-		}
-		else
-		{
-			$this->old['table']['name'] = null;
-		}
-	}
-
-	/*
-	 *Reset the database and table back
-	 */
-	public function revertDb()
-	{
-		if(!empty($this->old['db']['name']))
-		{
-			static::setDb($this->old['db']['name']);
-		}
-		if(!empty($this->old['table']['name']))
-		{
-			static::$active['table'] = $this->old['table'];
-		}
-		switch(empty(static::$active['table']['name']))
-		{
-			case true:
-			static::setTable(static::$active['table']['name']);
-			break;
-		}
-		$this->old['db'] = [];
-		$this->old['table'] = [];
-	}
-
-	/**
-	 * Overriding default find function
-	 */
-	public static function find(&$model=null, $options=null)
-	{
-		$query = parent::find($options);
-		$query->from = [$model instanceof self ? $model->tableName() : static::tableName()];
-		if($model instanceof self) {
-			$model->aliasColumns($query);
-			foreach($model->queryOptions as $filter=>$value)
-			{
-				switch(strtolower($filter))
-				{
-					case 'select':
-					case 'indexby':
-					case 'orderby':
-					if(is_string($value) && ($value == 'primaryKey'))
-					{
-						unset($model->queryOptions[$filter]);
-						$query->$filter(static::primaryKey()[0]);
-					}
-					break;
-				}
-			}
-			static::applyFilters($query, $model->queryOptions);
-		} else {
-			static::aliasColumns($query);
-		}
-		return $query;
-	}
-
-	/**
-	 * Get the query that orders items by their activity
-	 */
-	public function getSort()
-	{
-		$ret_val = [];
-		//Create the user sort parameters
-		static::addSortParams($ret_val, [
-			'author_id' => ['author', 'Author', 'username'],
-			'editor_id' => ['editor', 'Editor', 'username'],
-			'resolved_by' => ['resolvedBy', 'Resolved By', 'username'],
-			'closed_by' => ['closedBy', 'Closed By', 'username'],
-			'disabled_by' => ['disabledBy', 'Disabled By', 'username'],
-			'deleted_by' => ['deletedBy', 'Deleted By', 'username'],
-			'completed_by' => ['completedBy', 'Completed By', 'username']
-		]);
-
-		//Create the date sort parameters
-		static::addSortParams($ret_val, [
-			'created_at' => [null, 'Created At'],
-			'updated_at' => [null, 'Updated At'],
-			'resolved_at' => [null, 'Resolved At'],
-			'closed_at' => [null, 'Closed At'],
-			'disabled_at' => [null, 'Disabled At'],
-			'deleted_at' => [null, 'Deleted At'],
-			'completed_at' => [null, 'Completed At']
-		]);
-
-		$ret_val['date'] = [
-			'asc' => ['created_at' => SORT_ASC, 'updated_at' => SORT_ASC],
-			'desc' => ['created_at' => SORT_DESC, 'updated_at' => SORT_DESC],
-			'default' => SORT_DESC,
-			'label' => 'Date'
-		];
-
-		//Create the category sort parameters
-		static::addSortParams($ret_val, [
-			'type_id' => ['type', 'Type', 'name'],
-			'category_id' => ['category', 'Category', 'name'],
-			'level_id' => ['level', 'Level', 'name'],
-		]);
-
-		return $ret_val;
-	}
-
-	/*---------------------
-		Protected Functions
-	---------------------*/
-
-	/**
-	 * Log a transaction to the logger
-	 * @param string $action
-	 * @param string $message
-	 * @param int $level
-	 * @param string|null $table
-	 * @param string|null $db
-	 * @param string $category
-	 * @param string $internalCategory
-	 * @param string $collectionName
-	 * @return boolean
-	 */
-	protected static function log($action, $message, $level=1, $options=[])
-	{
-		if(\Yii::$app->getModule('nitm')->enableLogger)
-		{
-			$options = array_merge([
-				'internal_category' => 'user-activity',
-				'category' => 'Model Activity',
-				'table_name' => static::tableName(),
-				'message' => $message,
-				'action' => $action,
-			], $options);
-			return \Yii::$app->getModule('nitm')->log($level, $options, static::className());
-		}
-		return false;
-	}
-
-	/**
-	 * Commit the logs to the database
-	 * @return boolean
-	 */
-	protected static function commitLog()
-	{
-		return \Yii::$app->getModule('nitm')->commitLog();
-	}
-
-	/**
-	 * Adds the parents for this model
-	 * ParentMap are specieid in the parent_ids attribute
-	 * Parent object belong to the same table
-	 */
-	public function addParentMap($parents=[])
-	{
-		if(count($parents) >= 1)
-		{
-			$attributes = [
-				'remote_type', 'remote_id', 'remote_class', 'remote_table',
-				'parent_type', 'parent_id', 'parent_class', 'parent_table'
-			];
-			sort($attributes);
-
-			/**
-			 * Go through the parents and make sure the id mapping is correct
-			 */
-			foreach($parents as $idx=>$parent)
-			{
-				if(!$parent['parent_type'] || !$parent['parent_id'] || !$parent['parent_class'] || !$parent['parent_table'])
-					continue;
-				$parents[$parent['parent_id']] = array_merge([
-					'remote_id' => $this->getId(),
-					'remote_type' => $this->isWhat(),
-					'remote_class' => $this->className(),
-					'remote_table' => $this->tableName(),
-				], $parent);
-
-				ksort($parents[$parent['parent_id']]);
-				unset($parents[$idx]);
-			}
-
-			$query = ParentMap::find();
-			foreach($parents as $parent)
-				$query->orWhere($parent);
-
-			$toAdd = array_diff_key($parents, $query->indexBy('parent_id')->asArray()->all());
-			if(count($toAdd) >= 1)
-				\Yii::$app->db->createCommand()->batchInsert(ParentMap::tableName(), $attributes, array_map('array_values', $toAdd))->execute();
-		}
-		return isset($toAdd) ? $toAdd : false;
-	}
-
-	/**
-	 * Create the connection to the database
-	 * @param string $username
-	 * @param string $password
-	 * @param string $host
-	 * @return Connection
-	 */
-	 protected static function getConnection($username, $password, $host)
-	 {
-		 switch(static::$connection instanceof yii\db\Connection)
-		 {
-			 case false:
-			 static::$connection = new \yii\db\Connection([
-				'dsn' => static::$active['driver'].":host=".$host.";dbname=".static::$active['db']['name'],
-				'username' => $username,
-				'password' => $password,
-				'emulatePrepare' => true,
-				'charset' => 'utf8',
-			]);
-			static::$connection->open();
-			break;
-		 }
-		return static::$connection;
-	 }
-
-
-	/*---------------------
-		Private Functions
-	---------------------*/
 }
 ?>

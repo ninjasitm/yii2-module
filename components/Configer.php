@@ -171,7 +171,7 @@ class Configer extends Model
 
 		$this->on('logData', function ($e) {
 			$data = array_merge($this->getEventData(), $this->_event->data);
-			\Yii::$app->getModule('nitm')->logger->log($data);
+			\Yii::$app->getModule('nitm')->log($data, 4, 'nitm-configer', $this);
 			$this->_event->handled = true;
 		});
 	}
@@ -780,8 +780,9 @@ class Configer extends Model
 		$this->setBase($container);
 		$this->container($container);
 
-		$ret_val = array_merge($ret_val, array_filter($this->_store->create($uriOf, $value, $container, $this->isSection())));
-		if($ret_val['success']) {
+		$result = array_merge($ret_val, array_filter($this->_store->create($uriOf, $value, $container, $this->isSection())));
+		if($result['success']) {
+			$ret_val = $result;
 			$ret_val += [
 				'data' => [$key, $value],
 				'class' => $this->classes['success']
@@ -823,12 +824,13 @@ class Configer extends Model
 			'success' => false,
 			'oldValue' => rawurlencode(is_array($oldValue) ? json_encode($oldValue) : $oldValue),
 			'value' => rawurlencode($value),
-			'key' => $uriOf,
+			'key' => $key,
 			'message' => "Unable to update value '".$key."' to '".$value."'"
 		];
 
-		$ret_val = array_merge($ret_val, array_filter($this->_store->update(($id ? $id : $key), $uriOf, $value, $container, $this->isSection())));
-		if($ret_val['success']) {
+		$result = array_merge($ret_val, array_filter($this->_store->update(($id ? $id : $key), $uriOf, $value, $container, $this->isSection())));
+		if($result['success']) {
+			$ret_val = $result;
 			$ret_val += [
 				'data' => [$key, $value],
 				'class' => $this->classes['success']
@@ -866,15 +868,16 @@ class Configer extends Model
 		$ret_val = [
 			'success' => false,
 			'container' => $container,
-			'key' => $uriOf,
+			'key' => $key,
 			'message' => "Unable to delete ".$uriOf,
 			"action" => 'delete',
 			"class" => $this->classes["failure"]
 		];
 
-		$ret_val = array_merge($ret_val, array_filter($this->_store->delete((!$id ? $key : $id), $uriOf, $container, $this->isSection())));
-		if($ret_val['success'])
+		$result = array_merge($ret_val, array_filter($this->_store->delete((!$id ? $key : $id), $uriOf, $container, $this->isSection())));
+		if($result['success'])
 		{
+			$ret_val = $result;
 			$ret_val += [
 				'data' => [$key, $result['value']],
 				'class' => $this->classes['success']

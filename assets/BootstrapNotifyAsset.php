@@ -15,7 +15,7 @@ class BootstrapNotifyAsset extends AssetBundle
 {
 	public $sourcePath = '@vendor/mouse0270/bootstrap-notify';
 	public $css = [
-		'http://cdnjs.cloudflare.com/ajax/libs/animate.css/3.2.0/animate.min.css'
+		'//cdnjs.cloudflare.com/ajax/libs/animate.css/3.2.0/animate.min.css'
 	];
 	public $js = [
 		'bootstrap-notify.min.js'

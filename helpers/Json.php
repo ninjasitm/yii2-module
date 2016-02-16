@@ -8,9 +8,19 @@ class Json
 {
 	public static function isJson($value)
 	{
-		return is_string($value) && ($value[0] == '{' && $value[strlen($value)-1] == '}');
+		switch(gettype($value))
+		{
+			case 'array':
+			case 'object':
+			return false;
+
+			default:
+			json_decode($value);
+			return json_last_error() == JSON_ERROR_NONE;
+			break;
+		}
 	}
-	
+
 	/**
 	 * Return a json decoded value or the original value
 	 * @param mixed $value, should be a tring
@@ -22,7 +32,7 @@ class Json
 			return (is_null($decoded = JsonHelper::decode(trim($value), $asArray)) ? $value : $decoded);
 		return $value;
 	}
-	
+
 	/**
 	 * Return a json encoded value or the original value
 	 * @param mixed $value, should be a tring

@@ -43,14 +43,14 @@ class Section extends BaseConfiger
             [['name'], 'unique', 'targetAttribute' => ['name', 'containerid'], 'message' => 'This section already exists'],
         ];
     }
-	
+
 	public function scenarios()
 	{
-		return [
+		return array_merge(parent::scenarios(), [
 			'create' => ['containerid', 'name'],
 			'update' => ['name'],
 			'delete' => ['deleted']
-		];
+		]);
 	}
 
     /**
@@ -86,8 +86,8 @@ class Section extends BaseConfiger
         return $this->hasMany(Value::className(), ['sectionid' => 'id'])
 		->select([
 			'*',
-			"CONCAT((SELECT name FROM ".static::tableName()." WHERE id=sectionid), '.', name) AS unique_id", 
-			"(SELECT name FROM ".static::tableName()." WHERE id=sectionid) AS section_name", 
+			"CONCAT((SELECT name FROM ".static::tableName()." WHERE id=sectionid), '.', name) AS unique_id",
+			"(SELECT name FROM ".static::tableName()." WHERE id=sectionid) AS section_name",
 			"(SELECT name FROM ".Container::tableName()." WHERE id=containerid) AS container_name"
 		])
 		->asArray()

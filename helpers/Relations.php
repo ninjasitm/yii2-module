@@ -66,7 +66,13 @@ class Relations
 						$ret_val = $attributes;
 					else {
 						$ret_val = new $className();
-						$ret_val->setAttributes($attributes);
+						foreach((array)$attributes as $a=>$v) {
+							try {
+								$ret_val->$a = $v;
+							} catch(\Exception $e) {
+								\Yii::warning($e);
+							}
+						}
 					}
 					break;
 				}
@@ -100,7 +106,7 @@ class Relations
 		$key = Cache::cacheKey($model, $idKey, $relation, $many);
 
 		if(Cache::exists($key)) {
-			$ret_val = Cache::getModel($this, $key, $many, $modelClass, $relation, $options);
+			$ret_val = Cache::getModel($model, $key, $many, $modelClass, $relation, $options);
 		}
 		else {
 			$ret_val = self::getRelatedRecord($relation, $model, $modelClass, $options, $many);

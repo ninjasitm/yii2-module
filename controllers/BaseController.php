@@ -140,16 +140,19 @@ class BaseController extends Controller
 					break;
 				}
 				$js['src'] = $js['src'].'.js';
+				$options = ["position" => $js['position']];
+				if(class_exists('\\app\\assets\\AppAsset'))
+					$options['depends'] = \app\assets\AppAsset::className();
 				switch(1)
 				{
 					case file_exists(\Yii::$app->basePath.'/web'.$js['src']):
 					$js['src'] = Yii::$app->UrlManager->baseUrl.$js['src'];
-					$this->view->registerJsFile($js['src'], ["position" => $js['position']]);
+					$this->view->registerJsFile($js['src'], $options);
 					break;
 
 					case file_exists(\Yii::getAlias($js['src'])):
 					$this->publishFile(\Yii::getAlias($js['src']), [
-						'jsOptions' => ["position" => $js['position']]
+						'jsOptions' => $options
 					], 'js');
 					break;
 				}
@@ -289,9 +292,10 @@ class BaseController extends Controller
 	 * @param mixed $encapsulate Surround the elements in this tag
 	 * @return mixed $ret_val
 	 */
-	public static function getNavHtml($navigation=null, $encapsulate=null)
+	public static function getNavHtml($navigation=null, $userOptions=[])
 	{
 		$ret_val = array();
+		$encapsulate = ArrayHelper::remove($userOptions, 'encapsulate', false);
 		$navigation = !is_array($navigation) ? static::loadNav(is_string($navigation) ? $navigation : 'navigation') : $navigation;
 		$top = ($navigation === null) ? true : false;
 		foreach($navigation as $idx=>$options)
@@ -309,6 +313,7 @@ class BaseController extends Controller
 			}
 			if(is_array($options))
 			{
+				$options = array_merge($options, $userOptions);
 				$label = ArrayHelper::remove($options, 'name', 'no-name');
 				$url = ArrayHelper::remove($options, 'data-url', ArrayHelper::remove($options, 'href', '#'));
 				$class = ArrayHelper::remove($options, 'class', '');
@@ -320,10 +325,10 @@ class BaseController extends Controller
 					]),
 					'items' => $submenu,
 					'url' => $url,
-					"options" => array_merge($itemOptions, [
+					"options" => array_merge([
 						"class" => $class,
 						"encode" => false
-					]),
+					], $itemOptions),
 					'linkOptions' => $options
 				]);
 				$ret_val[$idx] = $item;

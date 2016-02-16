@@ -28,6 +28,8 @@ class Routes extends \yii\base\Object
 
 	public $globalOnly = false;
 
+	public $parameters = [];
+
 	/**
 	 * [create description]
 	 * @method create
@@ -54,22 +56,28 @@ class Routes extends \yii\base\Object
 			} else {
 				$controllers = self::getControllersFromMap($group);
 			}
-			if(empty($controllers)) {
+			if(empty($controllers) || $controllers === []) {
 				continue;
 			}
 			$parameterizedRoute = ArrayHelper::getValue($map, $params, null);
 			if($params == 'none') {
-				$parameterizedRoute = [$parameterizedRoute => '<controller>/index'];
+				if(!is_array($parameterizedRoute))
+					$parameterizedRoute = [$parameterizedRoute => '<controller>/index'];
 			}
 			if(is_null($parameterizedRoute)) {
 				continue;
 			}
 			if(isset($moduleId) && !empty($moduleId) && ($globalOnly === false))
-				$ret_val += self::getRoutes($controllers, $parameterizedRoute, $moduleId);
-			$ret_val += self::getRoutes($controllers, $parameterizedRoute, $moduleId, true);
+				$ret_val = array_merge($ret_val, self::getRoutes($controllers, $parameterizedRoute, $moduleId));
+			$ret_val = array_merge($ret_val, self::getRoutes($controllers, $parameterizedRoute, $moduleId, true));
 		}
 		ksort($ret_val);
-		return $ret_val;
+		/*$ret_val[] = [
+			'class' => \yii\web\UrlRule::className(),
+			'route' => $moduleId,
+			'pattern' => $moduleId
+		];*/
+		return array_filter($ret_val);
 	}
 
 	/**
@@ -145,7 +153,10 @@ class Routes extends \yii\base\Object
 			//We're dealing with an aliased controller spec
 			foreach($controllers as $alias=>$group)
 			{
-				unset($group['alias']);
+				if(isset($group['alias']) && (is_array($group['alias']) || is_string($group['alias'])))
+					$group = (array)$group['alias'];
+				else
+					unset($group['alias']);
 				$realRoute = is_null($globalRoute) ? $alias : $globalRoute;
 				preg_match('/(<(action):?([^>]+)?>)/', $realRoute, $actionMatches);
 				$destinationArray = explode('/', $realRoute);
@@ -157,11 +168,11 @@ class Routes extends \yii\base\Object
 				if(count($destinationArray) == 1)
 					$destination .= '/<action>';
 				$route = is_array($route) ? key($route) : $route;
-				$routes += self::getRoute($group, [$route => $destination], $moduleId, $global);
+				$routes[] =self::getRoute($group, [$route => $destination], $moduleId, $global);
 			}
 		} else {
 			//We're dealing with independent controllers
-			$routes += self::getRoute($controllers, $route, $moduleId, $global);
+			$routes[] = self::getRoute($controllers, $route, $moduleId, $global);
 		}
 		return $routes;
 	}
@@ -187,7 +198,12 @@ class Routes extends \yii\base\Object
 			'',
 			'<controller>'
 		], $destination);
-		return [$key => $destination];
+		$route = [
+			'class' => \yii\web\UrlRule::className(),
+			'pattern' => $key,
+			'route' => $destination
+		];
+		return $route;
 	}
 
 	/**
@@ -205,11 +221,11 @@ class Routes extends \yii\base\Object
 			$controller = is_numeric($controller) ? $options : $controller;
 			$ret_val[$controller] = [$controller, Inflector::pluralize($controller)];
 			if(is_array($options)) {
-				$alias = ArrayHelper::getValue($options, 'alias', false);
+				$alias = ArrayHelper::getValue($options, 'pluralize', false);
 				if(is_array($alias))
 					$ret_val[$controller] = array_shift(array_map(function($a) {return [$a, Inflector::pluralize($a)]; }, $alias));
 				if($alias !== false)
-					$ret_val[$controller]['alias'] = $controller;
+					$ret_val[$controller]['pluralize'] = $controller;
 			}
 		}
 		if(isset($this) && !$returnOnly)
@@ -222,7 +238,7 @@ class Routes extends \yii\base\Object
 		return empty($moduleId) && isset($this) ? $this->moduleId : $moduleId;
 	}
 
-	private function &getParameters($parameters=[])
+	protected function &getParameters($parameters=[])
 	{
 		$ret_val = empty($parameters) && isset($this) ? $this->parameters : $parameters;
 		return $ret_val;

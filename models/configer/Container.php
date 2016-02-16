@@ -19,7 +19,7 @@ use Yii;
  * @property Value[] $values
  */
 class Container extends BaseConfiger
-{	
+{
     /**
      * @inheritdoc
      */
@@ -42,14 +42,14 @@ class Container extends BaseConfiger
             [['name'], 'unique', 'targetAttribute' => ['name'], 'message' => 'This container already exists', 'on' => ['create']],
         ];
     }
-	
+
 	public function scenarios()
 	{
-		return [
+		return array_merge(parent::scenarios(), [
 			'create' => ['name'],
 			'update' => ['name'],
 			'delete' => ['deleted']
-		];
+		]);
 	}
 
     /**
@@ -85,25 +85,25 @@ class Container extends BaseConfiger
         return $this->hasMany(Value::className(), ['containerid' => 'id'])
 		->select([
 			'*',
-			'CONCAT((SELECT '.$this->getDb()->quoteColumnName('name').' FROM '.$this->getDb()->quoteTableName(Section::tableName()).' WHERE id=sectionid), \'.\', name) AS unique_id', 
-			'name AS unique_name', 
-			'(SELECT name FROM '.Section::tableName().' WHERE id=sectionid) AS "section_name"', 
+			'CONCAT((SELECT '.$this->getDb()->quoteColumnName('name').' FROM '.$this->getDb()->quoteTableName(Section::tableName()).' WHERE id=sectionid), \'.\', name) AS unique_id',
+			'name AS unique_name',
+			'(SELECT name FROM '.Section::tableName().' WHERE id=sectionid) AS "section_name"',
 			'(SELECT name FROM '.Container::tableName().' WHERE id=containerid) AS "container_name"'
 		])
 		->asArray()
 		->orderBy(['name' => SORT_ASC])
 		->indexBy('unique_id');
 	}
-	
-	public function setValues($values) 
+
+	public function setValues($values)
 	{
 		$this->populateRelation('values', array_map(function ($value) {
 			return $value;
 			//return $value instanceof Value ? $value : new Value($value);
 		}, $values));
 	}
-	
-	public function setSections($sections) 
+
+	public function setSections($sections)
 	{
 		$this->populateRelation('sections', array_map(function ($section) {
 			return $section;

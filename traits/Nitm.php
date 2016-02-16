@@ -5,12 +5,12 @@ namespace nitm\traits;
 use Yii;
 use yii\base\Model;
 use yii\base\Event;
-use yii\helpers\ArrayHelper;
 use yii\helpers\Html;
 use nitm\models\User;
 use nitm\widgets\models\Category;
 use nitm\models\ParentMap;
 use nitm\helpers\Cache as CacheHelper;
+use nitm\helpers\ArrayHelper;
 
 /**
  * Class Replies
@@ -48,6 +48,8 @@ trait Nitm
 	public function nitmScenarios()
 	{
 		return [
+			'update' => ['metadata'],
+			'create' => ['metadata'],
 			'disable' => ['disabled', 'disabled_at', 'disabled'],
 			'complete' => ['completed', 'completed_at', 'closed'],
 			'close' => ['closed', 'closed_at', 'completed', 'resolved'],
@@ -83,6 +85,81 @@ trait Nitm
 		}
 		return $ret_val;
 	}
+
+	public function setMetadata($metadata) {
+		if($this->isNewRecord ) {
+			$this->populateRelation('metadata', function ($properties) {
+				return \Yii::createObject($this->metadataClass, $properties);
+			}, $metadata);
+			$this->on(static::EVENT_AFTER_INSERT, [$this, 'saveMetadata'], $metadata);
+		} else
+			$this->saveMetadata($metadata);
+	}
+
+	/**
+	 * Add metadata for an image item
+	 * @param mixed $array
+	 * @return boolean
+	 */
+	protected function saveMetadata($array)
+	{
+		if($array instanceof \yii\base\Event)
+			$array = $array->data;
+		$ret_val = false;
+		if(is_array($array)) {
+			$ret_val = true;
+			if(!$this->metadataClass)
+				return false;
+			$allMetadata = [];
+			foreach($array as $key=>$value)
+			{
+				if($this->hasMetadata($key))
+					$metadata = $this->metadata($key);
+				else {
+					if($this instanceof \nitm\models\Category)
+						$metadata = new $this->metadataClass([
+							'key' => $key,
+							'category_id' => $this->getId()
+						]);
+					else
+						$metadata = new $this->metadataClass([
+							'key' => $key,
+							'content_id' => $this->getId()
+						]);
+					$metadata->setScenario('create');
+				}
+
+				$metadata->value = $value;
+				if($metadata->save())
+					$allMetadata[] = $metadata;
+			}
+			$this->populateRelation('medatata', $allMetadata);
+		}
+		return $ret_val;
+	}
+
+	public function hasMetadata($key = false) {
+		if($key === false)
+			return count($this->metadata) > 0;
+		if(is_null($key))
+			return false;
+		return ArrayHelper::exists($this->metadata, $key, false);
+	}
+
+    /**
+     * @return string
+     */
+    protected function getMetadataClass()
+    {
+		$metadataClass = static::className()."Metadata";
+		if(!class_exists($metadataClass)) {
+			//Try to see if the parent class has metadata
+			$metadataClass = get_parent_class($this).'Metadata';
+			if(!class_exists($metadataClass))
+				throw new Exception("Cannot find metadata class for ".$this->className());
+		}
+		return $metadataClass;
+    }
 
 
 	public function getStatusTag($text = null, $label = null)
@@ -293,6 +370,7 @@ trait Nitm
 		asort($ret_val);
 		return $ret_val;
     }
+
 
 	/*
 	 * Return a string imploded with ucfirst characters

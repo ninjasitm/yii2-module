@@ -21,8 +21,10 @@ class AppAsset extends AssetBundle
 		'js/nitm.js',
 		'js/entity.js',
 		'js/tools.js',
+		'js/utils.js',
+		'js/animations.js',
 	];
-	public $jsOptions = ['position' => \yii\web\View::POS_HEAD];
+	public $jsOptions = ['position' => \yii\web\View::POS_END];
 	public $depends = [
 		'yii\web\YiiAsset',
 	];

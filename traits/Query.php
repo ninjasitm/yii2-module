@@ -1,19 +1,244 @@
 <?php
 namespace nitm\traits;
 
+use nitm\helpers\ArrayHelper;
+use nitm\helpers\Cache as CacheHelper;
+
 /**
  * Traits defined for expanding query scopes until yii2 resolves traits issue
  */
 trait Query {
 
+	public $queryOptions = [];
+
 	protected $success;
 
-	/*
+	/**
 	 * Sets the successfull parameter for query
 	 */
 	public function successful()
 	{
 		return $this->success === true;
+	}
+
+	/**
+	 * Overriding default find function
+	 */
+	public static function find($model=null, $options=null)
+	{
+		$query = parent::find($options);
+		$query->from = [$model instanceof self ? $model->tableName() : static::tableName()];
+		if($model instanceof self) {
+			$model->aliasColumns($query);
+			foreach($model->queryOptions as $filter=>$value)
+			{
+				switch(strtolower($filter))
+				{
+					case 'select':
+					case 'indexby':
+					case 'orderby':
+					if(is_string($value) && ($value == 'primaryKey'))
+					{
+						unset($model->queryOptions[$filter]);
+						$query->$filter(static::primaryKey()[0]);
+					}
+					break;
+				}
+			}
+			static::applyFilters($query, $model->queryOptions);
+		} else {
+			static::aliasColumns($query);
+		}
+		return $query;
+	}
+
+	/**
+	 * Get the array of arrays
+	 * @return array
+	 */
+	public function getArrays()
+	{
+		$query = $this->find($this);
+		$ret_val = $query->asArray()->all();
+		$this->success = (sizeof($ret_val) >= 1) ? true : false;
+		return $ret_val;
+	}
+
+	/**
+	 * Get array of objects
+	 * @return mixed
+	 */
+	public function getModels()
+	{
+		$query = $this->find($this);
+		$ret_val = $query->all();
+		$this->success = (sizeof($ret_val) >= 1) ? true : false;
+		return $ret_val;
+	}
+
+	/**
+	 * Get a single record
+	 */
+	public function getOne()
+	{
+		$query = $this->find($this);
+		$ret_val = $query->one();
+		$this->success = (!is_null($ret_val)) ? true : false;
+		return $ret_val;
+	}
+
+	/**
+	 * Function to get class name for locating items
+	 * @return string
+	 */
+	private function locateClassForItems($options)
+	{
+		return ArrayHelper::remove($options, 'class', (is_subclass_of(static::className(), __CLASS__) ? static::className() : __CLASS__));
+	}
+
+	/**
+	 * Function to get items for the List methods
+	 * @return array
+	 */
+	private function locateItems($options, $count=false)
+	{
+		$class = self::locateClassForItems($options);
+
+		$items = [];
+		if(isset($this) && is_subclass_of(static::className(), __CLASS__)) {
+			$this->queryOptions = array_merge($this->queryOptions, array_merge([
+				'limit' => 100,
+				'select' => '*',
+			], $options));
+			if($count === true) {
+				$items = $this->find($this)->count();
+			}
+			else
+				$items = $this->getModels();
+		}
+		else {
+			$query = $class::find();
+			foreach($this->queryOptions as $name=>$value)
+				if($query->hasMethod($name))
+					$query->$name($value);
+			if($count === true)
+				$items = $query->count();
+			else
+				$items = $query->all();
+		}
+		return $items;
+	}
+
+	/**
+	 * Get a one dimensional associative array
+	 * @param mixed $label
+	 * @param mixed $separator
+	 * @return array
+	 */
+	public function getList($label='name', $separator=null, $queryOptions=[], $key=null)
+	{
+		$class = self::locateClassForItems($queryOptions);
+		$ret_val = ['' => 'Select...'];
+		$separator = is_null($separator) ? ' ' : $separator;
+		$label = is_null($label) ? 'name' : $label;
+
+		$cacheKey = CacheHelper::getKey(is_string($key) ? $key : $class::formName(), null, 'list', true);
+
+		if(CacheHelper::cache()->exists($cacheKey))
+			$ret_val = CacheHelper::cache()->get($cacheKey);
+
+		if(!isset($queryOptions['orderBy']))
+			$queryOptions['orderBy'] = [(is_array($label) ? end($label) : $label) => SORT_ASC];
+
+		$queryOptions['groupBy'] = [$label, 'id'];
+		if(count($ret_val) < self::locateItems($queryOptions, true)) {
+			$items = self::locateItems($queryOptions);
+			switch(count($items) >= 1)
+			{
+				case true:
+				foreach($items as $item)
+				{
+					$ret_val[$item['id']] = $class::getLabel($item, $label, $separator);
+				}
+				break;
+
+				default:
+				$ret_val[] = ["No ".$class::isWhat()." found"];
+				break;
+			}
+			CacheHelper::cache()->set($cacheKey, $ret_val, 120);
+		}
+		return $ret_val;
+	}
+
+	/**
+	 * Get a multi dimensional associative array suitable for Json return values
+	 * @param mixed $label
+	 * @param mixed $separator
+	 * @return array
+	 */
+	public function getJsonList($label='name', $separator=null, $options=[], $key=null)
+	{
+		$class = $this->locateClassForItems($options);
+
+		$cacheKey = CacheHelper::getKey(is_string($key) ? $key : $class::formName(), null, 'list', true);
+
+		if(CacheHelper::cache()->exists($cacheKey))
+			$ret_val = CacheHelper::cache()->get($cacheKey);
+		else {
+			$ret_val = [];
+			$separator = is_null($separator) ? ' ' : $separator;
+
+			foreach(self::locateItems($options) as $item)
+			{
+				$_ = [
+					"id" => $item->getId(),
+					"value" => $item->getId(),
+					"text" =>  $item->$label,
+					"label" => static::getLabel($item, $label, $separator)
+				];
+				if(isset($options['with']))
+				{
+					foreach($options['with'] as $attribute)
+					{
+						switch($attribute)
+						{
+							case 'htmlView':
+							$view = \Yii::$app->getViewPath();
+							if(!isset($options['view']['file'])) {
+								if(file_exists(\Yii::getAlias($path.$item->isWhat(true).'/view.php')))
+									$view = "/".$item->isWhat(true)."/view";
+								else if(file_exists(\Yii::getAlias($path.$item->isWhat().'/view.php')))
+									$view = "/".$item->isWhat()."/view";
+							}
+							$viewOptions = isset($options['view']['options']) ? $options['view']['options'] : ["model" => $item];
+							$_['html'] = \Yii::$app->getView()->renderAjax($view, $viewOptions);
+							break;
+
+							case 'icon':
+							/*$_['label'] = \lab1\widgets\Thumbnail::widget([
+								"model" => $item->getIcon()->one(),
+								"htmlIcon" => $item->html_icon,
+								"size" => "tiny",
+								"options" => [
+									"class" => "thumbnail text-center",
+								]
+							]).$_['label'];*/
+							break;
+						}
+					}
+				}
+				$ret_val[] = $_;
+			}
+			CacheHelper::cache()->set($cacheKey, $ret_val, 120);
+		}
+		return (sizeof(array_filter($ret_val)) >= 1) ? $ret_val : [['id' => 0, 'text' => "No ".$this->properName($this->isWhat())." Found"]];
+	}
+
+	public function addWith($with)
+	{
+		$with = is_array($with) ? $with : [$with];
+		$this->queryOptions['with'] = array_merge(ArrayHelper::getValue($this->queryOptions, 'with', []), $with);
 	}
 
 	public static function filters()

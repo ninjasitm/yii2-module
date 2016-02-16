@@ -103,13 +103,13 @@ use yii\helpers\Html;
 			 * Only log this information if the logging $level is less than or equal to the gloabl accepted level
 			 */
 			$options = array_merge([
-				'internal_category' => 'user-activity',
-				'category' => 'User Activity',
+				'category' => 'user-activity',
+				'internal_category' => 'User Activity',
 				'table_name' => $model->tableName(),
 				'message' => $message,
 				'action' => (is_null($action) ? $this->action->id : $action),
 			], $options);
-			return \Yii::$app->getModule('nitm')->log($level, $options, $model);
+			return \Yii::$app->getModule('nitm')->log($options, $level, null, $model);
 		}
 		return false;
 	}
@@ -117,6 +117,11 @@ use yii\helpers\Html;
 	protected function commitLog()
 	{
 		return \Yii::$app->getModule('nitm')->commitLog();
+	}
+
+	protected function getWith()
+	{
+		return [];
 	}
 
 	/**
@@ -218,6 +223,16 @@ use yii\helpers\Html;
 	}
 
 	/**
+	 * Is the response format specified?
+	 * @method isResponseFormatSpecified
+	 * @return boolean
+	 */
+	public function getIsResponseFormatSpecified()
+	{
+		return Response::formatSpecified();
+	}
+
+	/**
 	 * Determine what format to return for the response
 	 * @method determineResponseFormat
 	 * @param string			$format THe response format
@@ -231,9 +246,9 @@ use yii\helpers\Html;
 		if(\Yii::$app->request->isAjax)
 			$this->setResponseFormat(\Yii::$app->request->get('_pjax') ? 'html' : 'json');
 		else
-			$this->setResponseFormat($format==null ? 'html' : $format);
+			$this->setResponseFormat($format ?: 'html');
 
-		return $this->getResponseFormat();
+		return $this->responseFormat;
 	}
 
 	/*
@@ -264,8 +279,11 @@ use yii\helpers\Html;
 		{
 			$query = $className::find();
 
-			if($id && is_numeric($id))
-				$query->where([array_shift($className::primaryKey()) => $id]);
+			if($id && is_numeric($id)) {
+                $pk = $className::primaryKey();
+				$query->where([array_shift($pk) => $id]);
+            } else if(is_array($id))
+                $query->where($id);
 
 			$with = is_array($with) ? $with : (is_null($with) ? null : [$with]);
 			if(is_array($with))
@@ -333,7 +351,7 @@ use yii\helpers\Html;
 			'createButton' => $this->getCreateButton($createOptions),
 			'createMobileButton' => $this->getCreateButton(array_replace_recursive([
 				'containerOptions' => [
-					'class' => 'btn btn-default btn-lg navbar-toggle aligned'
+					'class' => 'btn btn-default navbar-toggle aligned'
 				]
 			], $createOptions), 'Create'),
 			'filterButton' => $this->getFilterButton($filterOptions),
@@ -401,15 +419,12 @@ use yii\helpers\Html;
 			'message' => "Unable to {$action} ".$this->model->isWhat()
 		];
 		if (!empty($data) && $this->model->save()) {
-			$metadata = isset($data[$this->model->formName()]['contentMetadata']) ? $data[$this->model->formName()]['contentMetadata'] : null;
 			$ret_val = true;
 			$result['message'] = implode(' ', [
 				"Succesfully {$action}d ",
 				$this->model->isWhat(),
 				': '.$this->model->title()
 			]);
-			if($metadata)
-				$this->model->addMetadata($metadata);
 
 			Response::viewOptions("view", '/'.$this->id.'/view');
 		} else {
@@ -440,17 +455,20 @@ use yii\helpers\Html;
 	 * @param  string          	$text    The text for the button
 	 * @return string                    The HTML button
 	 */
-	protected function getCreateButton($options=[], $text=null)
+	public function getCreateButton($options=[], $text=null, $isWhat=null)
 	{
-		$text = is_null($text) ? strtoupper(\Yii::t('yii', " new ".$this->model->properName($this->model->isWhat()))) : $text;
+        $isWhat = $isWhat ?: $this->model->isWhat();
+        $id = $isWhat ?: $this->id;
+        $properName = $isWhat ? \nitm\helpers\ClassHelper::properName($isWhat) : $this->model->properName();
+		$text = ucwords(\Yii::t('yii', " new ".($text ?: $properName)));
 		$options = array_replace_recursive([
 			'toggleButton' => [
 				'tag' => 'a',
 				'label' => Icon::forAction('plus')." ".$text,
-				'href' => \Yii::$app->urlManager->createUrl(['/'.$this->id.'/form/create', '__format' => 'modal']),
-				'title' => \Yii::t('yii', "Add a new ".$this->model->properName($this->model->isWhat())),
+				'href' => \Yii::$app->urlManager->createUrl(['/'.$id.'/form/create', '__format' => 'modal']),
+				'title' => \Yii::t('yii', "Add a new ".$properName),
 				'role' => 'dynamicAction createAction disabledOnClose',
-				'class' => 'btn btn-success btn-lg'
+				'class' => 'btn btn-success'
 			],
 			//'dialogOptions' => [
 			//	"class" => "modal-full"
@@ -462,7 +480,6 @@ use yii\helpers\Html;
 
 		$containerOptions = $options['containerOptions'];
 		unset($options['containerOptions']);
-
 		return Html::tag('div', \nitm\widgets\modal\Modal::widget($options), $containerOptions);
 	}
 
@@ -473,16 +490,15 @@ use yii\helpers\Html;
 	 * @param  string          	$text    The text for the button
 	 * @return string                    The HTML button
 	 */
-	protected function getFilterButton($options=[], $text='filter')
+	public function getFilterButton($options=[], $text='filter', $isWhat=null)
 	{
-		$containerOptions = isset($options['containerOptions']) ? $options['containerOptions'] : [
-			'class' => 'navbar-toggle aligned'
-		];
+        $isWhat = $isWhat ?: $this->model->isWhat();
+		$containerOptions = isset($options['containerOptions']) ? $options['containerOptions'] : ['class' => 'navbar-toggle aligned'];
 		unset($options['containerOptions']);
-		return Html::tag('div', Html::button(Icon::forAction('filter')." ".ucfirst($text), array_replace([
-			'class' => 'btn btn-default btn-lg',
+		return Html::tag('div', Html::button(Icon::forAction('filter')." ".ucwords($text), array_replace([
+			'class' => 'btn btn-default',
 			'data-toggle' => 'collapse',
-			'data-target' => '#'.$this->model->isWhat().'-filter'
+			'data-target' => '#'.$isWhat.'-filter'
 		], (array)$options)), $containerOptions);
 	}
 
@@ -503,22 +519,18 @@ use yii\helpers\Html;
 		{
 			$this->model = ($this->model->className() == $options['modelClass']) ? $this->model : new $options['modelClass'](@$options['construct']);
 		}
-		switch($type)
-		{
-			//This is for generating the form for updating and creating a form for $this->model->className()
-			default:
-			$options = array_merge([
-				'title' => ['title', 'Create '.static::properName($this->model->isWhat())],
-				'scenario' => !$id ? 'create' : 'update',
-				'provider' => null,
-				'dataProvider' => null,
-				'view' => isset($options['view']) ? $options['view'] : $type,
-				'args' => [],
-				'modelClass' => $this->model->className(),
-				'force' => false
-			], $options);
-			break;
-		}
+
+		$options = array_merge([
+			'title' => ['title', 'Create '.static::properName($this->model->isWhat())],
+			'scenario' => !$id ? 'create' : 'update',
+			'provider' => null,
+			'dataProvider' => null,
+			'view' => isset($options['view']) ? $options['view'] : $type,
+			'args' => [],
+			'modelClass' => $this->model->className(),
+			'force' => false
+		], $options);
+
 		$options['modalOptions'] = isset($options['modalOptions']) ? (array)$options['modalOptions'] : [];
 		$modalOptions = array_merge([
 			'body' => [

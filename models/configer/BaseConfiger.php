@@ -25,19 +25,19 @@ use yii\db\ActiveRecord;
  */
 class BaseConfiger extends ActiveRecord
 {
-	
+
 	public $container;
 	public $unique_id;
 	public $unique_name;
 	public $section_name;
 	public $container_name;
 	protected static $is;
-	
+
 	public function init()
 	{
 		parent::init();
 	}
-	
+
 	public function behaviors()
 	{
 		$behaviors = [
@@ -61,7 +61,13 @@ class BaseConfiger extends ActiveRecord
 		];
 		return array_merge(parent::behaviors(), $behaviors);
 	}
-	
+
+	public function scenarios() {
+		return [
+			'default' => []
+		];
+	}
+
 	/*
 	 * What does this claim to be?
 	 */
@@ -75,7 +81,7 @@ class BaseConfiger extends ActiveRecord
 		}
 		return static::$is;
 	}
-	
+
 	/**
 	 * Get the unique ID of this object
 	 * @return string|int

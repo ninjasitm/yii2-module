@@ -67,7 +67,7 @@ class Alerts extends Entity
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getUser()
+    public function getUser($link=[])
     {
         return $this->hasOne(\nitm\models\User::className(), ['id' => 'user_id'])
 			->select(['id', 'username', 'email'])

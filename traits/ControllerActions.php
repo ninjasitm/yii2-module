@@ -12,16 +12,13 @@ use nitm\models\ParentMap;
  * Controller actions
  */
 trait ControllerActions {
-	
+
 	public function afterAction($action, $result)
 	{
 		$result = parent::afterAction($action, $result);
-		$module = \Yii::$app->getModule('nitm');
-		if($module)
-			$module->commitLog();
 		return $result;
 	}
-	
+
 	public function actionAddParent($type, $id)
 	{
 		$ret_val = false;
@@ -38,10 +35,10 @@ trait ControllerActions {
 					$name = $model->title;
 				else
 					$name = $parent['remote_type'].'-parent-'.$id;
-					
+
 				$ret_val = Html::tag('li', $name.
 					Html::tag('span',
-						Html::a("Remove ".Icon::show('remove'), 
+						Html::a("Remove ".Icon::show('remove'),
 							'/'.$this->model->isWhat()."/remove-parent/".$type.'/'.$id, [
 							'role' => 'parentListItem',
 							'style' => 'color:white'
@@ -52,18 +49,18 @@ trait ControllerActions {
 				]);
 			}
 		}
-		
+
 		$this->setResponseFormat('json');
 		return $this->renderResponse($ret_val);
 	}
-	
+
 	public function actionRemoveParent($type, $id)
 	{
 		$ret_val = false;
-		$model = ParentMap::find()->where(['remote_id' => $type, 'parent_id' => $id])->one();
+		$where = ['remote_id' => $type, 'parent_id' => $id];
+		$model = ParentMap::find()->where($where)->one();
 		if(is_object($model)) {
-			$model->delete();
-			$ret_val = true;
+			$ret_val = $model->find()->createCommand()->delete($model->tableName(), $where)->execute();
 		}
 		$this->setResponseFormat('json');
 		return $this->renderResponse($ret_val);

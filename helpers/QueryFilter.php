@@ -296,7 +296,10 @@ class QueryFilter
 						$ret_val[static::joinFields($relationLink, ', ')] = $order;
 						$relationLink = array_merge($relationLink, array_keys((array)$relation->where));
 						self::aliasSelectFields($relationLink, $alias);
-						$groupBy = array_unique(array_merge($groupBy, $relationLink));
+						$groupBy = array_values(array_unique(array_merge($groupBy, $relationLink)));
+						$groupBy =array_merge($groupBy, array_map(function ($key) use($model) {
+							return $model->tableName().'.'.$key;
+						}, $model->primaryKey()));
 					}
 				} else {
 					$newOrderBy[static::joinFields([$table, $field])] = $order;

@@ -93,23 +93,23 @@ class DefaultController extends BaseController
      * Default index controller.
      * @return string HTML index
      */
-    public function actionIndex($className, $options=[])
+    public function actionIndex($className=null, $options=[])
     {
+		$className = $className ?: $this->model->clasName();
 		$options = array_replace_recursive([
 			'params' => \Yii::$app->request->get(),
 			'with' => [],
 			'viewOptions' => [],
 			'construct' => [
-				'inclusiveSearch' => true,
-				'exclusiveSearch' => false,
+				'inclusiveSearch' => false,
+				'exclusiveSearch' => true,
 				'forceExclusiveBooleanSearch' => false,
 				'booleanSearch' => true,
 				'queryOptions' => []
 			],
 		], $options);
 
-		$searchModelFilter = ArrayHelper::getValue($options['params'], (new $className)->formName(), $options['params']);
-        $searchModel = new $className(array_merge($searchModelFilter, $options['construct']));
+        $searchModel = new $className($options['construct']);
 
 		$options['with'] = $this->extractRelationParameters($options);
 		$searchModel->queryOptions['with'] = $options['with'];
@@ -133,10 +133,10 @@ class DefaultController extends BaseController
 			], $options['viewOptions'])
 		]);
 
-		if(!Response::formatSpecified())
+		if(!$this->isResponseFormatSpecified)
 			$this->setResponseFormat('html');
 
-        return $this->renderResponse($this->getResponseFormat() == 'json' ? $dataProvider->getModels() : null, Response::viewOptions(), false);
+        return $this->renderResponse($this->responseFormat == 'json' ? $dataProvider->getModels() : null, Response::viewOptions(), false);
     }
 
 	/**
@@ -158,7 +158,7 @@ class DefaultController extends BaseController
 		$ret_val = [
 			"success" => false,
 			'action' => 'filter',
-			"format" => $this->getResponseFormat(),
+			"format" => $this->responseFormat,
 			'message' => "No data found for this filter"
 		];
 
@@ -169,6 +169,14 @@ class DefaultController extends BaseController
 		], $modelOptions);
 
 		$className = ArrayHelper::getValue($options, 'className');
+		if(!$className) {
+			$namespace = ArrayHelper::getValue($options, 'namespace');
+			if($namespace) {
+				$className = rtrim($namespace,'\\')."\\".$this->model->formName();
+			} else {
+				throw new \Exception("No namespace or class was specified for filtering");
+			}
+		}
 
 		$this->model = new $className($searchModelOptions);
 		$type = $this->model->isWhat();
@@ -176,7 +184,6 @@ class DefaultController extends BaseController
 
 		$this->model->type = $type;
 		$this->model->setIs($type);
-
 
 		$options['with'] = $this->extractRelationParameters(array_merge($options, $modelOptions));
 		$this->model->queryOptions['with'] = $options['with'];
@@ -192,32 +199,32 @@ class DefaultController extends BaseController
 		//Change the context ID here to match the filtered content
 		$this->id = $type;
 
-		$ret_val['data'] = $this->renderAjax($view, array_merge($this->getViewOptions(), [
-			"dataProvider" => $dataProvider,
-			'searchModel' => $this->model,
-			'model' => $this->model,
-			'primaryModel' => $this->model->primaryModel,
-			'isWhat' => $type,
-		]));
-
 		//Add support for Pjax requests here. If somethign was sent based on Pjax always return HTML
-		if(\Yii::$app->getRequest()->get('_pjax') != null)
+		if(\Yii::$app->getRequest()->get('_pjax') != null) {
 			$this->setResponseFormat('html');
+		}
 
-		$getParams = array_merge([$type], \Yii::$app->request->get());
+		if($this->responseFormat === 'json') {
+			$getParams = array_merge([$type], \Yii::$app->request->get());
+			foreach(['__format', '_type', 'getHtml', 'ajax', 'do'] as $prop)
+				unset($getParams[$prop]);
 
-		foreach(['__format', '_type', 'getHtml', 'ajax', 'do'] as $prop)
-			unset($getParams[$prop]);
-
-		$ret_val['url'] = \Yii::$app->urlManager->createUrl($getParams);
-		$ret_val['message'] = !$dataProvider->getCount() ? $ret_val['message'] : "Found ".$dataProvider->getTotalCount()." results matching your search";
-
-		Response::viewOptions('args', [
-			"content" => $ret_val['data'],
-		]);
-
-		//if(\Yii::$app->request->isAjax)
-		//	$this->getView()->registerJs(new \yii\web\JsExpression
+			$ret_val['data'] = $this->renderResponse(null, Response::viewOptions(), $this->response->isAjax);
+			$ret_val['url'] = \Yii::$app->urlManager->createUrl($getParams);
+			$ret_val['message'] = !$dataProvider->getCount() ? $ret_val['message'] : "Found ".$dataProvider->getTotalCount()." results matching your search";
+		} else {
+			Response::viewOptions(null, [
+				'view' => ArrayHelper::getValue($options, 'view', 'index'),
+				'args' => array_merge($this->getViewOptions(), [
+					"dataProvider" => $dataProvider,
+					'searchModel' => $this->model,
+					'model' => $this->model,
+					'primaryModel' => $this->model->primaryModel,
+					'isWhat' => $type,
+				], ArrayHelper::getValue($options, 'viewOptions', []))
+			]);
+			$ret_val = null;
+		}
 
 		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
@@ -229,16 +236,23 @@ class DefaultController extends BaseController
 	 * @param array $options
 	 * @return string | json
 	 */
-	public function actionForm($type=null, $id=null, $options=[], $returnData=false)
+	public function actionForm($type, $id=null, $options=[], $returnData=false)
 	{
-		$options = $this->getVariables($type, $id, $options);
+		$parsedOptions = $this->getVariables($type, $id, $options);
 
 		$this->determineResponseFormat('html');
 
-		if(\Yii::$app->request->isAjax)
-			Response::viewOptions('js', "\$nitm.module('tools').init('".Response::viewOptions('args.formOptions.container.id')."');", true);
+		if(\Yii::$app->request->isAjax) {
+			$containerId = Response::viewOptions('args.formOptions.container.id');
+			$js = ArrayHelper::getValue($options, 'js', '');
+			$js = is_array($js) ? $js : [$js];
+			Response::viewOptions('js', implode(';', $js), true);
+		}
 
-		return $returnData ? Response::viewOptions() : $this->renderResponse($options, Response::viewOptions(), \Yii::$app->request->isAjax);
+		if($returnData)
+			return Response::viewOptions();
+
+		return $this->renderResponse($this->responseFormat == 'json' ? $parsedOptions : null, Response::viewOptions(), \Yii::$app->request->isAjax);
 	}
 
     /**
@@ -287,9 +301,12 @@ class DefaultController extends BaseController
     {
 		$this->action->id = 'create';
 		$ret_val = false;
-		$result = ['level' => 3];
+		$result = [
+			'level' => 3,
+			'/form/create'
+		];
 		$level = 1;
-		$this->getModel('create', $modelClass);
+		$this->getModel('create', null, $modelClass);
 
 		if($this->isValidationRequest())
 			return $this->performValidationRequest();
@@ -472,14 +489,14 @@ class DefaultController extends BaseController
 						break;
 
 						case 'date':
-						$this->model->setAttribute($value, ($this->boolResult ? new \yii\db\Expression('NOW()') : '0000-00-00 00:00:00'));
+						$this->model->setAttribute($value, ($this->boolResult ? new \yii\db\Expression('NOW()') : NULL));
 						break;
 					}
 					break;
 				}
 			}
 			$this->model->setAttribute($attributes['attribute'], $this->boolResult);
-			if(!Response::formatSpecified())
+			if(!$this->isResponseFormatSpecified)
 				$this->setResponseFormat('json');
 
 			if(isset($afterAction) && is_callable($afterAction))
@@ -550,7 +567,7 @@ class DefaultController extends BaseController
 					break;
 
 					default:
-					$format = Response::formatSpecified() ? $this->getResponseFormat() : 'json';
+					$format = $this->isResponseFormatSpecified ? $this->responseFormat : 'json';
 					$this->setResponseFormat($format);
 					if($this->model->hasAttribute('created_at'))
 						$this->model->created_at = \nitm\helpers\DateFormatter::formatDate($this->model->created_at);
@@ -565,7 +582,7 @@ class DefaultController extends BaseController
 					$viewFile = $this->model->isWhat().'/view';
 					$ret_val['success'] = true;
 					$ret_val['action'] = $this->action->id;
-					switch($this->getResponseFormat())
+					switch($this->responseFormat)
 					{
 						case 'json':
 						if(file_exists($this->getViewPath() . DIRECTORY_SEPARATOR . ltrim($viewFile, '/').'.php'))
@@ -597,10 +614,5 @@ class DefaultController extends BaseController
 		$ret_val['id'] = $this->model->getId();
 
 		return $this->renderResponse($ret_val, Response::viewOptions(), \Yii::$app->request->isAjax);
-	}
-
-	protected function getWith()
-	{
-		return [];
 	}
 }

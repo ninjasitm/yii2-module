@@ -1,52 +1,62 @@
+'use strict';
 /**
  * NITM Javascript Tools
  * Tools which allow some generic functionality not provided by Bootstrap
  * © NITM 2014
  */
 
-function Tools ()
+class Tools
 {
-	var self = this;
-	this.id = 'tools';
-	this.defaultInit = [
-		'initVisibility',
-		'initRemoveParent',
-		'initDisableParent',
-		'initCloneParent',
-		'initBsMultipleModal',
-		'initDynamicDropdown',
-		'initDynamicValue',
-		'initOffCanvasMenu',
-		'initAutocompleteSelect',
-		'initSubmitSelect',
-		'initToolTips',
-		'initConfirm'
-	];
-	this._activity = {};
+	constructor() {
+		this.id = 'tools';
+		this.defaultInit = [
+			'initVisibility',
+			'initRemoveParent',
+			'initDisableParent',
+			'initCloneParent',
+			'initDynamicDropdown',
+			'initDynamicValue',
+			'initAutocompleteSelect',
+			'initSubmitSelect',
+			'initConfirm',
+			'initToolTips',
+			'initEvents'
+		];
+		this._activity = {};
 
-	this.init = function (containerId) {
-		this.initDefaults(containerId);
-	};
-
-	this.initDefaults = function (containerId) {
-		this.defaultInit.map(function (method, key) {
-			if(typeof self[method] == 'function')
-				self[method](containerId);
+		//Some fixes for some common widgets
+		$(document).ready(() => {
+			//this.initBsMultipleModal();
+			this.initOffCanvasMenu();
 		});
+	}
+
+	initDefaults(container) {
+		$nitm.initDefaults(this.id, this, this.defaultInit, container);
 	};
+
+	initEvents() {
+
+		$(document).on('pjax:success loaded.bs.modal', (data, status, xhr, options) => {
+			console.info("[Nitm: Tools]: Running helper scripts after event ("+data.type+"."+data.namespace+") on HTML element: #"+data.target.id);
+			$nitm.initDefaults(this.id, this, this.defaultInit, '#'+data.target.id);
+		});
+	}
 
 	/**
 	 * Submit a form on change of dropdown input
+	 * @param string containerId
 	 */
-	this.initSubmitSelect = function (containerId) {
+	initSubmitSelect(containerId) {
 		//May not be necesary when using Bootstrap Nav menu
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
-		container.find("[role~='changeSubmit']").map(function(e) {
-			if(!$(this).data('nitm-entity-change')) {
-				$(this).data('nitm-entity-change', true);
-				$(this).off('change');
-				$(this).on('change', function (event) {
-					window.location.replace($(this).val());
+		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
+		$container.find("[role~='changeSubmit']").map((e) => {
+			let $elem = $(e.currentTarget);
+			if(!$elem.data('nitm-entity-change')) {
+				$elem.data('nitm-entity-change', true);
+				$elem.off('change');
+				$elem.on('change', function (event) {
+					window.location.replace($(event.target).val());
 				});
 			}
 		});
@@ -54,31 +64,22 @@ function Tools ()
 
 	/**
 	 * Use data attributes to load a URL into a container/element
+	 * @param string containerId
 	 */
-	this.initVisibility = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+	initVisibility(containerId) {
+		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality with optional data retrieval
-		container.find("[role~='visibility']").map(function(e) {
-			var $target = $(this);
+		$container.find("[role~='visibility']").map((e) => {
+			let $target = $(e.currentTarget);
 			if($target.data('id') !== undefined) {
-				var events = $target.data('events') !== undefined ? $target.data('events').split(',') : ['click'];
-				$.each(events, function (index, eventName) {
+				let events = $target.data('events') || 'click';
+				$.each(events.split(','), (index, eventName) => {
 					if(!$target.data('nitm-entity-'+eventName)) {
 						$target.data('nitm-entity-'+eventName, true);
-						var _callback;
-						if($target.data('no-animation'))
-							_callback = function (e) {
-								e.preventDefault();
-								self.visibility($target.get(0));
-								return true;
-							};
-						else
-							_callback = function (e) {
-								e.preventDefault();
-								$.when(self.visibility($target.get(0))).done(function () {
-								});
-								return true;
-							};
+						let _callback = (e) => {
+							e.preventDefault();
+							return this.visibility(e.currentTarget);
+						};
 						if($target.data('run-once'))
 							$target.one(eventName, _callback);
 						else
@@ -89,65 +90,72 @@ function Tools ()
 		});
 	};
 
-	this.visibility = function (object, removeListener) {
-		$($nitm).trigger('nitm-animate-submit-start', [object]);
+	/**
+	 * Change the visibility of an element(s)
+	 * @param  jQuery|HTMLElement      [description]
+	 * @param  boolean removeListener [description]
+	 * @return Promise                [description]
+	 */
+	visibility(object, removeListener) {
+		return new Promise((resolve, reject) => {
+			$nitm.trigger('animate-submit-start', [object]);
+			let $object = $nitm.getObj(object);
+			let on = $object.data('on');
+			let getUrl = true;
+			let url = !$object.data('url') ? $object.attr('href') : $object.data('url');
 
-		var _visSelf = this;
-		var $object = $nitm.getObj(object);
-		var on = $object.data('on');
+			if($elem.data('on') !== undefined)
+				if($elem.data('on').length === 0) getUrl = false;
 
-		var getUrl = true;
-		var url = !$object.data('url') ? $object.attr('href') : $object.data('url');
+			let getRemote = function() {
+				let isBasedOnGetUrl = (url !== undefined) && (url != '#') && (url.length >= 2) && getUrl;
+				let isBasedOnRemoteOnce = ($object.data('remote-once') !== undefined) ? (Boolean($object.data('remote-once')) && !$object.data('got-remote')) : true;
+				return isBasedOnGetUrl && isBasedOnRemoteOnce;
+			};
 
-		if($(this).data('on') !== undefined)
-			if($(this).data('on').length === 0) getUrl = false;
+			if(getRemote())
+			{
+				let success = $object.data('success') || null;
+				let ret_val = $.ajax({
+					url: url,
+					type: ($object.data('method') !== undefined) ? $object.data('method') : 'get',
+					dataType: $object.data('type') ? $object.data('type') : 'html',
+					success: success,
+					complete: (result) => {
+						this.replaceContents(result.responseText, object, $nitm.getObj($object.data('id')));
+					}
+				});
+				$object.data('got-remote', true);
+			}
 
-		var getRemote = function () {
-			var basedOnGetUrl = (url !== undefined) && (url != '#') && (url.length >= 2) && getUrl;
-			var basedOnRemoteOnce = ($object.data('remote-once') !== undefined) ? (Boolean($object.data('remote-once')) && !$object.data('got-remote')) : true;
-			return basedOnGetUrl && basedOnRemoteOnce;
-		};
+			$nitm.trigger('animate-submit-stop', [object]);
 
-		this.target = $nitm.getObj($object.data('id'));
-
-		if(getRemote())
-		{
-			this.success = ($object.data('success') !== undefined) ? $object.data('success') : null;
-			this.url = $object.data('url') ? $object.data('url') : $object.attr('href');
-			var ret_val = $.ajax({
-				url: url,
-				type: ($object.data('method') !== undefined) ? $object.data('method') : 'get',
-				dataType: $object.data('type') ? $object.data('type') : 'html',
-				complete: function (result) {
-					$nitm.module('tools').replaceContents(result.responseText, object, _visSelf);
-				}
+			$nitm.module('utils').handleVis($object.data('id'))
+			.then(() => {
+				if($object.data('toggle-inputs'))
+					$nitm.getObj($object.data('id')).find(':input').prop('disabled', function(i, v) {
+						return !v;
+					});
+				resolve();
 			});
-			$object.data('got-remote', true);
-		}
-
-		$($nitm).trigger('nitm-animate-submit-stop', [object]);
-
-		$nitm.handleVis($object.data('id'));
-
-		if($object.data('toggle-inputs')) {
-			this.target.find(':input').prop('disabled', function(i, v) { return !v; });
-		}
-
-		return false;
+		});
 	};
 
-	this.replaceContents = function (result, object, visibility) {
-		var $object = $nitm.getObj(object);
+	replaceContents(result, object, target) {
+		let $object = $nitm.getObj(object);
 		if($object.data('toggle')) {
-			$.when($nitm.handleVis($object.data('toggle'))).done(function () {
-				self.evalScripts(result, function (responseText) {
-					visibility.target.html(responseText);
+			$nitm.module('utils').handleVis($object.data('toggle'))
+			.then(() => {
+				this.evalScripts(result, function (responseText) {
+					target.html(responseText);
 				});
+			}, function (error) {
+				console.info('[Nitm: Tools]: replaceContents() Error: '+error);
 			});
 		}
 		else {
-			self.evalScripts(result, function (responseText) {
-				visibility.target.html(responseText);
+			this.evalScripts(result, function (responseText) {
+				target.html(responseText);
 			});
 		}
 	};
@@ -155,31 +163,29 @@ function Tools ()
 	/**
 	 * Populate another dropdown with data from the current dropdown
 	 */
-	this.initDynamicDropdown = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
-		container.find("[role~='dynamicDropdown']").map(function(e) {
-			var id = $(this).data('id');
-			var $target = $(this);
-			switch(id !== undefined)
-			{
-				case true:
+	initDynamicDropdown(containerId) {
+		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
+		$container.find("[role~='dynamicDropdown']").map((i, e) => {
+			let $target = $(e);
+			if(e.id !== undefined) {
 				if(!$target.data('nitm-entity-change')) {
 					$target.data('nitm-entity-change', true);
 					$target.off('change');
 					$target.on('change', function (e) {
 						e.preventDefault();
-						var element = $nitm.getObj('#'+id);
-						var url = $target.data('url');
+						let $element = $(e.currentTarget);
+						let url = $element.data('url');
 						if((url != '#') && (url.length >= 2)) {
-							element.removeAttr('disabled');
-							element.empty();
-							var ret_val = $.get(url+$target.find(':selected').val()).done( function (result) {
+							$element.removeAttr('disabled');
+							$element.empty();
+							$.get(url+$element.find(':selected').val())
+							.done(function (result) {
 								result = $.parseJSON(result);
-								element.append( $('<option></option>').val('').html('Select value...') );
+								$element.append( $('<option></option>').val('').html('Select value...') );
 								if(typeof result == 'object')
 								{
 									$.each(result, function(val, text) {
-										element.append( $('<option></option>').val(text.value).html(text.label) );
+										$element.append( $('<option></option>').val(text.value).html(text.label));
 									});
 								}
 							}, 'json');
@@ -187,7 +193,6 @@ function Tools ()
 						return true;
 					});
 				}
-				break;
 			}
 		});
 	};
@@ -195,22 +200,19 @@ function Tools ()
 	/**
 	 * Set the value for an element using data attributes
 	 */
-	this.initDynamicValue = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+	initDynamicValue(containerId) {
+		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality with optional data retrieval
-		container.find("[role~='dynamicValue']").map(function(e) {
-			var $target = $(this);
-			switch(($target.data('id') !== undefined) || ($target.data('type') !== undefined))
-			{
-				case true:
-				var events = $target.data('events') !== undefined ? $target.data('events').split(',') : ['click'];
-				$.each(events, function (index, eventName) {
+		$container.find("[role~='dynamicValue']").map((i, e) => {
+			let $target = $(e);
+			if(($target.data('id') !== undefined) || ($target.data('type') !== undefined)) {
+				let events = $target.data('events') || 'click';
+				$.each(events.split(','), (index, eventName) => {
 					if(!$target.data('nitm-entity-'+eventName)) {
 						$target.data('nitm-entity-'+eventName, true);
-						var _callback = function (e) {
+						let _callback = (e) => {
 							e.preventDefault();
-							$.when(self.dynamicValue($target.get(0))).done(function () {
-							});
+							this.dynamicValue($(e.currentTarget).get(0));
 							return true;
 						};
 						if($target.data('run-once'))
@@ -219,166 +221,163 @@ function Tools ()
 							$target.on(eventName, _callback);
 					}
 				});
-				break;
 			}
 		});
 	};
 
 	/**
+	 * Set a value dynamically
+	 * @param  string|HTMLElement|jQuery object
+	 * @return Promise
+	 */
+	dynamicValue(object) {
+		return new Promise((resolve, reject) => {
+			let $object = $nitm.getObj(object);
+			object = $object.get(0);
+
+			$nitm.m('utils').hasNoActivity(object.id)
+			.then(() => {
+				$nitm.trigger('animate-submit-start', [object]);
+				$nitm.m('utils').updateActivity(object.id);
+
+				let $target = $nitm.getObj($object.data('id'));
+				let $element = !$target.length ? $object : $target;
+
+				if($element.data('run-once') && ($element.data('run-times') >= 1)) {
+					reject();
+				}
+
+				let url = !$object.data('url') ? $object.attr('href') : $object.data('url');
+				let on = $object.data('on');
+
+				if($(on).get(0) === undefined) {
+					reject(false);
+				}
+
+				if((url != '#') && (url.length >= 2)) {
+					$element.removeAttr('disabled').empty();
+					let selected = $object.find(':selected').val() || -1;
+
+					let ajaxSettings = {
+						url: url+selected,
+						method: $object.data('method') || $object.data('ajaxMethod') || 'get',
+					};
+					let success = null;
+					switch($object.data('type'))
+					{
+						case 'html':
+						Object.assign(ajaxSettings, {
+							dataType: 'html',
+						});
+						 success = (result) => {
+							this.evalScripts(result, function (responseText) {
+								$element.html(responseText);
+							});
+						};
+						break;
+
+						case 'callback':
+						Object.assign(ajaxSettings, {
+							dataType: 'json'
+						});
+						success = (result) => {
+							eval("let callback = "+$object.data('callback'));
+							callback.call(this, [result, $element.get(0)]);
+						};
+						break;
+
+						default:
+						Object.assign(ajaxSettings, {
+							dataType: 'text',
+						});
+						success = function (result) {
+							$element.val(result);
+						};
+						break;
+					}
+					$.ajax(ajaxSettings)
+					.always(function (result, status, xhr) {
+						$nitm.trigger('animate-submit-stop', [object]);
+					}).done((result, status, xhr) => {
+						$element.data('run-times', 1);
+						$nitm.m('utils').updateActivity(object.id);
+						success.call(this, result);
+						resolve(result);
+					}).fail(function (xhr, status, error) {
+						$nitm.trigger('indicate', [error, object]);
+						reject();
+					});
+				}
+			});
+		});
+	};
+
+
+	/**
 	 * Set the value for an element using data attributes
 	 */
-	this.initDynamicIframe = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+	initDynamicIframe(containerId) {
+		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality with optional data retrieval
-		container.find("[role~='dynamicIframe']").map(function(e) {
-			if(($(this).data('id') !== undefined))
-				var _target = this;
-				var events = $(this).data('events') !== undefined ? $(this).data('events').split(',') : ['click'];
-				$.each(events, function (index, eventName) {
+		$container.find("[role~='dynamicIframe']").map((i, e) => {
+			let $target = $(e);
+			if(($target.data('id') !== undefined)) {
+				let events = $target.data('events') || 'click';
+				$.each(events.split(','),  function (index, eventName) {
 					if(!$target.data('nitm-entity-'+eventName)) {
 						$target.data('nitm-entity-'+eventName, true);
 						if($target.data('run-once')) {
 							$target.one(eventName, function (e) {
 								e.preventDefault();
-								$.when(self.dynamicIframe(_target)).done(function () {
-								});
+								this.dynamicIframe(e.currentTarget);
 							});
 						} else {
 							$target.on(eventName, function (e) {
 								e.preventDefault();
-								$.when(self.dynamicIframe(_target)).done(function () {
-								});
+								this.dynamicIframe(e.currentTarget);
 							});
 						}
 					}
 				});
+			}
 		});
 	};
 
-	this.dynamicIframe = function (object) {
-		var $object = $nitm.getObj(object);
-		var $target = $nitm.getObj($object.data('id'));
-		if(($indicator = $nitm.getObj($object.data('indicator'))).get(0) === undefined)
-			$indicator = $object;
+	dynamicIframe(object) {
+		return new Promise(function(resolve, reject) {
+			let $object = $nitm.getObj(object);
+			object = $object.get(0);
+			let $target = $nitm.getObj($object.data('id'));
+			if(($indicator = $nitm.getObj($object.data('indicator'))).get(0) === undefined)
+				$indicator = $object;
 
-		$indicator.text('Loading...').fadeIn();
-		$target.fadeOut();
-		var url = $nitm.getObj(object).attr('href');
+			$indicator.text('Loading...').fadeIn();
+			$target.fadeOut();
+			let url = $object.attr('href');
 
-		if($nitm.hasActivity($object.attr('id')))
-			return;
+			if($nitm.m('utils').hasActivity(object.id))
+				return;
 
-		$($nitm).trigger('nitm-animate-submit-start', [$indicator.get(0)]);
+			$nitm.trigger('animate-submit-start', [$indicator.get(0)]);
 			$target.attr('src', ($(object).data('url') ? $object.data('url') : $object.attr('href')));
 			$target.load(function () {
-				$(this).fadeIn();
+				$elem.fadeIn();
 				$indicator.fadeOut();
 			});
-		$($nitm).trigger('nitm-animate-submit-stop', [$indicator.get(0)]);
-	};
-
-	this.dynamicValue = function (object) {
-
-		var $object = $nitm.getObj(object),
-			$target = $nitm.getObj($object.data('id')),
-			element;
-
-		if($nitm.hasActivity($object.attr('id')))
-			return;
-
-		$($nitm).trigger('nitm-animate-submit-start', [object]);
-
-		$nitm.updateActivity($object.attr('id'));
-
-		var ret_val = null;
-
-		try {
-			element = !$target.get(0) ? $object : $target;
-		} catch (e) {element = $object;}
-
-		if(element.data('run-once') && (element.data('run-times') >= 1))
-			return;
-
-		var url = !$object.data('url') ? $object.attr('href') : $object.data('url');
-		var on = $object.data('on');
-		switch((url != '#') && (url.length >= 2))
-		{
-			case true:
-			element.removeAttr('disabled');
-			element.empty();
-			var selected = !$object.find(':selected').val() ? '' : $object.find(':selected').val();
-			if(on !== undefined)
-				if($(on).get(0) === undefined) return false;
-
-			var ajaxSettings = {
-				url: url+selected,
-				method: (($object.data('method') !== undefined) ? $object.data('method') : (($object.data('ajaxMethod') !== undefined) ? $object.data('ajaxMethod') : 'get')),
-				error: function (xhr, status, error) {
-					$nitm.indicate(error, object);
-				}
-			};
-			switch($object.data('type'))
-			{
-				case 'html':
-				$.extend(ajaxSettings, {
-					dataType: 'html',
-					success: function (result) {
-						self.evalScripts(result, function (responseText) {
-							element.html(responseText);
-						});
-					}
-				});
-				break;
-
-				case 'callback':
-				eval("var callback = "+$object.data('callback'));
-				$.extend(ajaxSettings, {
-					dataType: 'json',
-					success: function (result) {
-						callback(result, element.get(0));
-					}
-				});
-				break;
-
-				default:
-				$.extend(ajaxSettings, {
-					dataType: 'text',
-					success: function (result) {
-						element.val(result);
-					}
-				});
-				break;
-			}
-			ret_val = $.ajax(ajaxSettings).done(function () {
-				element.data('run-times', 1);
-				$nitm.updateActivity($object.attr('id'));
-			});
-			break;
-		}
-		$($nitm).trigger('nitm-animate-submit-stop', [object]);
-		return ret_val;
+			$nitm.trigger('animate-submit-stop', [$indicator.get(0)]);
+		});
 	};
 
 	/**
 	 * THis is used to evaluate remote js files returned in ajax calls
 	 */
-	this.evalScripts = function (text, callback, options) {
-		var dom = $(text);
-		//Need to find top level and nested scripts in returned text
-		var scripts = dom.find('script[type="text/javascript"]');
-		$.merge(scripts, dom.filter('script'));
-		//Load remote scripts before ading content to DOM
-		scripts.each(function(){
-			if(this.src) {
-				$.getScript(this.src);
-				$(this).remove();
-			}
-		});
+	evalScripts(text, callback, options) {
+		let dom = $(text);
 		if (typeof callback == 'function') {
 			//We do this here so that the js gets loaded ONLY after the ajax calls are done
-			$(document).one('ajaxStop', function () {
-				console.info("Nitm->Entity: Running evalScripts after ajaxStop event");
-				var existing, wrapperId, wrapper;
+			$(document).one('ajaxStop', () => {
+				console.info("[Nitm->Tools]: Running evalScripts after ajaxStop event");
+				let existing, wrapperId, wrapper;
 				if(options !== undefined) {
 					existing = (!options.context) ? false : options.context.attr('id');
 				} else {
@@ -393,32 +392,18 @@ function Tools ()
 					wrapper = $('<div id="'+wrapperId+'" role="nitmToolsAjaxWrapper">');
 					wrapper.append(dom);
 				}
-				var contents = $('<div>').append(wrapper);
+				let contents = $('<div>').append(wrapper);
 				//Execute basic init on new content
-				(function () {
-					return $.Deferred(function (deferred) {
-						try {
-							//Remove the scripts here so that they don't get run right away.
-							contents.find('script').remove();
-							callback(contents.html());
-						} catch (error) {console.log(error);}
-						deferred.resolve();
-					}).promise();
-				})().then(function () {
-					console.info("Nitm->Entity: Initing in evalScripts defaults on #"+wrapperId);
-					self.initDefaults(wrapperId);
-					var scriptText = '';
-					/*
-					 *Now we can run the scripts that were not run.
-					 *We'll collect them and then execute them all at once
-					 */
-					scripts.each(function(){
-						if($(this).text()) {
-							contents.append($(this));
-							scriptText += $(this).text();
-						}
-					});
-					eval(scriptText);
+				let promise = new Promise((resolve, reject) => {
+					try {
+						callback(contents.html());
+					} catch (error) {
+						throw (error);
+					}
+					resolve();
+				}).then(() => {
+					console.info("[Nitm: Tools]: Initing in evalScripts defaults on #"+wrapperId);
+					$nitm.initDefaults(this.id, this, this.defaultInit, wrapperId);
 				});
 			});
 		}
@@ -427,15 +412,16 @@ function Tools ()
 	/**
 	 * Remove the parent element up to a certain depth
 	 */
-	this.initRemoveParent = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+	initRemoveParent(containerId) {
+		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality
-		container.find("[role~='removeParent']").map(function(e) {
-			if(!$(this).data('nitm-entity-click')) {
-				$(this).data('nitm-entity-click', true);
-				$(this).on('click', function (e) {
+		$container.find("[role~='removeParent']").map((i, e) => {
+			let $elem = $(e);
+			if(!$elem.data('nitm-entity-click')) {
+				$elem.data('nitm-entity-click', true);
+				$elem.on('click', function (e) {
 					e.preventDefault();
-					self.removeParent(this);
+					this.removeParent(e.currentTarget);
 					return true;
 				});
 			}
@@ -445,17 +431,18 @@ function Tools ()
 	/**
 	 * Remove the parent element up to a certain depth
 	 */
-	this.initCloneParent = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+	initCloneParent(containerId) {
+		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality
-		container.find("[role~='cloneParent']").map(function(e) {
-		if(!$(this).data('nitm-entity-click')) {
-			$(this).data('nitm-entity-click', true);
-				$(this).on('click', function (e) {
+		$container.find("[role~='cloneParent']").map((i, e) => {
+			let $elem = $(e);
+		if(!$elem.data('nitm-entity-click')) {
+			$elem.data('nitm-entity-click', true);
+				$elem.on('click', function (e) {
 					e.preventDefault();
-					self.cloneParent(this);
-					if($(this).data('propagate') === undefined)
-						$(this).click();
+					this.cloneParent(e.currentTarget);
+					if($(e.currentTarget).data('propagate') === undefined)
+						$(e.currentTarget).click();
 					return true;
 				});
 			}
@@ -465,67 +452,75 @@ function Tools ()
 	/**
 	 * Remove the parent element up to a certain depth
 	 */
-	this.removeParent = function (elem)
+	removeParent(elem)
 	{
-		var $element = $(elem), parent, levels = ($element.data('depth') === undefined) ? -1 : $element.data('depth');
-		if($element.data('parent') !== undefined) {
-			parent = $element.parents($element.data('parent')).eq(levels);
-			if(!parent.length)
-				parent = $element.parents($element.data('parent'));
-		} else
-			parent = $element.parents().eq(levels);
-		parent.hide('slow').remove();
+		return new Promise(function (resolve, reject) {
+			let $elem = $(elem);
+			let $parent = null;
+			let levels = $elem.data('depth') || -1;
+			if($elem.data('parent') !== undefined) {
+				$parent = $elem.parents($elem.data('parent')).eq(levels);
+				if(!$parent.length)
+					$parent = $elem.parents($elem.data('parent'));
+			} else
+				$parent = $elem.parents().eq(levels);
+			$parent.hide('slow').remove();
+			resolve();
+		});
 	};
 
 	/**
 	 * Remove the parent element up to a certain depth
 	 */
-	this.cloneParent = function (elem, callbacks)
+	cloneParent(elem, callbacks)
 	{
-		var $element = $(elem);
-		var clone = $nitm.getObj($element.data('clone')).clone();
-		clone.find('input').not(':hidden').each(function (){$(this).val('');});
-		var currentId = !clone.attr('id') ? clone.prop('tagName') : clone.attr('id');
-		clone.attr('id', currentId+Date.now());
-		var to = $nitm.getObj($element.data('to'));
+		return new Promise(function (resolve, reject) {
+			let $element = $(elem);
+			let clone = $nitm.getObj($element.data('clone')).clone();
+			clone.find('input').not(':hidden').val('');
+			let currentId = !clone.attr('id') ? clone.prop('tagName') : clone.attr('id');
+			clone.attr('id', currentId+Date.now());
+			let to = $nitm.getObj($element.data('to'));
 
-		if(typeof callbacks.before == 'function') {
-			clone = callbacks.before(clone, to, elem);
-		} else if($element.data('before-clone') !== undefined)  {
-			eval("var beforeClone = "+$element.data('before-clone'));
-			clone = beforeClone(clone, to, elem);
-		}
+			if(typeof callbacks.before == 'function') {
+				clone = callbacks.before(clone, to, elem);
+			} else if($element.data('before-clone') !== undefined)  {
+				eval("let beforeClone = "+$element.data('before-clone'));
+				clone = beforeClone(clone, to, elem);
+			}
 
-		if($element.data('after') !== undefined) {
-			clone.insertAfter(to.find($element.data('after')));
-		}
-		else if($element.data('before') !== undefined)  {
-			clone.insertBefore(to.find($element.data('before')));
-		} else {
-			to.append(clone);
-		}
+			if($element.data('after') !== undefined) {
+				clone.insertAfter(to.find($element.data('after')));
+			}
+			else if($element.data('before') !== undefined)  {
+				clone.insertBefore(to.find($element.data('before')));
+			} else {
+				to.append(clone);
+			}
 
-		if(typeof callbacks.after == 'function') {
-			callbacks.after(clone, to, elem);
-		} else if($element.data('after-clone') !== undefined)  {
-			eval("var afterClone = "+$element.data('after-clone'));
-			afterClone(clone, to, elem);
-		}
-		return clone;
+			if(typeof callbacks.after == 'function') {
+				callbacks.after(clone, to, elem);
+			} else if($element.data('after-clone') !== undefined)  {
+				eval("let afterClone = "+$element.data('after-clone'));
+				afterClone(clone, to, elem);
+			}
+			resolve(clone);
+		});
 	};
 
 	/**
 	 * Initialize remove parent elements
 	 */
-	this.initDisableParent = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+	initDisableParent(containerId) {
+		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality
-		container.find("[role~='disableParent']").map(function(e) {
-			if(!$(this).data('nitm-entity-click')) {
-				$(this).data('nitm-entity-click', true);
-				$(this).on('click', function (e) {
+		$container.find("[role~='disableParent']").map((i, e) => {
+			let $elem = $(e);
+			if(!$elem.data('nitm-entity-click')) {
+				$elem.data('nitm-entity-click', true);
+				$elem.on('click', function (e) {
 					e.preventDefault();
-					self.disableParent(this);
+					this.disableParent(e.currentTarget);
 				});
 			}
 		});
@@ -535,153 +530,154 @@ function Tools ()
 	/**
 	 * Disable the parent element up to a certain depth
 	 */
-	this.disableParent = function (elem, levels, parentOptions, disablerOptions, dontDisableFields) {
-		var $element = $(elem);
-		var parent;
-		if($element.data('parent') !== undefined)
-			parent = $nitm.getObj($element.data('parent'));
-		else {
-			levels = ($element.data('depth') === undefined) ? ((levels === undefined) ? 1 : levels): $element.data('depth');
-			parent = $element.parent();
-			for(i = 0; i<levels; i++)
-			{
-				parent = parent.parent();
+	disableParent(elem, levels, parentOptions, disablerOptions, dontDisableFields) {
+		return new Promise(function (resolve, reject) {
+			let $element = $(elem);
+			let $parent = null;
+			if($element.data('parent') !== undefined)
+				$parent = $nitm.getObj($element.data('parent'));
+			else {
+				levels = ($element.data('depth') === undefined) ? ((levels === undefined) ? 1 : levels): $element.data('depth');
+				$parent = $element.parent();
+				for(i = 0; i<levels; i++) {
+					$parent = parent.parent();
+				}
 			}
-		}
-		//If we're dealing with a form, start from the submit button
-		switch($element.prop('tagName'))
-		{
-			case 'FORM':
-			elem = $element.find(':submit').get(0);
-			break;
-		}
-
-		/*
-		 * For some reason this cdoe block doesn't make sense...
-		 */
-		$element.attr('role', 'disableParent');
-		//get and set the role of the element activating this removal process
-		var thisRole = $(this).attr('role'), disabled;
-		$(this).attr('role', (thisRole === undefined) ? 'disableParent' : thisRole);
-		thisRole = $(this).attr('role');
-
-		//get and set the disabled data attribute
-		switch($element.data('disabled'))
-		{
-			case 1:
-			case true:
-			disabled = 1;
-			break;
-
-			default:
-			disabled = ($element.data('disabled') === undefined) ? 1 : 0;
-			break;
-		}
-		$element.data('disabled', !disabled);
-
-		var _defaultDisablerOptions = {
-			size: !$element.attr('class') ? 'btn-sm' : $element.attr('class'),
-			indicator: ((disabled == 1) ? 'refresh' : 'ban'),
-			class: $element.attr('class')
-		};
-		//change the button to determine the curent status
-		var _disablerOptions = {};
-		for(var attribute in _defaultDisablerOptions)
-		{
-			try {
-				_disablerOptions[attribute] = (disablerOptions.hasOwnProperty(attribute)) ? disablerOptions[attribute] : _defaultDisablerOptions[attribute];
-			} catch(error) {
-				_disablerOptions[attribute] = _defaultDisablerOptions[attribute];
+			//If we're dealing with a form, start from the submit button
+			switch($element.prop('tagName'))
+			{
+				case 'FORM':
+				elem = $element.find(':submit').get(0);
+				break;
 			}
 
-		}
-		$element.removeClass().addClass(_disablerOptions.class+' '+_disablerOptions.size).html("<span class='fa fa-"+_disablerOptions.indicator+"'></span>");
+			/*
+			 * For some reason this cdoe block doesn't make sense...
+			 */
+			$element.attr('role', 'disableParent');
+			//get and set the role of the element activating this removal process
+			let thisRole = $element.attr('role')
+			let disabled = false;
+			$element.attr('role', (thisRole === undefined) ? 'disableParent' : thisRole);
+			thisRole = $element.attr('role');
 
-		//now perform disabling on parent
-		var _defaultParentOptions = {
-			class: ((disabled == 1) ? 'bg-disabled' : 'bg-success')
-		};
-		var elemEvents = ['click'], _class, _icon;
-		var trigger = function (event) {$(this).trigger(event);};
-		var triggerFalse = function (event) {return false;};
-		parent.find(':input,:button,a').map(function () {
-			switch($(this).attr('role'))
+			//get and set the disabled data attribute
+			switch($element.data('disabled'))
 			{
-				case thisRole:
+				case 1:
+				case true:
+				disabled = 1;
 				break;
 
 				default:
-				switch($(this).data('keep-enabled') || ($(this).attr('name') == '_csrf'))
-				{
-					case false:
-					_class = 'warning';
-					_icon = 'plus';
-					if(disabled) {
-						_class = 'danger';
-						_icon = 'ban';
-					}
-					if(!dontDisableFields)
-					{
-						for(var event in elemEvents)
-						{
-							var func = disabled ? triggerFalse(event) : trigger(event);
-							$(this).on(event, func);
-						}
-						if(disabled)
-							$(this).attr('disabled', disabled);
-						else
-							$(this).removeAttr('disabled');
-								break;
-					}
-				}
+				disabled = ($element.data('disabled') === undefined) ? 1 : 0;
 				break;
 			}
-		});
+			$element.data('disabled', !disabled);
 
-		var _parentOptions = {};
-		for(var _attribute in _defaultParentOptions)
-		{
-			try {
-				_parentOptions[_attribute] = (parentOptions.hasOwnProperty(_attribute)) ? parentOptions[_attribute] : _defaultParentOptions[_attribute];
-			} catch(error) {
-				_parentOptions[_attribute] = _defaultParentOptions[_attribute];
+			let _defaultDisablerOptions = {
+				size: !$element.attr('class') ? 'btn-sm' : $element.attr('class'),
+				indicator: ((disabled == 1) ? 'refresh' : 'ban'),
+				class: $element.attr('class')
+			};
+			//change the button to determine the curent status
+			let _disablerOptions = {};
+			for(let attribute in _defaultDisablerOptions)
+			{
+				try {
+					_disablerOptions[attribute] = (disablerOptions.hasOwnProperty(attribute)) ? disablerOptions[attribute] : _defaultDisablerOptions[attribute];
+				} catch(error) {
+					_disablerOptions[attribute] = _defaultDisablerOptions[attribute];
+				}
+
 			}
+			$element.removeClass().addClass(_disablerOptions.class+' '+_disablerOptions.size).html("<span class='fa fa-"+_disablerOptions.indicator+"'></span>");
 
-		}
-		parent.removeClass().addClass(_parentOptions.class);
+			//now perform disabling on parent
+			let _defaultParentOptions = {
+				class: ((disabled == 1) ? 'bg-disabled' : 'bg-success')
+			};
+			let elemEvents = 'click', _class, _icon;
+			let trigger = function(event) {$elem.trigger(event);};
+			let triggerFalse = function(event) {return false;};
+			$parent.find(':input,:button,a').map(function (i, input) {
+				let $input = $(input);
+				switch($input.attr('role'))
+				{
+					case thisRole:
+					break;
+
+					default:
+					if(!$input.data('keep-enabled') || ($input.attr('name') !== '_csrf')) {
+						let _class = 'warning';
+						let _icon = 'plus';
+						if(disabled) {
+							_class = 'danger';
+							_icon = 'ban';
+						}
+						if(!dontDisableFields) {
+							for(let event in elemEvents)
+							{
+								let func = disabled ? triggerFalse(event) : trigger(event);
+								$input.on(event, func);
+							}
+							if(disabled)
+								$input.attr('disabled', disabled);
+							else
+								$input.removeAttr('disabled');
+						}
+					}
+					break;
+				}
+			});
+
+			let _parentOptions = {};
+			for(let _attribute in _defaultParentOptions)
+			{
+				try {
+					_parentOptions[_attribute] = (parentOptions.hasOwnProperty(_attribute)) ? parentOptions[_attribute] : _defaultParentOptions[_attribute];
+				} catch(error) {
+					_parentOptions[_attribute] = _defaultParentOptions[_attribute];
+				}
+
+			}
+			parent.removeClass().addClass(_parentOptions.class);
+			resolve();
+		});
 	};
 
 	/**
 	 * Fix for loading multiple boostrap modals
 	 */
-	this.initBsMultipleModal = function () {
+	initBsMultipleModal() {
 		//to support multiple modals
 		$(document).on('hidden.bs.modal', function (e) {
-			$(e.target).removeData('bs.modal');
+			$(e.currentTarget).removeData('bs.modal');
 			//Fix a bug in modal which doesn't properly reload remote content
-			$(e.target).find('.modal-content').html('');
+			$(e.currentTarget).find('.modal-content').html('');
 		});
 	};
 
 	/**
 	 * Custom auto complete handler
 	 */
-	this.initAutocompleteSelect = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
-		container.find("[role~='autocompleteSelect']").each(function() {
+	initAutocompleteSelect(containerId) {
+		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
+		$container.find("[role~='autocompleteSelect']").each(function() {
 			$(this).on('autocompleteselect', function (e, ui) {
 				e.preventDefault();
-				var element = $(this).data('real-input');
-				var appendTo = $(this).data('append-html');
+				let $elem = $(e.currentTarget);
+				let element = $elem.data('real-input');
+				let appendTo = $elem.data('append-html');
 				if(appendTo !== undefined)
 					if(ui.item.html !== undefined)
 						$nitm.getObj(appendTo).append($(ui.item.html));
 
 				if(element !== undefined) {
 					$nitm.getObj(element).val(ui.item.value);
-					$(this).val(ui.item.text);
+					$elem.val(ui.item.text);
 				} else {
-					$(this).val(ui.item.value);
+					$elem.val(ui.item.value);
 				}
 			});
 		});
@@ -690,8 +686,7 @@ function Tools ()
 	/**
 	 * Off canvas menu support
 	 */
-	this.initOffCanvasMenu = function (containerId) {
-		var container = $nitm.getObj((!containerId) ? 'body' : containerId);
+	initOffCanvasMenu() {
 		$(document).ready(function () {
 			$("[data-toggle='offcanvas']").click(function () {
 				$('.row-offcanvas').toggleClass('active');
@@ -699,17 +694,17 @@ function Tools ()
 		});
 	};
 
-	this.initConfirm = function () {
+	initConfirm() {
 		$(document).ready(function () {
 			$('[data-confirm]').on('click', function (event) {
-				if(!confirm($(this).data('confirm'))) {
+				if(!confirm($elem.data('confirm'))) {
 					event.preventDefault();
 					event.stopImmediatePropagation();
 				} else {
 					return true;
 				}
 			}).each(function () {
-				var listeners = $._data(this, "events").click;
+				let listeners = $._data(this, "events").click;
 				listeners.reverse();
 			});
 		});
@@ -718,7 +713,7 @@ function Tools ()
 	/**
 	 * Off tooltip support
 	 */
-	this.initToolTips = function () {
+	initToolTips() {
 		try {
 			$(document).ready(function() {
 				$("body").tooltip({ selector: '[data-toggle=tooltip]' });
@@ -729,15 +724,4 @@ function Tools ()
 
 $nitm.addOnLoadEvent(function () {
 	$nitm.initModule(new Tools());
-	//$nitm.module('entity').initSearch();
-	$(document).on('pjax:send', function (xhr, options) {
-		$(xhr.target).fadeOut('slow');
-	});
-	$(document).on('pjax:complete', function (xhr, options) {
-		$(xhr.target).fadeIn('slow');
-	});
-
-	$(document).on('pjax:beforeReplace', function (content, options) {
-		$nitm.module('tools').evalScripts(content, function (text) {return true;});
-	});
 });

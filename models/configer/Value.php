@@ -47,14 +47,14 @@ class Value extends BaseConfiger
             [['name'], 'unique', 'targetAttribute' => ['name', 'containerid', 'sectionid'], 'message' => 'This value already exists', 'on' => ['create']],
         ];
     }
-	
+
 	public function scenarios()
 	{
-		return [
+		return array_merge(parent::scenarios(), [
 			'create' => ['containerid', 'sectionid', 'name', 'value', 'comment'],
 			'update' => ['value', 'comment'],
 			'delete' => ['deleted']
-		];
+		]);
 	}
 
     /**

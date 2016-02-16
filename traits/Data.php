@@ -10,9 +10,6 @@ use nitm\helpers\Cache as CacheHelper;
  */
 trait Data {
 
-	public $noDbInit = true;
-	public $queryOptions = [];
-
 	public $slugIs = [];
 	public static $_slugIs = [];
 
@@ -45,7 +42,7 @@ trait Data {
 			return Inflector::slug(implode(' ', preg_split('/(?=[A-Z])/', array_pop($stack), -1, PREG_SPLIT_NO_EMPTY)));
 		};
 
-		if(isset($this) && is_null($pluralize)) {
+		if(isset($this) && is_null($pluralize) && $this instanceof \nitm\models\Data) {
 			if(isset($this->is))
 				return $this->is;
 			else if(!$forceClassType && $this->hasMethod('type') && !empty($this->type()))
@@ -55,7 +52,7 @@ trait Data {
 			$class = $this->className();
 			//Otherwise get the static class value
 		} else {
-			$class = get_called_class();
+			$class = static::class;
 			if(isset($class::$_is) && is_null($pluralize))
 				return $class::$_is;
 			else if(!$forceClassType && method_exists($class, 'type') && !empty($class::type()))
@@ -69,7 +66,7 @@ trait Data {
 		else
 			$inflector = $pluralize === true ? 'pluralize' : 'singularize';
 
-		if(isset($this)) {
+		if(isset($this) && $this instanceof \nitm\models\Data) {
 			if(!isset($this->slugIs[$inflector]) && isset($class::$_slugIs[$inflector][$ret_val])) {
 				$ret_val = $this->slugIs[$inflector] = $class::$_slugIs[$inflector][$ret_val];
 			} else if(!isset($this->slugIs[$inflector])) {
@@ -98,10 +95,12 @@ trait Data {
 	 * Get the unique ID of this object
 	 * @return string|int
 	 */
-	public function getId()
+	public function getId($splitter='')
 	{
 		$key = $this->primaryKey();
-		return (int)$this->getAttribute($key[0]);
+		return implode($splitter, array_filter(array_map(function ($attribute) {
+			return $this->getAttribute($attribute);
+		}, $key)));
 	}
 
 	public function hasRelation($name, $model=null)
@@ -158,7 +157,15 @@ trait Data {
 			$value = is_null($value) ? $this->className() : $value;
 		else
 			$value = is_null($value) ?  static::className() : $value;
-		return \nitm\helpers\ClassHelper::properClassName($value);
+		return \nitm\helpers\ClassHelper::properClassName($value, $this->namespace);
+	}
+
+	public function getSearchClass()
+	{
+		$namespace = explode('\\', $this->namespace);
+		if(end($namespace) != 'search')
+			$namespace[] = 'search';
+		return \Yii::$app->getModule('nitm')->getSearchClass($this->isWhat(), implode('\\', $namespace));
 	}
 
 	public function getNamespace()
@@ -194,223 +201,6 @@ trait Data {
 	public static function unsetFlag($flag)
 	{
 		return ArrayHelper::remove(self::$_flags, self::flagId($flag), null);
-	}
-
-	public function addWith($with)
-	{
-		$with = is_array($with) ? $with : [$with];
-		$this->queryOptions['with'] = array_merge(ArrayHelper::getValue($this->queryOptions, 'with', []), $with);
-	}
-
-    /**
-	 * This is here to allow base classes to modify the query before finding the count
-     * @return \yii\db\ActiveQuery
-     */
-    public function getCount($link=null)
-    {
-		$primaryKey = current($this->primaryKey());
-		$link = is_array($link) ? $link : [$primaryKey => $primaryKey];
-		$tableName = static::tableName();
-		$tableNameAlias = $tableName.'_alias';
-        $query = $this->hasOne(static::className(), $link)
-			->select([
-				'_count' => "COUNT(".$primaryKey.")",
-			])
-			->groupBy(array_values($link));
-		foreach(['where', 'orwhere', 'andwhere'] as $option)
-			if(isset($this->queryOptions[$option]))
-				$query->$option($this->queryOptions[$option]);
-		return $query;
-    }
-
-	public function count()
-	{
-		return \nitm\helpers\Relations::getRelatedRecord('count', $this, static::className(), [
-			'_count' => 0
-		])['_count'];
-	}
-
-	/*
-	 * Get the array of arrays
-	 * @return mixed
-	 */
-	public function getArrays()
-	{
-		$query = $this->find($this);
-		$ret_val = $query->asArray()->all();
-		$this->success = (sizeof($ret_val) >= 1) ? true : false;
-		return $ret_val;
-	}
-
-	/**
-	 * Function to get class name for locating items
-	 * @return string
-	 */
-	private function locateClassForItems($options)
-	{
-		return ArrayHelper::remove($options, 'class', (is_subclass_of(static::className(), __CLASS__) ? static::className() : __CLASS__));
-	}
-
-	/**
-	 * Function to get items for the List methods
-	 * @return array
-	 */
-	private function locateItems($options, $count=false)
-	{
-		$class = self::locateClassForItems($options);
-
-		$items = [];
-		if(isset($this) && is_subclass_of(static::className(), __CLASS__)) {
-			$this->queryOptions = array_merge($this->queryOptions, array_merge([
-				'limit' => 100,
-				'select' => '*',
-			], $options));
-			if($count === true) {
-				$items = $this->find($this)->count();
-			}
-			else
-				$items = $this->getModels();
-		}
-		else {
-			$query = $class::find();
-			foreach($this->queryOptions as $name=>$value)
-				if($query->hasMethod($name))
-					$query->$name($value);
-			if($count === true)
-				$items = $query->count();
-			else
-				$items = $query->all();
-		}
-		return $items;
-	}
-
-	/**
-	 * Get a one dimensional associative array
-	 * @param mixed $label
-	 * @param mixed $separator
-	 * @return array
-	 */
-	public function getList($label='name', $separator=null, $queryOptions=[], $key=null)
-	{
-		$class = self::locateClassForItems($queryOptions);
-		$ret_val = [];
-		$separator = is_null($separator) ? ' ' : $separator;
-		$label = is_null($label) ? 'name' : $label;
-
-		$cacheKey = CacheHelper::getKey(is_string($key) ? $key : $class::formName(), null, 'list', true);
-
-		if(CacheHelper::cache()->exists($cacheKey))
-			$ret_val = CacheHelper::cache()->get($cacheKey);
-
-		if(!isset($queryOptions['orderBy']))
-			$queryOptions['orderBy'] = [(is_array($label) ? end($label) : $label) => SORT_ASC];
-
-		$queryOptions['groupBy'] = [$label, 'id'];
-		if(count($ret_val) < self::locateItems($queryOptions, true)) {
-			$items = self::locateItems($queryOptions);
-			switch(count($items) >= 1)
-			{
-				case true:
-				foreach($items as $item)
-				{
-					$ret_val[$item['id']] = $class::getLabel($item, $label, $separator);
-				}
-				break;
-
-				default:
-				$ret_val[] = ["No ".$class::isWhat()." found"];
-				break;
-			}
-			CacheHelper::cache()->set($cacheKey, $ret_val, 120);
-		}
-		return $ret_val;
-	}
-
-	/**
-	 * Get a multi dimensional associative array suitable for Json return values
-	 * @param mixed $label
-	 * @param mixed $separator
-	 * @return array
-	 */
-	public function getJsonList($label='name', $separator=null, $options=[], $key=null)
-	{
-		$class = $this->locateClassForItems($options);
-
-		$cacheKey = CacheHelper::getKey(is_string($key) ? $key : $class::formName(), null, 'list', true);
-
-		if(CacheHelper::cache()->exists($cacheKey))
-			$ret_val = CacheHelper::cache()->get($cacheKey);
-		else {
-			$ret_val = [];
-			$separator = is_null($separator) ? ' ' : $separator;
-
-			foreach(self::locateItems($options) as $item)
-			{
-				$_ = [
-					"id" => $item->getId(),
-					"value" => $item->getId(),
-					"text" =>  $item->$label,
-					"label" => static::getLabel($item, $label, $separator)
-				];
-				if(isset($options['with']))
-				{
-					foreach($options['with'] as $attribute)
-					{
-						switch($attribute)
-						{
-							case 'htmlView':
-							$view = \Yii::$app->getViewPath();
-							if(!isset($options['view']['file'])) {
-								if(file_exists(\Yii::getAlias($path.$item->isWhat(true).'/view.php')))
-									$view = "/".$item->isWhat(true)."/view";
-								else if(file_exists(\Yii::getAlias($path.$item->isWhat().'/view.php')))
-									$view = "/".$item->isWhat()."/view";
-							}
-							$viewOptions = isset($options['view']['options']) ? $options['view']['options'] : ["model" => $item];
-							$_['html'] = \Yii::$app->getView()->renderAjax($view, $viewOptions);
-							break;
-
-							case 'icon':
-							/*$_['label'] = \lab1\widgets\Thumbnail::widget([
-								"model" => $item->getIcon()->one(),
-								"htmlIcon" => $item->html_icon,
-								"size" => "tiny",
-								"options" => [
-									"class" => "thumbnail text-center",
-								]
-							]).$_['label'];*/
-							break;
-						}
-					}
-				}
-				$ret_val[] = $_;
-			}
-			CacheHelper::cache()->set($cacheKey, $ret_val, 120);
-		}
-		return (sizeof(array_filter($ret_val)) >= 1) ? $ret_val : [['id' => 0, 'text' => "No ".$this->properName($this->isWhat())." Found"]];
-	}
-
-	/*
-	 * Get array of objects
-	 * @return mixed
-	 */
-	public function getModels()
-	{
-		$query = $this->find($this);
-		$ret_val = $query->all();
-		$this->success = (sizeof($ret_val) >= 1) ? true : false;
-		return $ret_val;
-	}
-
-	/*
-	 * Get a single record
-	 */
-	public function getOne()
-	{
-		$query = $this->find($this);
-		$ret_val = $query->one();
-		$this->success = (!is_null($ret_val)) ? true : false;
-		return $ret_val;
 	}
 
 	/**
@@ -464,19 +254,6 @@ trait Data {
 		return $ret_val;
 	}
 
-
-	/**
-	 * Get the parent list
-	 * @param boolean $url Get the url?
-	 * @return string
-	 */
-	public function getParentList($url=true, $titleAttr='name')
-	{
-		return \nitm\helpers\Helper::concatAttributes($this->parents(), function ($model) use($url, $titleAttr){
-			return \yii\helpers\Html::tag('strong', ($url ? $model->url('id', $titleAttr) : $model->$titleAttr));
-		}, ', ', true);
-	}
-
 	/**
 	 * Yii DataProvider sort creator
 	 * @param array $to     Add the sort options to $to
@@ -502,5 +279,50 @@ trait Data {
 				'label' => $label
 			], $params);
 		}
+	}
+	
+	/**
+	 * Get the query that orders items by their activity
+	 */
+	public function getSort()
+	{
+		$ret_val = [];
+		//Create the user sort parameters
+		static::addSortParams($ret_val, [
+			'author_id' => ['author', 'Author', 'username'],
+			'editor_id' => ['editor', 'Editor', 'username'],
+			'resolved_by' => ['resolvedBy', 'Resolved By', 'username'],
+			'closed_by' => ['closedBy', 'Closed By', 'username'],
+			'disabled_by' => ['disabledBy', 'Disabled By', 'username'],
+			'deleted_by' => ['deletedBy', 'Deleted By', 'username'],
+			'completed_by' => ['completedBy', 'Completed By', 'username']
+		]);
+
+		//Create the date sort parameters
+		static::addSortParams($ret_val, [
+			'created_at' => [null, 'Created At'],
+			'updated_at' => [null, 'Updated At'],
+			'resolved_at' => [null, 'Resolved At'],
+			'closed_at' => [null, 'Closed At'],
+			'disabled_at' => [null, 'Disabled At'],
+			'deleted_at' => [null, 'Deleted At'],
+			'completed_at' => [null, 'Completed At']
+		]);
+
+		$ret_val['date'] = [
+			'asc' => ['created_at' => SORT_ASC, 'updated_at' => SORT_ASC],
+			'desc' => ['created_at' => SORT_DESC, 'updated_at' => SORT_DESC],
+			'default' => SORT_DESC,
+			'label' => 'Date'
+		];
+
+		//Create the category sort parameters
+		static::addSortParams($ret_val, [
+			'type_id' => ['type', 'Type', 'name'],
+			'category_id' => ['category', 'Category', 'name'],
+			'level_id' => ['level', 'Level', 'name'],
+		]);
+
+		return $ret_val;
 	}
 }

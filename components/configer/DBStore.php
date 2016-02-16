@@ -280,23 +280,24 @@ class DBStore extends BaseStore
 			$model = $this->value($section, $id, $key, false);
 			break;
 		}
-		$model->refresh();
-		//Need to get the update message here sincea save rewrites the old attributes
-		$ret_val['message'] = $this->getMessage($message, $model);
-		switch($model->save())
-		{
-			case true:
-			if($model instanceof Value)
-				$ret_val['value'] = $model->value;
-			else
-				$ret_val['isSection'] = true;
-			$ret_val['success'] = true;
-			break;
+		if(is_object($model) && $model->delete()) {
+			//Need to get the update message here sincea save rewrites the old attributes
+			$ret_val['message'] = $this->getMessage($message, $model);
+			switch($model->save())
+			{
+				case true:
+				if($model instanceof Value)
+					$ret_val['value'] = $model->value;
+				else
+					$ret_val['isSection'] = true;
+				$ret_val['success'] = true;
+				break;
 
-			default:
-			$ret_val['success'] = true;
-			$ret_val['message'] = "'$key' may have already been deleted";
-			break;
+				default:
+				$ret_val['success'] = true;
+				$ret_val['message'] = "'$key' may have already been deleted";
+				break;
+			}
 		}
 		return $ret_val;
 	}

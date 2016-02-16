@@ -5,6 +5,7 @@ use nitm\helpers\Cache;
 use nitm\helpers\Relations as RelationsHelper;
 use nitm\models\ParentMap;
 use nitm\models\Category;
+use nitm\helpers\ArrayHelper;
 
 /**
  * Traits defined for expanding active relation scopes until yii2 resolves traits issue
@@ -13,9 +14,40 @@ use nitm\models\Category;
 trait Relations {
 
 	/**
+	 * This is here to allow base classes to modify the query before finding the count
+     * @return \yii\db\ActiveQuery
+     */
+    public function getCount($link=null)
+    {
+		$primaryKey = current($this->primaryKey());
+		$link = is_array($link) ? $link : [$primaryKey => $primaryKey];
+		$tableName = static::tableName();
+		$tableNameAlias = $tableName.'_alias';
+        $query = $this->hasOne(static::className(), $link)
+			->select([
+				'_count' => "COUNT(".$primaryKey.")",
+			])
+			->groupBy(array_values($link));
+		foreach(['where', 'orwhere', 'andwhere'] as $option)
+			if(isset($this->queryOptions[$option]))
+				$query->$option($this->queryOptions[$option]);
+		return $query;
+    }
+
+	public function count($returnNull=false)
+	{
+		$ret_val = \nitm\helpers\Relations::getRelatedRecord('count', $this, static::className(), [
+			'_count' => 0
+		])['_count'];
+
+		if($ret_val == 0 && $returnNull)
+			return null;
+		return $ret_val;
+	}
+
+	/**
 	 * User based relations
 	 */
-
 	protected function getUserRelationQuery($link, $options=[], $className=null)
 	{
 		if(is_null($className))
@@ -333,15 +365,41 @@ trait Relations {
 		return $this->getCachedRelation('id', $this->className(), [], true, 'children');
 	}
 
+	/**
+	 * @return \yii\db\ActiveQuery
+	 */
+	public function getMetadata()
+	{
+	    $metadataClass = $this->getMetadataClass();
+	    return $this->hasMany($metadataClass, $metadataClass::metadataLink())->indexBy('key');
+	}
+
+ 	/**
+ 	 * Get metadata, either from key or all metadata
+ 	 * @param string $key
+ 	 * @return mixed
+ 	 */
+ 	public function metadata($key=null)
+ 	{
+		return ArrayHelper::getValue($this->metadata, $key, is_null($key) ? $this->metadata : null);
+ 	}
+
+
 	protected function getRelationQuery($className, $link, $options=[], $many=false)
 	{
 		$className = $this->getRelationClass($className, get_called_class());
-		$callers = debug_backtrace(null, 3);
-		$relation = $callers[2]['function'];
-		$options['select'] = isset($options['select']) ? $options['select'] : null;
-		$options['groupBy'] = array_keys(isset($options['groupBy']) ? $options['groupBy'] : $link);
 		$relationFunction = ($many === true) ? 'hasMany' : 'hasOne';
 		$ret_val = $this->$relationFunction($className, $link);
+
+		$callers = debug_backtrace(null, 3);
+
+		$relation = $callers[2]['function'];
+		$options['select'] = isset($options['select']) ? $options['select'] : null;
+		/*$options['groupBy'] = array_map(function ($group){
+			if(strpos($group, $this->tableName()) === false)
+				$group = $this->tableName().'.'.$group;
+			return $group;
+		}, array_keys(isset($options['groupBy']) ? $options['groupBy'] : $link));*/
 		if(is_array($options) && !empty($options))
 		{
 			foreach($options as $option=>$params)

@@ -87,10 +87,6 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	public function init()
 	{
 		parent::init();
-		/**
-		 * Aliases for nitm module
-		 */
-		\Yii::setAlias($this->id, realpath(__DIR__));
 		//Check and start the session;
 		Session::touchSession();
 	}
@@ -121,9 +117,13 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
         $app->getUrlManager()->addRules($this->getUrls(), false);
 	}
 
-	public function getSearchClass($modelName)
+	public function getSearchClass($modelName, $namespace=null)
 	{
-		return isset($this->searchClassMap[strtolower($modelName)]) ? $this->searchClassMap[strtolower($modelName)] : '\nitm\models\\'.\nitm\traits\Data::properName($modelName);
+		$modelName = models\Data::properFormName(strtolower($modelName));
+		$namespace = rtrim($namespace, '\\').'\\' ?: '\\nitm\\models\\search\\';
+		if(!isset($this->searchClassMap[$modelName]))
+		 	$this->searchClassMap[$modelName] = $namespace.$modelName;
+		return $this->searchClassMap[$modelName];
 	}
 
 	/**
@@ -135,12 +135,9 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	public function getUrls($id = 'nitm')
 	{
 		$parameters = [];
-		$routeHelper = new \nitm\helpers\Routes([
+		$routeHelper = new helpers\Routes([
 			'moduleId' => $id,
 			'map' => [
-				'type' => '<controller>/<action>/<type>',
-				'action-only' => '<controller>/<action>',
-				'none' => '<controller>'
 			],
 			'controllers' => []
 		]);
@@ -149,6 +146,7 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 			$routeHelper->addRules('configuration', [
 				'config-index' => ['configuration' => 'configuration/index'],
 				'config-engine' => ['configuration/load/<engine>' => 'configuration'],
+				'config-action' => ['configuration/<action>' => 'configuration'],
 				'config-container' => ['configuration/load/<engine:\w+>/<container>' => 'configuration']
 			]);
 			$parameters += [
@@ -205,18 +203,18 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	 * @param  object $sender  The model to use for this log operation
 	 * @return boolean          [description]
 	 */
-	public function log($level, $options, $sender)
+	public function log($options, $level, $category, $sender)
 	{
 		if($this->canLog($level)) {
 			try {
 				$collectionName = $this->getCollectionName($options);
 				$options = array_merge([
-					'db_name' => \nitm\models\DB::getDbName(),
+					'db_name' => models\DB::getDbName(),
 					'level' => $level,
 					'timestamp' => time(),
 					'collectionName' => $collectionName
 				], $options);
-				$this->logger->log($options, $collectionName);
+				$this->logger->log($options, $level, ArrayHelper::getValue($options, 'category', 'application'), $collectionName);
 			} catch (\Exception $e) {
 				//if(defined("YII_DEBUG"))
 					throw $e;

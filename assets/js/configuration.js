@@ -1,313 +1,284 @@
+'use strict';
 
-function Configuration()
+class Configuration extends NitmEntity
 {
-	NitmEntity.call(this);
+	constructor() {
+		super('configuration');
+		this.views = {
+			containers: {
+				section: 'sections_container',
+				configuration: 'configuration_container',
+				showSection: 'show_section',
+				createValue: 'create_value_container',
+				valueList: 'value-list',
+			},
+			alerts: 'configuration-alerts'
+		};
+		this.type = {
+			default: 'db',
+			current: 'db',
+		};
+		this.forms = {
+			confirmThese: [
+				'deleteSection',
+				'deleteValue',
+			],
+			allowCreate: ['createNewValue', 'saveComment'],
+			actions : {
+				create: '/configuration/create',
+				del: '/configuration/delete',
+				update: '/configuration/update',
+				undelete: '/configuration/undelete'
+			}
+		};
+		this.buttons = {
+			allowUpdate: ['updateFieldButton']
+		};
+		this.blocks = {
+			allowUpdate: ['updateFieldDiv']
+		};
+		this.dropdowns = {
+			submitOnChange: [
+				'config_type',
+				'config_container',
+				'show_section'
+			]
+		};
 
-	var self = this;
-	this.id = 'configuration';
-	this.views = {
-		containers: {
-			section: 'sections_container',
-			configuration: 'configuration_container',
-			showSection: 'show_section',
-			createValue: 'create_value_container',
-			valueList: 'value-list',
-		},
-		alerts: 'configuration-alerts'
-	};
-	this.type = {
-		default: 'db',
-		current: 'db',
-	};
-	this.forms = {
-		confirmThese: [
-			'deleteSection',
-			'deleteValue',
-		],
-		allowCreate: ['createNewValue', 'saveComment'],
-		actions : {
-			create: '/configuration/create',
-			del: '/configuration/delete',
-			update: '/configuration/update',
-			undelete: '/configuration/undelete'
-		}
-	};
-	this.buttons = {
-		allowUpdate: ['updateFieldButton']
-	};
-	this.blocks = {
-		allowUpdate: ['updateFieldDiv']
-	};
-	this.dropdowns = {
-		submitOnChange: [
-			'config_type',
-			'config_container',
-			'show_section'
-		]
-	};
-
-	this.iObj = "_input";
-	this.dm = 'configer';
-	this.fromSession = true;
-	this.defaultInit = [
-		'initChanging',
-	];
+		this.iObj = "_input";
+		this.dm = 'configer';
+		this.fromSession = true;
+		this.defaultInit = [
+			'initChanging',
+		];
+	}
 
 	//functions
-	this.initChanging = function () {
-		this.dropdowns.submitOnChange.map(function (v) {
-			var form = $('#'+v);
+	initChanging () {
+		this.dropdowns.submitOnChange.map((v) =>  {
+			let $form = $('#'+v);
 			switch(v)
 			{
 				case 'show_section':
-				form.off('submit');
-				form.on('submit', function (e) {
+				$form.off('submit');
+				$form.on('submit', (e) =>  {
 					e.preventDefault();
-					self.operation(this);
+					this.operation(e.currentTarget);
 				});
 				break;
 			}
-			form.find('select').on('change', function (e) {
-				form.submit();
+			$form.find('select').on('change', (e) =>  {
+				$form.submit();
 			});
 		});
 	};
 
-	this.initDeleting = function (containerId, result) {
+	initDeleting (containerId, result) {
 		containerId = (containerId === undefined) ? 'body' : containerId;
-		var container = $nitm.getObj(containerId);
-		self.forms.confirmThese.map(function (v) {
-			var form = container.find("form[role='"+v+"']");
-			form.off('submit');
+		let $container = $nitm.getObj(containerId);
+		this.forms.confirmThese.map((v) =>  {
+			let $form = $container.find("form[role='"+v+"']");
+			$form.off('submit');
 			switch(v)
 			{
 				case 'deleteSection':
 				if(result !== undefined)
-					form.find("input[id='configer\-section']").val(result.section);
+					$form.find("input[id='configer\-section']").val(result.section);
 				break;
 			}
-			form.on('submit', function (e) {
+			$form.on('submit', (e) =>  {
+				let $elem = $(e.currentTarget);
 				e.preventDefault();
-				var shouldConfirm = true, message;
+				let shouldConfirm = true, message;
 				switch(v)
 				{
 					case 'deleteSection':
-					var value = form.find("input[id='configer\-section']").val();
+					let value = $form.find("input[id='configer\-section']").val();
 					message = "Are you sure you want to delete section: "+value;
 					break;
 
 					case 'deleteValue':
-					message = $(this).find(':submit').attr('title');
+					message = $elem.find(':submit').attr('title');
 					shouldConfirm = false;
 					break;
 				}
-				switch(shouldConfirm)
-				{
-					case true:
-					if(confirm(message)) self.operation(this);
-					break;
-
-					default:
-					self.operation(this);
-					break;
-				}
+				if(shouldConfirm) {
+					if(confirm(message))
+						this.operation(e.currentTarget);
+				} else
+					this.operation(e.currentTarget);
 				return false;
 			});
 		});
 	};
 
-	this.initUpdating = function (containerId) {
+	initUpdating (containerId) {
 		containerId = (containerId === undefined) ? 'body' : containerId;
-		var container = $nitm.getObj(containerId);
-		self.buttons.allowUpdate.map(function (v) {
-			var button = container.find("[role='"+v+"']");
-			button.on('click', function (e) {
+		let $container = $nitm.getObj(containerId);
+		this.buttons.allowUpdate.map((v) =>  {
+			let $button = $container.find("[role='"+v+"']");
+			$button.on('click', (e) =>  {
 				e.preventDefault();
-				self.update(this);
+				let elem = $nitm.getObj($(e.currentTarget).data('id')).get(0);
+				this.update(elem);
 			});
 		});
 
-		self.blocks.allowUpdate.map(function (v) {
-			var block = container.find("[role='"+v+"']");
-			var fn = function (e) {
-				self.update(this);
+		this.blocks.allowUpdate.map((v) =>  {
+			let block = $container.find("[role='"+v+"']"),
+				fn = (e) => {
+				e.preventDefault();
+				this.update(e.currentTarget || e);
 			};
 			block.on('click', fn);
 			block.data('action', fn);
 		});
 	};
 
-	this.initCreating = function (containerId) {
+	initCreating (containerId) {
 		containerId = (containerId === undefined) ? 'body' : containerId;
-		var container = $nitm.getObj(containerId);
-		self.forms.allowCreate.map(function (v) {
-			var form = container.find("form[role='"+v+"']");
-			form.off('submit');
-			form.on('submit', function (e) {
+		let $container = $nitm.getObj(containerId);
+		this.forms.allowCreate.map((v) =>  {
+			let $form = $container.find("form[role='"+v+"']");
+			$form.off('submit');
+			$form.on('submit', (e) =>  {
 				e.preventDefault();
-				self.operation(this);
+				this.operation(e.currentTarget);
 			});
 		});
 	};
 
-	this.afterGet = function(result) {
-		var newClass = $nitm.classes.warning, message;
+	afterGet(result) {
+		let newClass = this.classes.warning, message;
 		if(result.data) {
 			message = !result.message ? 'Successfully loaded clean configuration information' : result.message;
-			newClass = $nitm.classes.success;
-			var container = $('#'+self.views.containers.section).html(result.data);
-			var triggers = ['updateFieldDiv', 'updateFieldButton'];
-			$.map(triggers, function (v) {
-				container.find("[role='"+v+"']").map(function (e) {
-					var elem = this;
-					switch(this.tagName.toLowerCase())
-					{
-						case 'button':
-						elem = $nitm.getObj($(this).data('id')).get(0);
-						break;
-					}
-					var fn = function (e) {
-						self.update(elem);
-					};
-					$(this).on('click', function (e) {
-						e.preventDefault();
-						fn();
-					});
-					$(this).data('action', fn);
-				});
-			});
-			self.initDeleting('#'+self.views.containers.configuration, result);
-			self.initCreating('#'+self.views.containers.section);
-			//self.initUpdating('#'+self.views.containers.section);
+			newClass = this.classes.success;
+			let $container = $('#'+this.views.containers.section).html(result.data);
+			this.initUpdating('#'+this.views.containers.configuration);
+			this.initDeleting('#'+this.views.containers.configuration, result);
+			this.initCreating('#'+this.views.containers.section);
+			//this.initUpdating('#'+this.views.containers.section);
 		}
 		else {
 			message = !result.message ? 'Error empty configuration information' : result.message;
 		}
-		$nitm.notify(message, newClass, self.views.alerts);
+		$nitm.trigger('nitm:notify', [message, newClass, this.views.alerts]);
 	};
 
-	this.afterCreate = function(result, currentIndex, form) {
-		var newClass = $nitm.classes.warning;
+	afterCreate(result, form) {
+		let newClass = this.classes.warning;
+
 		if(result.success)
-		{
-			newClass = $nitm.classes.success;
-		}
-		$nitm.notify(result.message, newClass, self.views.alerts);
-		var _form = $(form);
-		switch(_form.attr('role'))
+			newClass = this.classes.success;
+
+		$nitm.trigger('nitm:notify', [result.message, newClass, this.views.alerts]);
+		let $form = $(form);
+		switch($form.attr('role'))
 		{
 			case 'undeleteValue':
-			switch(result.success)
-			{
-				case true:
+			if(result.success) {
 				//if this value was recently deleted and is now re-createed then enabled deleting
-				_form.find(':submit').removeClass('').addClass('btn btn-danger').html('del');
-				_form.attr('action', self.forms.actions.del);
-				_form.attr('role', 'deleteValue');
-				_form.find(':input').removeAttr('disabled');
-				$nitm.getObj('value_'+result.container).removeClass('disabled');
-				break;
+				$form.find(':submit').removeClass('').addClass('btn btn-danger').html('del');
+				$form.attr('action', this.forms.actions.del);
+				$form.attr('role', 'deleteValue');
+				$form.find(':input').removeAttr('disabled');
+				$nitm.getObj('value_'+result.key).removeClass('disabled');
 			}
 			break;
 
 			default:
-			$nitm.getObj('#'+self.views.containers.valueList).append(result.data[2]);
-			self.initDeleting('#'+'value_'+result.unique_id);
-			self.initUpdating('#'+'value_'+result.unique_id);
+			$nitm.getObj('#'+this.views.containers.valueList).append(result.data[2]);
+			this.initDeleting('#'+'value_'+result.unique_id);
+			this.initUpdating('#'+'value_'+result.unique_id);
 			break;
 		}
-		form.reset();
+		$form.get(0).reset();
 	};
 
-	this.afterUpdate = function (result) {
-		var newClass = $nitm.classes.warning;
-		var oldClass = $nitm.classes.information;
+	afterUpdate (result) {
+		let newClass = this.classes.warning
+			oldClass = this.classes.information;
 		if(result.success)
-		{
-			newClass = $nitm.classes.success;
+			newClass = this.classes.success;
+		else {
+			oldClass = this.classes.warning;
+			$nitm.getObj(result.key+'.div').html(result.old_value);
 		}
-		else
-		{
-			oldClass = $nitm.classes.warning;
-			$nitm.getObj(result.container+'.div').html(result.old_value);
-		}
-		$nitm.getObj(result.container+'.div').removeClass().addClass(oldClass);
-		$nitm.notify(result.message, newClass, self.views.alerts);
+		$nitm.getObj(result.key+'.div').removeClass().addClass(oldClass);
+		$nitm.trigger('nitm:notify', [result.message, newClass, this.views.alerts]);
 	};
 
-	this.afterDelete = function(result, currentIndex, form) {
-		var newClass = $nitm.classes.warning;
+	afterDelete(result, form) {
+		let newClass = this.classes.warning;
 
 		if(result.success)
-			newClass = $nitm.classes.success;
+			newClass = this.classes.success;
 
-		$nitm.notify(result.message, newClass, self.views.alerts);
+		$nitm.trigger('nitm:notify', [result.message, newClass, this.views.alerts]);
 		if(result.success)
 		{
-			var _form = $(form);
+			let $form = $(form);
 			if(result.isSection) {
-				$nitm.getObj('#'+self.views.containers.showSection).find("select :selected").remove();
-				$nitm.getObj('#'+self.views.containers.valueList).html('');
+				$nitm.getObj('#'+this.views.containers.showSection).find("select :selected").remove();
+				$nitm.getObj('#'+this.views.containers.valueList).html('');
 			}
 			else {
-				_form.find(':submit').removeClass().addClass('btn btn-warning').text('undel').attr('title', "Are you sure you want to undelete this value?");
-				_form.attr('action', self.forms.actions.undelete);
-				_form.attr('role', 'undeleteValue');
-				_form.append("<input type='hidden' name='Configer[value\]' id='configer-value' value='"+$nitm.getObj(result.container+'.div').html()+"'/>");
-				var container = $nitm.getObj('value_'+result.container);
-				container.addClass('disabled');
-				container.children().map(function() {
-					switch($(this).attr('role'))
-					{
-						case 'undeleteValue':
-						break;
-
-						default:
-						$(this).attr('disabled', true);
-						$(this).addClass('disabled');
-						break;
+				let $button = $form.find(':submit');
+				$button.removeClass().addClass('btn btn-warning');
+				$button.html('undel').text('undel').attr('title', "Are you sure you want to undelete this value?");
+				$form.attr('action', this.forms.actions.undelete);
+				$form.attr('role', 'undeleteValue');
+				$form.append("<input type='hidden' name='Configer[value\]' id='configer-value' value='"+$nitm.getObj(result.key+'.div').html()+"'/>");
+				let $container = $nitm.getObj('value_'+result.key);
+				$container.addClass('disabled');
+				$container.children().map(function(i, elem) {
+					let $elem = $(elem);
+					if($elem.attr('role') != 'undeleteValue') {
+						$elem.attr('disabled', true);
+						$elem.addClass('disabled');
 					}
 				});
 			}
 		}
 	};
 
-	this.restore = function(form) {
+	restore(form) {
+		$form = $(form);
 		try {
-			var cellId = $(form).find('input[name="cellId"]').val();
-			var oldData = $(form).find('input[name="oldValue"]').val();
-			var container = $(form).find('input[name="container"]').val();
+			let cellId = $form.find('input[name="cellId"]').val()
+				oldData = $form.find('input[name="oldValue"]').val();
 			$nitm.getObj(cellId).html(oldData.stripslashes());
 		} catch(error) {}
 		//$nitm.getObj(cellId).on('click', $nitm.getObj(cellId).data('action'));
 	};
 
-	this.parse = function(form) {
-		var cellId = $(form).find('input[name="cellId"]').val();
-		var inputId = $(form).find('input[name="inputId"]').val();
-		var oldData = $(form).find('input[name="oldValue"]').val();
-		var container = $(form).find('input[name="container"]').val();
-		var newData = $nitm.getObj(inputId).val();
-		var newDataEnc = escape(newData);
-		var stop = false;
+	parse(form) {
+		let $form = $(form),
+			cellId = $form.find('input[name="cellId"]').val(),
+			inputId = $form.find('input[name="inputId"]').val(),
+			oldData = $form.find('input[name="oldValue"]').val(),
+			container = $form.find('input[name="container"]').val(),
+			newData = $nitm.getObj(inputId).val(),
+			newDataEnc = escape(newData),
+			stop = false;
 		if(!newData) {
 			stop = true;
-			$nitm.notify('Empty Data\nNo Update', 'alert', self.views.alerts);
+			$nitm.trigger('nitm:notify', ['Empty Data\nNo Update', 'alert', this.views.alerts]);
 		}
 		if(newData.localeCompare(oldData) === 0) {
 			stop = true;
-			$nitm.notify('Duplicate Data\nNo Update', 'alert', self.views.alerts);
+			$nitm.trigger('nitm:notify', ['Duplicate Data\nNo Update', 'alert', this.views.alerts]);
 		}
 		if (stop) {
-			/*input = $('<div id="'+cellId+'">'+newData+'</div>');
+			/*$input = $('<div id="'+cellId+'">'+newData+'</div>');
 			 *	input.off('click');
-			 *	input.on('click', function () {
-			 *		self.update($nitm.getObj(cellId));
+			 *	input.on('click', () =>  {
+			 *		this.update($nitm.getObj(cellId));
 		});*/
 			//$nitm.getObj(container).html(newData);
 		}
 		else {
-			var obj = /^(\s*)([\W\w]*)(\b\s*$)/;
+			let obj = /^(\s*)([\W\w]*)(\b\s*$)/;
 			if(obj.test(newData)) {
 				newData = newData.replace(obj, '$2');
 			}
@@ -319,14 +290,14 @@ function Configuration()
 				newData = '';
 			}
 			newData = newData.toString();
-			form = $nitm.getObj('update_value_form_'+container);
-			form.find("[role='value']").val(newData);
-			self.operation(form.get(0));
+			$updateForm = $nitm.getObj('update_value_form_'+container);
+			$updateForm.find("[role='value']").val(newData);
+			this.operation($updateForm.get(0));
 			$nitm.getObj(cellId).css('border','none');
-			/*var container = $nitm.getObj(cellId).html('<div id="'+cellId+'">'+newData+'</div>');
-			 *	container.off('click');
-			 *	container.on('click', function () {
-			 *		self.update($nitm.getObj(cellId));
+			/*let $container = $nitm.getObj(cellId).html('<div id="'+cellId+'">'+newData+'</div>');
+			 *	$container.off('click');
+			 *	$container.on('click', () =>  {
+			 *		this.update($nitm.getObj(cellId));
 		});*/
 		}
 		$nitm.getObj(cellId).html(newData.stripslashes());
@@ -335,54 +306,53 @@ function Configuration()
 
 	};
 
-	this.update = function (elem) {
-		var id = $(elem).prop('id'),
-			container = $(elem).data('id'),
-			type = $(elem).data('type'),
-			value = $(elem).html(),
+	update (elem) {
+		let $elem = $nitm.getObj(elem),
+			id = $elem.attr('id'),
+			container = $elem.data('id'),
+			type = $elem.data('type'),
+			value = $elem.html(),
 			oldValue = value.trim(),
 			size = oldValue.length,
-			style = 'font-weight:normal;font-size:12pt;', input;
+			style = 'font-weight:normal;font-size:12pt;',
+			$input = null;
 		switch(type)
 		{
 			case 'xml':
 			style = 'font-weight:normal;font-size:12pt;';
 			break;
 		}
-		form = $("<form name='activeForm' id='activeForm_"+container+"' class='form-horizontal' onsubmit='return false;'></form><br>");
-		form.append("<input type='hidden' name='container' value='"+container+"'>");
-		form.append("<input type='hidden' name='cellId' value='"+id+"'>");
-		form.append("<input type='hidden' name='inputId' value='"+id+this.iObj+"'>");
-		form.append("<input type='hidden' name='oldValue' value='"+oldValue+"'>");
-		if(size > 96)
-		{
-			var cols = ($nitm.getObj(id).attr('offsetWidth') / 10) * 1.5;
-			var rows = Math.round(size/96) + Math.round((size/108)/8);
-			input = $('<textarea id="'+id+this.iObj+'" class="form-control" rows='+rows+'>'+value+'</textarea>');
-			input.on('blur', function () {
-				self.parse(form.get(0));
+		let $form = $("<form name='activeForm' id='activeForm_"+container+"' class='form-horizontal' onsubmit='return false;'></form><br>");
+		$form.append("<input type='hidden' name='container' value='"+container+"'>");
+		$form.append("<input type='hidden' name='cellId' value='"+id+"'>");
+		$form.append("<input type='hidden' name='inputId' value='"+id+this.iObj+"'>");
+		$form.append("<input type='hidden' name='oldValue' value='"+oldValue+"'>");
+		if(size > 96) {
+			let cols = ($nitm.getObj(id).attr('offsetWidth') / 10) * 1.5,
+				rows = Math.round(size/96) + Math.round((size/108)/8),
+				$input = $('<textarea id="'+id+this.iObj+'" class="form-control" rows='+rows+'>'+value+'</textarea>');
+			input.on('blur', () =>  {
+				this.parse($form.get(0));
 			});
-			form.append(input);
-			form.append("<br /><noscript><input value='OK' type='submit'></noscript>");
-		}
-		else
-		{
-			input = $('<input class="form-control" size="'+size+'" type="text" id="'+id+this.iObj+'"\>');
-			input.val(value);
-			input.on('blur', function () {
-				self.parse(form.get(0));
+			$form.append(input);
+			$form.append("<br /><noscript><input value='OK' type='submit'></noscript>");
+		} else {
+			$input = $('<input class="form-control" size="'+size+'" type="text" id="'+id+this.iObj+'"\>');
+			$input.val(value);
+			$input.on('blur', () =>  {
+				this.parse($form.get(0));
 			});
-			form.append(input);
+			$form.append($input);
 			//need to do this here because the input doesn't get recognized unless the form is closed out
-			form.append("<br /><noscript><input value='OK' type='submit'></noscript>");
+			$form.append("<br /><noscript><input value='OK' type='submit'></noscript>");
 			//then we can assign te value
 			$nitm.getObj(id+this.iObj).attr('value', value);
 		}
-		form.on('submit', function () {
+		$form.on('submit', (e) =>  {
 			e.preventDefault();
-			self.parse(this);
+			this.parse(e.currentTarget);
 		});
-		$nitm.getObj(elem.id).html('').append(form);
+		$nitm.getObj(elem.id).html('').append($form);
 		//disable onclick functionality
 		$nitm.getObj(elem.id).off('click');
 		$nitm.getObj(elem.id+this.iObj).focus();

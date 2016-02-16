@@ -2,26 +2,26 @@
 
 namespace nitm\helpers;
 
-class Statuses 
+class Statuses
 {
 	/**
 	 * Indicator types supports
 	 */
 	protected static $indicators = [
-		'critical' => 'bg-danger',
-		'danger' => 'bg-danger',
+		'critical' => 'bg-danger danger',
+		'danger' => 'bg-danger danger',
 		'default' => '',
 		'disabled' => 'bg-disabled',
-		'duplicate' => 'bg-duplicate',
-		'error' => 'bg-danger',
-		'info' => 'bg-info',
-		'important' => 'bg-info',
+		'duplicate' => 'bg-duplicate duplicate',
+		'error' => 'bg-danger danger',
+		'info' => 'bg-info info',
+		'important' => 'bg-info info',
 		'normal' => '',
 		'resolved' => 'bg-resolved',
-		'success' => 'bg-success',
-		'warning' => 'bg-warning'
+		'success' => 'bg-success success',
+		'warning' => 'bg-warning warning'
 	];
-	
+
 	/**
 	 * Indicator types supports
 	 */
@@ -39,7 +39,7 @@ class Statuses
 		'success' => 'list-group-item  list-group-item-success',
 		'warning' => 'list-group-item list-group-item-warning'
 	];
-	
+
 	/**
 	 * Get the class indicator value for a generic item
 	 * @param string $indicator
@@ -50,7 +50,7 @@ class Statuses
 		$indicator = is_null($indicator) ? 'default' : $indicator;
 		return self::$indicators[$indicator];
 	}
-	
+
 	/**
 	 * Get the class indicator value for a list item
 	 * @param string $indicator

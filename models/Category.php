@@ -19,8 +19,23 @@ use nitm\helpers\Cache;
 class Category extends Entity
 {
 	public $typeId;
+	public $bindToType = true;
+	public $bindTypes;
 
-	use \nitm\traits\relations\Category;
+	use \nitm\traits\relations\Category, \nitm\traits\Nitm;
+
+	public function init()
+	{
+		parent::init();
+		if($this->bindToType)
+			$this->setBindType(true);
+	}
+
+	public function setBindType($set=false)
+	{
+		if($set === true)
+			$this->queryOptions['type_id'] = static::find()->select('id')->where(['slug' => (isset($this->bindTypes)  ? $this->bindTypes : static::isWhat())]);
+	}
 
     /**
      * @inheritdoc
@@ -48,8 +63,8 @@ class Category extends Entity
 	public function scenarios()
 	{
 		return array_merge(parent::scenarios(), [
-			'create' => ['type_id', 'parent_ids', 'name', 'slug', 'html_icon'],
-			'update' => ['type_id', 'parent_ids', 'name', 'slug', 'html_icon'],
+			'create' => ['metadata', 'type_id', 'parent_ids', 'name', 'slug', 'html_icon'],
+			'update' => ['metadata','type_id', 'parent_ids', 'name', 'slug', 'html_icon'],
 		]);
 	}
 
@@ -71,8 +86,28 @@ class Category extends Entity
 	public function behaviors()
 	{
 		$behaviors = [
+			'timestamp' => [
+				'class' => \yii\behaviors\TimestampBehavior::className(),
+					'attributes' => [
+						\yii\db\ActiveRecord::EVENT_BEFORE_INSERT => 'created_at',
+						\yii\db\ActiveRecord::EVENT_BEFORE_UPDATE => 'updated_at',
+					],
+					'value' => new \yii\db\Expression('NOW()')
+				],
+			'author' => [
+				'class' => \yii\behaviors\BlameableBehavior::className(),
+					'attributes' => [
+						\yii\db\ActiveRecord::EVENT_BEFORE_INSERT => 'author_id',
+						\yii\db\ActiveRecord::EVENT_BEFORE_UPDATE => 'editor_id',
+					],
+				],
 		];
 		return array_merge(parent::behaviors(), $behaviors);
+	}
+
+	public function title()
+	{
+		return $this->name;
 	}
 
 	/**
@@ -92,7 +127,7 @@ class Category extends Entity
 	 * @param mixed $constrain
 	 * @return array
 	 */
-	public static function getNav($action=null, $constrain=null)
+	public static function getNav($action=null, $constrain=null, $useGlobalController=false)
 	{
 		$cacheKey = 'categories-for-'.static::isWhat();
 		if(Cache::exists($cacheKey))
@@ -106,11 +141,16 @@ class Category extends Entity
 			case true:
 			foreach($categories as $category)
 			{
+				if($useGlobalController)
+					$url = (is_null($action) ? \Yii::$app->controller->id."/$action/" : ltrim($action, "/"))."/".$category['slug'];
+				else {
+					$url = (is_null($action) ? \Yii::$app->controller->id."/$action/" : '/'.$category['slug']."/".ltrim($action, "/"));
+				}
 				switch($category['id'])
 				{
 					case 1:
 					$uncategorized = [
-						'url' => (is_null($action) ? \Yii::$app->controller->id."/$action/" : ltrim($action, "/"))."/".$category['slug'],
+						'url' => $url,
 						'label' => $category['name'],
 						'icon' => 'plus',
 						'id' => $category['id']
@@ -119,7 +159,7 @@ class Category extends Entity
 
 					default:
 					$ret_val[$category['slug']] = [
-						'url' => (is_null($action) ? \Yii::$app->controller->id."/$action/" : ltrim($action, "/"))."/".$category['slug'],
+						'url' => $url,
 						'label' => $category['name'],
 						'icon' => 'plus',
 						'id' => $category['id']
@@ -135,7 +175,7 @@ class Category extends Entity
 			default:
 			$ret_val = [
 				[
-					'url' => \Yii::$app->controller->id.(is_null($action) ? '/' : ltrim($action, "/"))."/category",
+					'url' => \Yii::$app->controller->id.(is_null($action) ? '/' : ltrim($action, "/"))."/category/",
 					'label' => "Category",
 					'icon' => 'plus'
 				]
@@ -143,8 +183,12 @@ class Category extends Entity
 			break;
 		}
 		unset($ret_val[0]);
+		if($useGlobalController)
+			$url = (is_null($action) ? \Yii::$app->controller->id."/$action/" : ltrim($action, "/"))."/category";
+		else
+			$url = (is_null($action) ? \Yii::$app->controller->id."/$action/" : "/category/".ltrim($action, "/"));
 		array_unshift($ret_val, [
-			'url' => (is_null($action) ? \Yii::$app->controller->id."/$action/" : ltrim($action, "/"))."/category",
+			'url' => $url,
 			'label' => "Category",
 			'icon' => 'plus'
 		]);
@@ -202,7 +246,7 @@ class Category extends Entity
 	 * ParentMap are specieid in the parent_ids attribute
 	 * Parent object belong to the same table
 	 */
-	public function addParentMap()
+	public function addParentMap($parents=[])
 	{
 		$parents = [];
 		$ids = array_filter(is_array($this->parent_ids) ? $this->parent_ids : explode(',', $this->parent_ids));
