@@ -44,7 +44,8 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	{
 		if(!$this->noDbInit)
 			parent::init();
-		if(((bool)$this->initLocalConfig || (bool)static::$initClassConfig) && !\Yii::$app->getModule('nitm')->config->exists($this->isWhat(true), $this->initLocalConfigOnEmpty || static::$initClassConfigOnEmpty)) {
+		$nitm = \Yii::$app->getModule('nitm');
+		if(((bool)$this->initLocalConfig || (bool)static::$initClassConfig) && $nitm->hasComponent('config') && !$nitm->config->exists($this->isWhat(true), $this->initLocalConfigOnEmpty || static::$initClassConfigOnEmpty)) {
 			$this->initConfig($this->isWhat(true));
 		}
 	}

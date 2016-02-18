@@ -2,7 +2,7 @@
 
 namespace nitm\helpers;
 
-class Html
+class Html extends \yii\helpers\Html
 {
 	/**
 	 * Get certain types of icons
@@ -18,6 +18,11 @@ class Html
 			"'<a href=\"$1\" target=\"_blank\">$3</a>$4'",
 			$text
 		);
+	}
+
+	public static function parseLinks($str)
+	{
+		return preg_replace("[[:alpha:]]+://[^<>[:space:]]+[[:alnum:]/]","<a href=\"\\0\">\\0</a>", $str);
 	}
 }
 ?>

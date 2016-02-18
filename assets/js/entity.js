@@ -21,6 +21,16 @@ class NitmEntity {
 		this.buttons = {
 			roles: ['ajaxForm']
 		};
+
+		this.batch = {
+			element: "[role~='batchElement']",
+			action: "[role~='batchAction']",
+			all: "[role~='batchAll']",
+			chunk: "[role~='batchChunk']",
+			selected: "[role~='batchSelected']",
+			indicator: "[role~='batchIndicator']"
+		};
+
 		this.actions = {
 			roles: ['metaAction'],
 			updateAction: 'updateAction',
@@ -387,8 +397,7 @@ class NitmEntity {
 	};
 
 	afterDelete(result, elem, containerId) {
-		if(result.success)
-		{
+		if(result || result.success) {
 			try {
 				$nitm.module('tools').removeParent(elem);
 			} catch (error) {
@@ -469,6 +478,176 @@ class NitmEntity {
 		try {
 			return '#'+from.join(', #');
 		} catch (e) {}
+	};
+
+
+	initBatchActions(containerId) {
+		let $container = $nitm.getObj(containerId || this.views.containerId || 'body');
+		$container.find(this.batch.action).each((i, elem) => {
+			$(elem).on('click', (e) => {
+				e.preventDefault();
+				this.batchItem(e.target, $container.get(0));
+			});
+		});
+	}
+
+	initBatchSelection(containerId) {
+		let $container = $nitm.getObj(containerId || this.views.containerId || 'body');
+		$container.find(this.batch.selection).each((i, elem) => {
+			$(elem).on('click', (e) => {
+				e.preventDefault();
+				this.batchSelection(e.target, $container.get(0));
+			});
+		});
+	}
+
+	initBatchChunking(containerId) {
+		let $container = $nitm.getObj(containerId || this.views.containerId || 'body');
+		$container.find(this.batch.chunk).each((i, elem) => {
+			$(elem).on('click', (e) => {
+				e.preventDefault();
+				this.batchChunk(e.target, $container.get(0));
+			});
+		});
+	}
+
+	initBatchAll(containerId) {
+		let $container = $nitm.getObj(containerId || this.views.containerId || 'body');
+		$container.find(this.batch.all).each((i, elem) => {
+			$(elem).on('click', (e) => {
+				e.preventDefault();
+				this.batchAll(e.target, $container.get(0));
+			});
+		});
+	}
+
+	batchItem(elem, containerId) {
+		let $elem = $(elem);
+		if($elem.data('hasBatchActivity'))
+			return;
+
+		$elem.data('hasBatchActivity', true);
+		let url = $elem.data('url') || $elem.attr('href');
+		$nitm.trigger('start-spinner', [elem]);
+		return $.ajax({
+			url: url,
+			success: (result) => {
+				if(result.success) {
+					this.afterAction(result.action || 'batch', result, elem);
+				} else
+					$nitm.trigger('notify', [result.message || "Error occurred", 'warning', elem]);
+			}
+		})
+		.error((xhr, status, text) => {
+			$nitm.trigger('notify', [text || "Error occurred", 'warning', elem]);
+		})
+		.always(() => {
+			$elem.removeData('hasBatchActivity');
+			$nitm.trigger('stop-spinner', [elem]);
+		});
+	}
+
+	batchAll (elem, containerId, $elems) {
+		let $elem = $(elem);
+		if($elem.data('hasBatchActivity'))
+			return;
+
+		let url = $elem.data('url') || $elem.attr('href');
+		$elems = $elems || $(this.batch.element);
+
+		$nitm.trigger('start-spinner', [elem]);
+		$.ajax({
+			method: $elem.data('method') || 'get',
+			url: url,
+			data: {id: this.ids},
+			success: (result) => {
+				this.afterAction(result.action, result, elem);
+			}
+		}).always(() => {
+			$nitm.trigger('stop-spinner', [elem]);
+			$elem.removeData('hasBatchActivity');
+		});
+		return false;
+	}
+
+	batchSelected(elem, containerId, $elems) {
+		let keys = $elems || $($elem.data('grid')).yiiGridView('getSelectedRows');
+		$elems = {};
+		this.batchChunk(elem, containerId, $elems);
+	}
+
+	batchChunk (elem, containerId, $elems) {
+		let $container = $nitm.getObj(containerId || this.views.containerId || 'body');
+		$elems = $elems || $container.find(this.batch.element);
+		let $elem = $(elem),
+			$indicator = $($elem.data('indicator')) || $nitm.getObj(this.batch.indicator) || $elem,
+			chunkSize = 5, totalItems = $elems.length, chunks = [];
+
+		if(!$elems.length) {
+			$nitm.trigger('notify', ["No items to work with!", 'warning']);
+			return;
+		}
+
+		$elem.addClass("disabled");
+		$elem.attr('disabled', true);
+
+		$nitm.trigger('start-spinner', [$indicator.get(0), $elems.length+' items left...']);
+		$indicator.html("Preparing items...");
+
+		for(let i=0; i<totalItems; i+=chunkSize) {
+			chunks.push($elems.slice(i, i+chunkSize).toArray());
+		}
+
+		let promises = []
+		chunks.forEach((items, index) => {
+			let promiseChunk = [];
+			items.forEach((item, count) => {
+				promiseChunk.push(() => {
+					return this.batchItem(item, containerId);
+				});
+			});
+			promises.push(promiseChunk);
+		});
+
+		let result = new Promise((resolve, reject) => {
+			let promise = new Promise((resolve, reject) => {});
+			promises.forEach((chunk, index) => {
+				let done = false,
+					//1 because we're popping the first value off the chunk to start the chain
+					current = 1;
+				promise = chunk.shift().call();
+				while (!done) {
+					promise = promise.then(() => {
+						let item = chunk.shift();
+						totalItems -= 1;
+						$indicator.html(totalItems+' items left...');
+						return item.call();
+					});
+					if(chunk.length === current)
+						done = true;
+					current++;
+				}
+			});
+			promise.then(() => {
+				$nitm.trigger('notify', ["Successfully completed batch operations", 'success', $indicator.get(0)]);
+				$nitm.trigger('stop-spinner', [$indicator.get(0)]);
+				$elem.removeClass("disabled");
+				$elem.removeAttr('disabled');
+			});
+		});
+	}
+
+	afterBatch(result, elem, containerId) {
+		let $elem = $(elem),
+			$indicator = $nitm.getObj($elem.data('indicator'));
+		if(result.success) {
+			let value = result.count || Object.keys(result.items).length || 0;
+			if($indicator.length)
+				$indicator.html(new String(value));
+		}
+		else {
+			$nitm.trigger('notify', [result.message || "An error occurred", 'error', form]);
+		}
 	};
 }
 

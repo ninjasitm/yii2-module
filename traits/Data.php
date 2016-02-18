@@ -98,9 +98,13 @@ trait Data {
 	public function getId($splitter='')
 	{
 		$key = $this->primaryKey();
-		return implode($splitter, array_filter(array_map(function ($attribute) {
+		$id = implode($splitter, array_filter(array_map(function ($attribute) {
 			return $this->getAttribute($attribute);
 		}, $key)));
+
+		if(is_numeric($id))
+			return (int)$id;
+		return $id;
 	}
 
 	public function hasRelation($name, $model=null)
@@ -280,7 +284,7 @@ trait Data {
 			], $params);
 		}
 	}
-	
+
 	/**
 	 * Get the query that orders items by their activity
 	 */

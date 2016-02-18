@@ -197,10 +197,10 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 
 	public function hasComponent($name)
 	{
-		return $this->hasMethod('get'.$name) && is_object(call_user_func([$this, 'get'.$name]));
+		echo $this->hasProperty($name);
+		exit;
+		return $this->hasProperty($name) && is_object(call_user_func([$this, 'get'.$name]));
 	}
-
-
 
 	/**
 	 * Add a message to the log queue
@@ -253,9 +253,9 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	 * @param  [type]   $force [description]
 	 * @return [type]          [description]
 	 */
-	public function getAlerts($force=false)
+	public function getAlert($force=false)
 	{
-		if(!isset($this->alerts) && $this->enableAlerts) {
+		if(!isset($this->alerts)) {
 			$this->alerts = \Yii::createObject(array_merge([
 				'class' => '\nitm\components\Dispatcher',
 			], (array)$this->alerts));
@@ -271,7 +271,7 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	 */
 	public function getLogger($force=false)
 	{
-		if(!isset($this->logger) && $this->enableLogger) {
+		if(!isset($this->logger)) {
 			$this->logger = \Yii::createObject(array_merge([
 				'class' => '\nitm\components\Configer',
 			], (array)$this->logger));
@@ -285,9 +285,9 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	 * @param  [type]      $force [description]
 	 * @return [type]             [description]
 	 */
-	public function getConfig($force=false)
+	public function getConfiger($force=false)
 	{
-		if(!isset($this->config) && $this->enableConfig) {
+		if(!isset($this->config)) {
 			$this->config = \Yii::createObject(array_merge([
 				'class' => '\nitm\components\Configer',
 			], (array)$this->config));

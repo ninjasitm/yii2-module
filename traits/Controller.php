@@ -295,10 +295,12 @@ use yii\helpers\Html;
 
 			if(($ret_val = $query->one()) != null)
             	return $ret_val;
-			else
+			else {
+                $id = implode('-', (array)$id);
 				if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))
             		throw new \yii\web\NotFoundHttpException((new $className)->properName()." : $id doesn't exist!");
 				return $ret_val;
+            }
         } else
 			if(defined('YII_DEBUG') && (defined('YII_ENV') && YII_ENV == 'dev'))
            		throw new \yii\web\NotFoundHttpException((new $className)->properName()." doesn't exist!");

@@ -226,7 +226,8 @@ class QueryFilter
 			if(is_object($field) && !($field instanceof Expression))
 				throw new \yii\base\InvalidArgumentException("The only object supported is a \yii\db\Expression object");
 
-			$table = !static::isExpression($field) ? array_shift(explode('.', $field)) : $table;
+			$fieldParts = explode('.', $field);
+			$table = !static::isExpression($field) ? array_shift($fieldParts) : $table;
 
 			if($field instanceof Expression) {
 				//The field/relation is most likely the first part before the first period. We should remove it if this is an expression

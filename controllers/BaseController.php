@@ -253,36 +253,39 @@ class BaseController extends Controller
 	public static function loadNav($from="navigation")
 	{
 		$ret_val = $priorities = [];
-		$navigation = \Yii::$app->getModule('nitm')->config->get($from);
-		if(is_array($navigation))
-		{
-			foreach($navigation as $group=>$val)
+		$module = \Yii::$app->getModule('nitm');
+		if($module->hasComponent('config')) {
+			$navigation = $module->config->get($from);
+			if(is_array($navigation))
 			{
-				@list($name, $property, $property_name) = explode("_", $group);
-				switch(@$val['item_disabled'] == 1)
+				foreach($navigation as $group=>$val)
 				{
-					//handle sublinks here. only one level deep
-					case false:
-					switch($property)
+					@list($name, $property, $property_name) = explode("_", $group);
+					switch(@$val['item_disabled'] == 1)
 					{
-						case "sub":
-						$priority = isset($val['priority']) ? $val['priority'] : sizeof($ret_val);
-						@$ret_val[$priorities[$name]."_".$name][$property][$property_name] = $val;
-						break;
+						//handle sublinks here. only one level deep
+						case false:
+						switch($property)
+						{
+							case "sub":
+							$priority = isset($val['priority']) ? $val['priority'] : sizeof($ret_val);
+							@$ret_val[$priorities[$name]."_".$name][$property][$property_name] = $val;
+							break;
 
-						//this is a mainlink
-						default:
-						$priority = isset($val['priority']) ? $val['priority'] : sizeof($ret_val);
-						$ret_val[$priority."_".$name] = @(!is_array($ret_val[$name])) ? array() : $ret_val[$priority."_".$name];
-						$priorities[$name] = $priority;
-						$ret_val[$priority."_".$name] = $val;
+							//this is a mainlink
+							default:
+							$priority = isset($val['priority']) ? $val['priority'] : sizeof($ret_val);
+							$ret_val[$priority."_".$name] = @(!is_array($ret_val[$name])) ? array() : $ret_val[$priority."_".$name];
+							$priorities[$name] = $priority;
+							$ret_val[$priority."_".$name] = $val;
+							break;
+						}
 						break;
 					}
-					break;
 				}
 			}
+			ksort($ret_val);
 		}
-		ksort($ret_val);
 		return $ret_val;
 	}
 
@@ -298,6 +301,7 @@ class BaseController extends Controller
 		$encapsulate = ArrayHelper::remove($userOptions, 'encapsulate', false);
 		$navigation = !is_array($navigation) ? static::loadNav(is_string($navigation) ? $navigation : 'navigation') : $navigation;
 		$top = ($navigation === null) ? true : false;
+		
 		foreach($navigation as $idx=>$options)
 		{
 			if(isset($item['adminOnly']) && !\Yii::$app->user->identity->isAdmin())

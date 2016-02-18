@@ -3,7 +3,6 @@
 namespace nitm\components\configer;
 
 use Yii;
-use yii\base\Object;
 use nitm\helpers\Session;
 use nitm\helpers\Cache;
 use nitm\helpers\ArrayHelper;

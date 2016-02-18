@@ -109,7 +109,7 @@ class Response extends Behavior
 			case 'widget':
 			if(isset($params['js'])) static::$view->registerJs($params['js']);
 			$params['args']['content'] = $params['args']['widgetClass']::widget($params['args']['options']);
-			$ret_val = static::$controller->$render(static::$viewPath, [
+			$ret_val = static::$controller->renderPartial(static::$viewPath, [
 					'content' => static::$controller->$render($params['view'], $params['args'], static::$controller),
 				],
 				static::$controller

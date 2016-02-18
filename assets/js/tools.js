@@ -69,8 +69,8 @@ class Tools
 	initVisibility(containerId) {
 		let $container = $nitm.getObj((!containerId) ? 'body' : containerId);
 		//enable hide/unhide functionality with optional data retrieval
-		$container.find("[role~='visibility']").map((e) => {
-			let $target = $(e.currentTarget);
+		$container.find("[role~='visibility']").map((i, e) => {
+			let $target = $(e);
 			if($target.data('id') !== undefined) {
 				let events = $target.data('events') || 'click';
 				$.each(events.split(','), (index, eventName) => {
@@ -78,7 +78,7 @@ class Tools
 						$target.data('nitm-entity-'+eventName, true);
 						let _callback = (e) => {
 							e.preventDefault();
-							return this.visibility(e.currentTarget);
+							return this.visibility(e.target);
 						};
 						if($target.data('run-once'))
 							$target.one(eventName, _callback);
@@ -98,14 +98,14 @@ class Tools
 	 */
 	visibility(object, removeListener) {
 		return new Promise((resolve, reject) => {
-			$nitm.trigger('animate-submit-start', [object]);
+			$nitm.trigger('animate-submit-start', [object, '...']);
 			let $object = $nitm.getObj(object);
 			let on = $object.data('on');
 			let getUrl = true;
 			let url = !$object.data('url') ? $object.attr('href') : $object.data('url');
 
-			if($elem.data('on') !== undefined)
-				if($elem.data('on').length === 0) getUrl = false;
+			if($object.data('on') !== undefined)
+				if($object.data('on').length === 0) getUrl = false;
 
 			let getRemote = function() {
 				let isBasedOnGetUrl = (url !== undefined) && (url != '#') && (url.length >= 2) && getUrl;
@@ -113,8 +113,7 @@ class Tools
 				return isBasedOnGetUrl && isBasedOnRemoteOnce;
 			};
 
-			if(getRemote())
-			{
+			if(getRemote()) {
 				let success = $object.data('success') || null;
 				let ret_val = $.ajax({
 					url: url,
@@ -130,7 +129,8 @@ class Tools
 
 			$nitm.trigger('animate-submit-stop', [object]);
 
-			$nitm.module('utils').handleVis($object.data('id'))
+			$nitm.m('utils')
+			.handleVis($object.data('id'))
 			.then(() => {
 				if($object.data('toggle-inputs'))
 					$nitm.getObj($object.data('id')).find(':input').prop('disabled', function(i, v) {
@@ -144,7 +144,7 @@ class Tools
 	replaceContents(result, object, target) {
 		let $object = $nitm.getObj(object);
 		if($object.data('toggle')) {
-			$nitm.module('utils').handleVis($object.data('toggle'))
+			$nitm.m('utils').handleVis($object.data('toggle'))
 			.then(() => {
 				this.evalScripts(result, function (responseText) {
 					target.html(responseText);

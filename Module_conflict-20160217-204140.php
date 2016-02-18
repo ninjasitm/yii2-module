@@ -253,7 +253,7 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	 * @param  [type]   $force [description]
 	 * @return [type]          [description]
 	 */
-	public function getAlerts($force=false)
+	public function getAlert($force=false)
 	{
 		if(!isset($this->alerts) && $this->enableAlerts) {
 			$this->alerts = \Yii::createObject(array_merge([
@@ -285,7 +285,7 @@ class Module extends \yii\base\Module implements \yii\base\BootstrapInterface
 	 * @param  [type]      $force [description]
 	 * @return [type]             [description]
 	 */
-	public function getConfig($force=false)
+	public function getConfiger($force=false)
 	{
 		if(!isset($this->config) && $this->enableConfig) {
 			$this->config = \Yii::createObject(array_merge([

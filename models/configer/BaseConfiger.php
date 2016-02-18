@@ -89,6 +89,6 @@ class BaseConfiger extends ActiveRecord
 	public function getId()
 	{
 		$key = $this->primaryKey();
-		return (int)$this->$key[0];
+		return (int)$this->{$key[0]};
 	}
 }

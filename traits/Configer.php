@@ -18,7 +18,7 @@ trait Configer {
 	public function setting($setting='@')
 	{
 		$module = \Yii::$app->getModule('nitm');
-		if($module && $module->enableConfig)
+		if($module && $module->hasComponent('config'))
 		{
 			$hierarchy = explode('.', $setting);
 			$isWhat = isset($this) ? $this->isWhat(true) : static::isWhat(true);
@@ -39,6 +39,7 @@ trait Configer {
 			}
 			return $module->config->get(implode('.', array_filter($hierarchy)));
 		}
+		return null;
 	}
 
 	/*
@@ -48,7 +49,7 @@ trait Configer {
 	public static function initConfig($container=null)
 	{
 		$module = \Yii::$app->getModule('nitm');
-		if($module && $module->enableConfig)
+		if($module && $module->hasComponent('config'))
 		{
 			$container = is_null($container) ? $module->config->container : $container;
 			if(!$module->config->containerExists($container))
