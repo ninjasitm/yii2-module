@@ -111,12 +111,12 @@ class DefaultController extends BaseController
 
         $searchModel = new $className($options['construct']);
 
-		$options['with'] = $this->extractRelationParameters($options);
+		$options['with'] = $this->extractWith($options);
 		$searchModel->queryOptions['with'] = $options['with'];
 
         $dataProvider = $searchModel->search($options['params']);
 
-		$this->filterRelationParameters($dataProvider->query, $options['with']);
+		$this->filterWith($dataProvider->query, $options['with']);
 
 		$dataProvider->pagination->route = isset($options['pagination']['route']) ? $options['pagination']['route'] : '/'.$this->id;
 
@@ -185,12 +185,12 @@ class DefaultController extends BaseController
 		$this->model->type = $type;
 		$this->model->setIs($type);
 
-		$options['with'] = $this->extractRelationParameters(array_merge($options, $modelOptions));
+		$options['with'] = $this->extractWith(array_merge($options, $modelOptions));
 		$this->model->queryOptions['with'] = $options['with'];
 
 		$dataProvider = $this->model->search($options['params']);
 
-		$this->filterRelationParameters($dataProvider->query, $options['with']);
+		$this->filterWith($dataProvider->query, $options['with']);
 
 		$dataProvider->pagination->route = "/$type";
 

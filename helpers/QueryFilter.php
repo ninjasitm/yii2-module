@@ -133,6 +133,8 @@ class QueryFilter
 			$select =& $query;
 		}
 
+		$tableName = static::getAlias($query);
+
 		foreach((array)$select as $idx=>$field) {
 
 			if(is_string($idx))
@@ -146,9 +148,21 @@ class QueryFilter
 			if(is_string($field) && strpos($field, '.') !== false)
 				continue;
 			if(is_string($field) && $model instanceof ActiveRecord)
-				$select[$idx] = $model->tableName().'.'.$field;
+				$select[$idx] = $tableName.'.'.$field;
 			else if(is_string($field) && is_string($model))
 				$select[$idx] = $model.'.'.$field;
+		}
+		$query->select = $select;
+	}
+
+	public static function getAlias($query, $model=null, $alias=null)
+	{
+		if($query instanceof \yii\db\Query) {
+			return ArrayHelper::isIndexed($query->from) ? ($alias ?: $query->from[0]) : key($query->from);
+		} else if (!is_null($alias)){
+			return $alias;
+		} else if(is_object($model)) {
+			return is_string($model) ? $model : $model->tableName();
 		}
 	}
 
@@ -168,7 +182,12 @@ class QueryFilter
 			return;
 
 		//Model will be the tablename if a string is passed for $model
-		$alias = is_null($alias) ? is_object($model) ? $model->tableName() : $model : $alias;
+		if(is_null($alias)) {
+		 	if(is_string($model))
+				$alias = $model;
+			else
+				$alias = static::getAlias($query, $model, $alias);
+		}
 		foreach($where as $field=>$value) {
 			if(is_string($field) && strpos('.', $field) === false) {
 				//If an object was passed get the table name
@@ -244,7 +263,7 @@ class QueryFilter
 			} else if((strpos($field, '.') !== false) && !static::isExpression($field)) {
 				$field = array_pop(explode('.', $field));
 			} else
-				$table = is_string($model) ? $model : $model->tableName();
+				$table = is_string($model) ? $model : static::getAlias($query);
 
 			$class = $query->modelClass;
 

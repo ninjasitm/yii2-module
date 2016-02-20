@@ -150,6 +150,7 @@ class DefaultApiController extends Controller
 			], $construct));
 
 			$dataProvider = $model->search($params);
+			$dataProvider->query->with($this->extractWith($options));
 
 			$model->applyFilters($dataProvider->query, ArrayHelper::getValue($options, 'queryOptions', []));
 

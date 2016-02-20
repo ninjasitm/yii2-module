@@ -90,7 +90,7 @@ class Response extends Behavior
 			case 'html':
 			$params['options'] = ArrayHelper::getValue(static::$viewOptions, 'options', []);
 			if(isset($params['js'])) static::$view->registerJs($params['js']);
-			static::$view->registerJs('Object.assign($nitm, '.json_encode(ArrayHelper::getValue(\Yii::$app->params, 'nitmJs', [])).');');
+			//static::$view->registerJs('Object.assign($nitm, '.json_encode(ArrayHelper::getValue(\Yii::$app->params, 'nitmJs', [])).');');
 			$ret_val = static::$controller->$render($params['view'], ArrayHelper::getValue($params, 'args', []), static::$controller);
 			break;
 

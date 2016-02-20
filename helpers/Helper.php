@@ -78,10 +78,22 @@ class Helper
 			{
 				$ret_val[] = implode($glue, array_map(function ($attribute) use($model, $discardEmpty) {
 					if(is_callable($attribute)) {
-						return call_user_func($attribute, $model);
+						return call_user_func($model, $attribute);
 					}
 					else if(is_object($model) && $model->hasMethod($attribute)) {
-						return call_user_func([$model, $attribute], $model);
+						$arguments = explode(':', $attribute);
+						$attribute = $arguments[0];
+						switch(strtolower($attribute))
+						{
+							case 'getid':
+							case 'iswhat':
+							return call_user_func_array([$model, $attribute], (array)$arguments);
+							break;
+
+							default:
+							return call_user_func_array([$model, $attribute], array_merge([$model], (array)$arguments));
+							break;
+						}
 					} else if ($attribute && $model->hasAttribute($attribute)) {
 						return \yii\helpers\ArrayHelper::getValue($model, $attribute, ($discardEmpty ? null : $attribute));
 					}

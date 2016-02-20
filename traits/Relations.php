@@ -6,6 +6,7 @@ use nitm\helpers\Relations as RelationsHelper;
 use nitm\models\ParentMap;
 use nitm\models\Category;
 use nitm\helpers\ArrayHelper;
+use nitm\helpers\QueryFilter;
 
 /**
  * Traits defined for expanding active relation scopes until yii2 resolves traits issue
@@ -36,7 +37,7 @@ trait Relations {
 
 	public function count($returnNull=false)
 	{
-		$ret_val = \nitm\helpers\Relations::getRelatedRecord('count', $this, static::className(), [
+		$ret_val = RelationsHelper::getRelatedRecord($this, 'count', static::className(), [
 			'_count' => 0
 		])['_count'];
 
@@ -70,7 +71,7 @@ trait Relations {
 		{
 			return $this->getCachedRelation($idKey, $className, [], false, \nitm\helpers\Helper::getCallerName(), 'user');
 		}  else
-			return \nitm\helpers\Relations::getRelatedRecord(\nitm\helpers\Helper::getCallerName(), $this, $className, [], false);
+			return RelationsHelper::getRelatedRecord($this, \nitm\helpers\Helper::getCallerName(), $className, [], false);
 	}
 
     /**
@@ -213,7 +214,7 @@ trait Relations {
 		if(\Yii::$app->getModule('nitm')->useModelCache)
 			return $this->getCachedRelation($idKey, $className, [], $many, $relation);
 		else
-			return \nitm\helpers\Relations::getRelatedRecord($relation, $this, $className, [], $many);
+			return RelationsHelper::getRelatedRecord($this, $relation, $className, [], $many);
 	}
 
     /**
@@ -279,7 +280,10 @@ trait Relations {
     public function getParentMap()
     {
 		$options = [
-			'where' => ['remote_type' => $this->isWhat()],
+            'from' => [
+                'parentMap' => ParentMap::tableName()
+            ],
+			'where' => ['parentMap.remote_type' => $this->isWhat()],
 		];
 		return $this->getRelationQuery(ParentMap::className(), ['remote_id' => 'id'], $options);
     }
@@ -295,7 +299,10 @@ trait Relations {
     public function getParentsMap()
     {
 		$options = [
-			'where' => ['remote_type' => $this->isWhat()],
+            'from' => [
+                'parentsMap' => ParentMap::tableName()
+            ],
+			'where' => ['parentsMap.remote_type' => $this->isWhat()],
 		];
 		return $this->getRelationQuery(ParentMap::className(), ['remote_id' => 'id'], $options, true);
     }
@@ -316,8 +323,15 @@ trait Relations {
 		 * remote_id maps to the current class's id
 		 */
 		return $this->getRelationQuery($this->className(), ['id' => 'parent_id'])
+             ->from([
+                 '_parent' => $this->tableName()
+             ])
 			->viaTable(ParentMap::tableName(), ['remote_id' => 'id'], function($query) {
-				$query->where(['remote_class' => $this->className()]);
+                $alias = QueryFilter::getAlias($query, $this, 'parentMap');
+                $query->from([
+                    $alias => $query->from[0]
+                ]);
+				$query->where([$alias.'.remote_class' => $this->className()]);
 				return $query;
 			});
     }
@@ -363,6 +377,32 @@ trait Relations {
 	public function children()
 	{
 		return $this->getCachedRelation('id', $this->className(), [], true, 'children');
+	}
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getSiblings()
+    {
+		/**
+		 * parent_id represents the outter part of the query and will matcch to the static::className's id
+		 * This is the parent_id in the ParentMap table
+		 * remote_id maps to the current class's id
+		 */;
+       return $this->getRelationQuery($this->className(), ['id' => 'id'], [], true)
+            ->from([
+                'siblings' => $this->tableName(),
+            ])
+            ->joinWith([
+                "parent" => function ($query) {
+                    $query->joinWith('children');
+                }
+            ]);
+    }
+
+	public function siblings()
+	{
+		return $this->getCachedRelation('id', $this->className(), [], true, 'siblings');
 	}
 
 	/**
@@ -416,25 +456,25 @@ trait Relations {
 	public function getCachedRelation($idKey, $modelClass, $options=[], $many=false, $relation=null)
 	{
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
-		return RelationsHelper::getCachedRelation($idKey, $many, $modelClass, $relation, $options, $this);
+		return RelationsHelper::getCachedRelation($this, $idKey, $many, $modelClass, $relation, $options);
 	}
 
 	public function setCachedRelation($idKey, $modelClass, $options=[], $many=false, $relation=null)
 	{
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
-		return RelationsHelper::setCachedRelation($idKey, $many, $modelClass, $relation, $this);
+		return RelationsHelper::setCachedRelation($this, $idKey, $many, $modelClass, $relation);
 	}
 
 	public function deleteCachedRelation($idKey, $modelClass, $options=[], $many=false, $relation=null)
 	{
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
-		return RelationsHelper::deleteCachedRelation($idKey, $many, $modelClass, $relation, $this);
+		return RelationsHelper::deleteCachedRelation($this, $idKey, $many, $modelClass, $relation);
 	}
 
 	public function resolveRelation($idKey, $modelClass, $useCache=false, $options=[], $many=false, $relation=null)
 	{
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
-		return RelationsHelper::resolveRelation($idKey, $modelClass, $useCache, $many, $options, $relation);
+		return RelationsHelper::resolveRelation($this, $idKey, $modelClass, $useCache, $many, $options, $relation);
 	}
  }
 ?>

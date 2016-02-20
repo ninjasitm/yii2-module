@@ -30,12 +30,17 @@ trait Data {
 			static:: $_is = $is;
 	}
 
+	public function isWhat(...$arguments)
+	{
+		return self::getIsA(...$arguments);
+	}
+
 	/*
 	 * What does this claim to be?
 	 * @param bollean|null $pluralize Should the returnvalue be pluralized or singularized. WHen set to null nothing is done
 	 * @param boolean $forceClassType resolution Don't check for type if this is set to type
 	 */
-	public function isWhat($pluralize=null, $forceClassType=false)
+	public function getIsA($pluralize=null, $forceClassType=false)
 	{
 		$slugify = function ($value) {
 			$stack = explode('\\', $value);

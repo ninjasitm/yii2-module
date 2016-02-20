@@ -72,8 +72,17 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	public function attributes()
 	{
 		return array_merge(parent::attributes(), [
-			'_count', '_newCount'
+			'_count', '_newCount', 'parent_id',
+			'parent_type', 'parent_class',
+			'remote_id', 'remote_type', 'remote_class'
 		]);
+	}
+
+	public function getParent_id()
+	{
+		if($this->isRelationPopulated('parent'))
+			return $this->parent->parent_id;
+		return null;
 	}
 
 	public function behaviors()

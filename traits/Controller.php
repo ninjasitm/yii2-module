@@ -309,23 +309,33 @@ use yii\helpers\Html;
 
 	/**
 	 * Extract the relation parameters
-	 * @method extractRelationParameters
+	 * @method extractWith
 	 * @param  array                    $options  Array of specified options
 	 * @return array                             The with parameters
 	 */
-	protected function extractRelationParameters($options)
+	protected function extractWith($options)
 	{
-		return array_unique(array_merge($this->getWith(), ArrayHelper::getValue($options, 'with', ArrayHelper::getValue($options, 'queryOptions.with', []))));
+		$with = array_merge($this->getWith(), ArrayHelper::getValue($options, 'with', ArrayHelper::getValue($options, 'queryOptions.with', [])));
+        foreach($with as $relation=>$callable)
+        {
+            if(is_numeric($relation))
+                $ret_val[] = $callable;
+            else if(is_string($relation) && !is_callable($callable))
+                $ret_val[] = $relation;
+            else if(is_string($relation) && is_callable($callable))
+                $ret_val[$relation] = $callable;
+        }
+        return array_unique($ret_val);
 	}
 
 	/**
 	 * Go through the relations and determine whether they shoudl be kept or excluded
-	 * @method filterRelationParameters
+	 * @method filterWith
 	 * @param \yii\db\Query $query             The query object
 	 * @param array with			    The relations
 	 * @return boolean                  Relations were dropped
 	 */
-	protected function filterRelationParameters($query, $with=[])
+	protected function filterWith($query, $with=[])
 	{
 		if(in_array($query->className(), [
 			'\yii\elasticsearch\ActiveQuery',

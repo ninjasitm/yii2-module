@@ -23,7 +23,6 @@ class Cache extends Model
 	public function getKey($model, $idKey, $relation=null, $many=false)
 	{
 		$ret_val = [($many == true ? 'many' : 'one'), $relation];
-		;
 		if(is_string($model) || is_numeric($model))
 			$ret_val[] = $model;
 		else if(!is_null($idKey) && !empty($id = Helper::concatAttributes($model, $idKey)))
@@ -117,12 +116,7 @@ class Cache extends Model
 			case true:
 			$array = static::get($key);
 			if(is_array($array)) {
-				if(!isset($array['_class'])) {
-					echo $key;
-					print_r($array);
-					exit;
-				}
-				if(class_exists($array['_class'])) {
+				if(isset($array['_class']) && class_exists($array['_class'])) {
 					$model = \Yii::createObject($array['_class']);
 					if(is_array($array['_data']) && count(array_filter($array['_data'])) >= 1) {
 						$ret_val = static::parseAfterGet($array['_data'], $model);
@@ -230,7 +224,8 @@ class Cache extends Model
 		if(ArrayHelper::isIndexed($array)) {
 			$className = $model->className();
 			$ret_val = array_map(function ($attributes) use($className) {
-				return static::parseAfterGet($attributes, \Yii::createObject($className));
+				$object = \Yii::createObject($className);
+				return static::parseAfterGet($attributes, $object);
 			}, $array);
 			return $ret_val;
 		} else {
@@ -239,7 +234,8 @@ class Cache extends Model
 				if(is_array($value) && ArrayHelper::getValue($value, '_relation') === true) {
 					//We already determined that this was a relation. Now is it an array of relations?
 					if(ArrayHelper::getValue($value, '_many') === true) {
-						$model->populateRelation($attribute, static::parseAfterGet( $value['_data'], \Yii::createObject($value['_class'])));
+						$object = \Yii::createObject($value['_class']);
+						$model->populateRelation($attribute, static::parseAfterGet( $value['_data'], $object));
 					} else {
 						//If not it's a single related object. Create the object and the poplate any related information
 						$object = \Yii::createObject($value['_class']);
@@ -252,8 +248,7 @@ class Cache extends Model
 					//We're populating properties for a regular object | model | attribute
 					if(is_array($value) && !is_null($modelClass) && ($modelClass = ArrayHelper::getValue($value, '_class')) !== false) {
 						try {
-							$model = \Yii::createObject($modelClass, $value);
-							$value = $model;
+							$value = \Yii::createObject($modelClass, $value);
 						} catch (\Exception $e) {
 							\Yii::warning($e);
 						}

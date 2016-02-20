@@ -10,14 +10,14 @@ class Relations
 {
 	/**
 	 * Get a relation. Either a model or array of models
-	 * @param string $name The name of the relation
 	 * @param Object $model The model this relation is attached to
+	 * @param string $name The name of the relation
 	 * @param string $className The string name of the class
 	 * @param array $options The options usedfor custructing a model if necessary
 	 * @param boolean $many Is this an array of models?
 	 * @param return array|object of class modelClass
 	 */
-	public static function getRelatedRecord($name, &$model, $className=null, $options=[], $array=false)
+	public static function getRelatedRecord($model, $name, $className=null, $options=[], $array=false)
 	{
 		$ret_val = ArrayHelper::getValue($model->getRelatedRecords(), $name, '__noRel__');
 		if($ret_val !== '__noRel__' && !empty($ret_val) && !is_null($ret_val)) {
@@ -86,19 +86,16 @@ class Relations
 
 	/**
 	 * Get a cached relation. Either a model or array of models
+	 * @param Object $model The model this relation is attached to
 	 * @param string|array $idKey  The properties that makeup the cacheKey
 	 * @param boolean $many Is this an array of models?
 	 * @param string $modelClass The string name of the class
 	 * @param string $relation The name of the relation
-	 * @param Object $model The model this relation is attached to
 	 * @param return array|object of class modelClass
 	 */
 
-	public function getCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, $options=[], &$model=null, $duration=120)
+	public static function getCachedRelation($model, $idKey='id', $many=false, $modelClass=null, $relation=null, $options=[], $duration=120)
 	{
-		if(isset($this) && is_null($model))
-			$model = $this;
-
 		$many = $many === true ? true : false;
 		$relationQuery = $model->getRelation($relation);
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
@@ -109,22 +106,22 @@ class Relations
 			$ret_val = Cache::getModel($model, $key, $many, $modelClass, $relation, $options);
 		}
 		else {
-			$ret_val = self::getRelatedRecord($relation, $model, $modelClass, $options, $many);
-			self::setCachedRelation($idKey, $many, $modelClass, [$relation, $ret_val], $model, $duration);
+			$ret_val = self::getRelatedRecord($model, $relation, $modelClass, $options, $many);
+			self::setCachedRelation($model, $idKey, $many, $modelClass, [$relation, $ret_val], $duration);
 		}
 		return $ret_val;
 	}
 
 	/**
 	 * Set a cached relation. Either a model or array of models
+	 * @param Object $model The model this relation is attached to
 	 * @param string|array $idKey  The properties that makeup the cacheKey
 	 * @param boolean $many Is this an array of models?
 	 * @param string $modelClass The string name of the class
 	 * @param string $relation The name of the relation
-	 * @param Object $model The model this relation is attached to
 	 * @param return array|object of class modelClass
 	 */
-	public function setCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, &$model=null, $duration=120)
+	public static function setCachedRelation($model, $idKey='id', $many=false, $modelClass=null, $relation=null, $duration=120)
 	{
 		if(isset($this) && is_null($model))
 			$model = $this;
@@ -151,27 +148,29 @@ class Relations
 	 * @param boolean $many Is this an array of models?
 	 * @param return boolean value was deleted
 	 */
-	public function deleteCachedRelation($idKey='id', $many=false, $modelClass=null, $relation=null, &$model=null)
+	public static function deleteCachedRelation($model, $idKey='id', $many=false, $modelClass=null, $relation=null)
 	{
 		return Cache::delete(Cache::cacheKey($model, $idKey, $relation, $many));
 	}
 
 	/**
 	 * Resolve a cached relation. Either a model or array of models
+	 * @param Object $model The model this relation is attached to
 	 * @param string|array $idKey  The properties that makeup the cacheKey
 	 * @param boolean $many Is this an array of models?
 	 * @param string $modelClass The string name of the class
 	 * @param string $relation The name of the relation
-	 * @param Object $model The model this relation is attached to
 	 * @param return array|object of class modelClass
 	 */
-	public function resolveRelation($idKey, $modelClass, $useCache=false, $many=false, $options=[], $relation=null)
+	public static function resolveRelation($sender, $idKey, $modelClass, $useCache=false, $many=false, $options=[], $relation=null)
 	{
+		if(!($sender instanceof \yii\db\ActiveRecord))
+			throw new \yii\base\InvalidParamException("Sender should be a model");
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 		if($useCache)
-			return self::getCachedRelation($idKey, $many, $modelClass, $relation, [], $this, 120);
+			return self::getCachedRelation($sender, $idKey, $many, $modelClass, $relation, $options, 120);
 		else
-			return self::getRelatedRecord($relation, $this, $modelClass, [], $many);
+			return self::getRelatedRecord($sender, $relation, $modelClass, $options, $many);
 	}
 }
 
