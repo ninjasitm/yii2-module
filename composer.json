@@ -19,7 +19,7 @@
    "require-dev": {
 	"yiisoft/yii2-swiftmailer": "*",
 	"yiisoft/yii2-gii": "*",
-	"yiisoft/yii2-debug": "*",
+	"yiisoft/yii2-debug": "*"
     },
     "autoload": {
         "psr-4": {
