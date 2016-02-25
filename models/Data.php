@@ -42,8 +42,8 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 
 	public function init()
 	{
-		if(!$this->noDbInit)
-			parent::init();
+		//if(!$this->noDbInit)
+			//parent::init();
 		$nitm = \Yii::$app->getModule('nitm');
 		if(((bool)$this->initLocalConfig || (bool)static::$initClassConfig) && $nitm->hasComponent('config') && !$nitm->config->exists($this->isWhat(true), $this->initLocalConfigOnEmpty || static::$initClassConfigOnEmpty)) {
 			$this->initConfig($this->isWhat(true));
@@ -72,17 +72,8 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	public function attributes()
 	{
 		return array_merge(parent::attributes(), [
-			'_count', '_newCount', 'parent_id',
-			'parent_type', 'parent_class',
-			'remote_id', 'remote_type', 'remote_class'
+			'_count', '_newCount'
 		]);
-	}
-
-	public function getParent_id()
-	{
-		if($this->isRelationPopulated('parent'))
-			return $this->parent->parent_id;
-		return null;
 	}
 
 	public function behaviors()

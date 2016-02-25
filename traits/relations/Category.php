@@ -15,12 +15,12 @@ trait Category
     {
         return $this->hasMany(Relations::getRelationClass(CategoriesMetadata::className(), get_called_class()), ['category_id' => 'id']);
     }
-	
+
 	public function categoriesMetadata()
 	{
 		return \nitm\helpers\Relations::getRelatedRecord('categoriesMetadata', $this, []);
 	}*/
-	
+
 	/**
 	 * Get the type id of this entity
 	 */
@@ -35,5 +35,15 @@ trait Category
 		}
 		return $this->typeId;
 	}
-	
+
+	public function fields() {
+		return [
+			'id',
+			'name',
+			'title' => 'name',
+			'slug',
+			'htmlIcon' => 'html_icon'
+		];
+	}
+
 }

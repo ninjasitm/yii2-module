@@ -22,7 +22,7 @@ class ArrayHelper extends BaseArrayHelper
 	const FLAG_NULL = 'null:';
 	const FLAG_ASIS = 'asis:';
 	const FLAG_IGNORE = 'ignore:';
-	
+
 	/**
 	 * Function to split data based on conditionals
 	 * @param mixed $a1 first array to split, usually the keys
@@ -433,11 +433,13 @@ class ArrayHelper extends BaseArrayHelper
 	 * @param array|callablke $getter
 	 * @return array
 	 */
-	public static function filter(array $source, $idsOnly=false, $getter=null)
+	public static function filter(array $source, $idsOnly=false, $getter=null, $default=null, $ignoreEmpty=[])
 	{
 		$ret_val = $source;
 		if($idsOnly) {
 			$ret_val = parent::getColumn($source, 'id');
+			if(empty($ret_val))
+				$ret_val = $default ?: ["none"];
 		} else
 			foreach((array)$source as $id=>$d)
 			{
@@ -448,6 +450,11 @@ class ArrayHelper extends BaseArrayHelper
 					$ret_val[$id] = array_intersect_key($d, $getter);
 				} else if(!is_null($d) || !empty($d))
 					$ret_val[$id] = $d;
+
+				foreach($ignoreEmpty as $key) {
+					if(empty(self::getValue($ret_val[$id], $key, false)))
+						unset($ret_val[$id]);
+				}
 			}
 		return $ret_val;
 	}

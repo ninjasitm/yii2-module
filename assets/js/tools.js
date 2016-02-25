@@ -359,7 +359,7 @@ class Tools
 				return;
 
 			$nitm.trigger('animate-submit-start', [$indicator.get(0)]);
-			$target.attr('src', ($(object).data('url') ? $object.data('url') : $object.attr('href')));
+			$target.attr('src', ($object.data('url') || $object.attr('href')));
 			$target.load(function () {
 				$elem.fadeIn();
 				$indicator.fadeOut();

@@ -22,7 +22,7 @@ class Category extends Entity
 	public $bindToType = true;
 	public $bindTypes;
 
-	use \nitm\traits\relations\Category, \nitm\traits\Nitm;
+	use \nitm\traits\relations\Category, \nitm\traits\Nitm, \nitm\filemanager\traits\Relations;
 
 	public function init()
 	{

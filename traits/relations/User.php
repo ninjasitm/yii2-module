@@ -61,11 +61,11 @@ trait User {
 		return $this->hasMany(\nitm\models\api\Token::className(), ['userid' => 'id'])->all();
 	}
 
-	public function url($fullName=false, $url=null, $options=[])
+	public function url($fullName=false, $url=null, $options=[], $text=null)
 	{
 		$url = is_null($url) ? 'user/profile/'.$this->getId() : $url;
 		$urlOptions = array_merge([$url], $options);
-		$text = ($fullName === false) ? $this->username : $this->fullname();
+		$text = $text ?: (($fullName === false) ? $this->username : $this->fullname());
 		$htmlOptions = [
 			'href' => \Yii::$app->urlManager->createUrl($urlOptions),
 			'role' => 'userLink',

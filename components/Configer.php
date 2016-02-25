@@ -416,7 +416,8 @@ class Configer extends Model
 			default:
 			$class = Session::className();
 			$prefix = function ($name) {
-				$name = array_shift(explode(':', $name));
+				$parts = explode(':', $name);
+				$name = array_shift($parts);
 				if($name == 'nitm-settings')
 					return Session::settings;
 				else
