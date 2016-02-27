@@ -138,7 +138,8 @@ class Cache extends Model
 			default:
 			if($sender instanceof \yii\db\ActiveRecord)
 			{
-				if(array_key_exists($property, $relatedRecords))
+
+				if(array_key_exists($property, $sender->getRelatedRecords()))
 					$ret_val = \nitm\helpers\Relations::getRelatedRecord($property, $sender, $modelClass, @$options['construct']);
 				else if($sender->hasAttribute($property))
 					$ret_val =  $sender->$property;
@@ -227,7 +228,8 @@ class Cache extends Model
 		if(ArrayHelper::isIndexed($array)) {
 			$className = $model->className();
 			$ret_val = array_map(function ($attributes) use($className) {
-				return static::parseAfterGet($attributes, \Yii::createObject($className));
+				$object = \Yii::createObject($className);
+				return static::parseAfterGet($attributes, $object);
 			}, $array);
 			return $ret_val;
 		} else {
@@ -236,7 +238,8 @@ class Cache extends Model
 				if(is_array($value) && ArrayHelper::getValue($value, '_relation') === true) {
 					//We already determined that this was a relation. Now is it an array of relations?
 					if(ArrayHelper::getValue($value, '_many') === true) {
-						$model->populateRelation($attribute, static::parseAfterGet( $value['_data'], \Yii::createObject($value['_class'])));
+						$object = \Yii::createObject($value['_class']);
+						$model->populateRelation($attribute, static::parseAfterGet( $value['_data'], $object));
 					} else {
 						//If not it's a single related object. Create the object and the poplate any related information
 						$object = \Yii::createObject($value['_class']);

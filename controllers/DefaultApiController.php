@@ -154,9 +154,7 @@ class DefaultApiController extends Controller
 
 			$model->applyFilters($dataProvider->query, ArrayHelper::getValue($options, 'queryOptions', []));
 
-			$dataProvider->pagination = [
-				'pageSize' => ArrayHelper::getValue(\Yii::$app->params, 'pagination.'.\Yii::$app->controller->id, 20)
-			];
+			$dataProvider->pagination->pageSize = ArrayHelper::getValue($options, 'limit', ArrayHelper::getValue($options, 'queryOptions.limit', ArrayHelper::getValue(\Yii::$app->params, 'pagination.'.\Yii::$app->controller->id, 20)));
 
 			if($returnDataProvider)
 				return $dataProvider;

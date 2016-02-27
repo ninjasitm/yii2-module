@@ -439,7 +439,7 @@ class ArrayHelper extends BaseArrayHelper
 		if($idsOnly) {
 			$ret_val = parent::getColumn($source, 'id');
 			if(empty($ret_val))
-				$ret_val = $default ?: ["none"];
+				$ret_val = $default ?: null;
 		} else
 			foreach((array)$source as $id=>$d)
 			{
