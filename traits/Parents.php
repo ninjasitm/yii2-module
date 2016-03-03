@@ -9,6 +9,7 @@ namespace nitm\traits;
 
 use nitm\helpers\Cache as RealCache;
 use yii\helpers\ArrayHelper;
+use nitm\models\ParentMap;
 
 trait Parents {
 

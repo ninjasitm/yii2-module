@@ -88,9 +88,6 @@ trait Nitm
 
 	public function setMetadata($metadata) {
 		if($this->isNewRecord ) {
-			$this->populateRelation('metadata', function ($properties) {
-				return \Yii::createObject($this->metadataClass, $properties);
-			}, $metadata);
 			$this->on(static::EVENT_AFTER_INSERT, [$this, 'saveMetadata'], $metadata);
 		} else
 			$this->saveMetadata($metadata);
@@ -116,19 +113,14 @@ trait Nitm
 				if($this->hasMetadata($key))
 					$metadata = $this->metadata($key);
 				else {
-					if($this instanceof \nitm\models\Category)
-						$metadata = new $this->metadataClass([
-							'key' => $key,
-							'category_id' => $this->getId()
-						]);
-					else
-						$metadata = new $this->metadataClass([
-							'key' => $key,
-							'content_id' => $this->getId()
-						]);
+					$remoteId = $this instanceof \nitm\models\Category ? 'category_id' : 'content_id';
+					$metadata = \Yii::createObject([
+						'class' => $this->metadataClass,
+						'key' => $key,
+						$remoteId => $this->getId()
+					]);
 					$metadata->setScenario('create');
 				}
-
 				$metadata->value = $value;
 				if($metadata->save())
 					$allMetadata[] = $metadata;

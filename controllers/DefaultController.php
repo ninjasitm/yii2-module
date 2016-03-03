@@ -315,7 +315,7 @@ class DefaultController extends BaseController
 
 		list($ret_val, $result) = $this->saveInternal(\Yii::$app->getRequest()->post(), 'create');
 
-		Response::viewOptions("args", array_merge($viewOptions, ["model" => $this->model]), true);
+		Response::viewOptions("args", array_merge((array)$viewOptions, ["model" => $this->model]), true);
 		return $this->finalAction($ret_val, $result);
     }
 
