@@ -165,7 +165,7 @@ class Relations
 	public static function resolveRelation($sender, $idKey, $modelClass, $useCache=false, $many=false, $options=[], $relation=null)
 	{
 		if(!($sender instanceof \yii\db\ActiveRecord))
-			throw new \yii\base\InvalidParamException("Sender should be a model");
+			throw new \yii\base\InvalidParamException("Sender should be an ActiveRecord model");
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 		if($useCache)
 			return self::getCachedRelation($sender, $idKey, $many, $modelClass, $relation, $options, 120);

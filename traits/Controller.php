@@ -293,7 +293,7 @@ use yii\helpers\Html;
 				foreach($queryOptions as $type=>$options)
 					$query->$type($options);
 
-			if(($ret_val = $query->one()) != null)
+			if(($ret_val = $query->one()) !== null)
             	return $ret_val;
 			else {
                 $id = implode('-', (array)$id);

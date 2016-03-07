@@ -22,8 +22,7 @@ class Cache extends Model
 
 	public function getKey($model, $idKey, $relation=null, $many=false)
 	{
-		$ret_val = [($many == true ? 'many' : 'one'), $relation];
-		;
+		$ret_val = [($many == true ? 'many' : 'one'), $relation, $model->isWhat()];
 		if(is_string($model) || is_numeric($model))
 			$ret_val[] = $model;
 		else if(!is_null($idKey) && !empty($id = Helper::concatAttributes($model, $idKey)))
@@ -269,6 +268,7 @@ class Cache extends Model
 						}
 					}
 				}
+				$model->setOldAttributes($model->getAttributes());
 			}
 			return $model;
 		}

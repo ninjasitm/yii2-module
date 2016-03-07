@@ -142,7 +142,7 @@ trait Query {
 		$separator = is_null($separator) ? ' ' : $separator;
 		$label = is_null($label) ? 'name' : $label;
 
-		$cacheKey = CacheHelper::getKey(is_string($key) ? $key : $class::formName(), null, 'list', true);
+		$cacheKey = CacheHelper::getKey($this, null, 'list', true);
 
 		if(CacheHelper::cache()->exists($cacheKey))
 			$ret_val = CacheHelper::cache()->get($cacheKey);
