@@ -19,7 +19,9 @@ class Relations
 	 */
 	public static function getRelatedRecord($model, $name, $className=null, $options=[], $array=false)
 	{
-		$ret_val = ArrayHelper::getValue($model->getRelatedRecords(), $name, '__noRel__');
+		$ret_val = '__noRel__';
+		if($model->isRelationPopulated($name))
+			$ret_val = ArrayHelper::getValue($model->getRelatedRecords(), $name, '__noRel__');
 		if($ret_val !== '__noRel__' && !empty($ret_val) && !is_null($ret_val)) {
 			/**
 			 * A little hack for elasticSearch since the relations are stored as nested objects
@@ -32,7 +34,7 @@ class Relations
 			 */
 			if(isset($className) && class_exists((string)$className))
 			{
-				if($model->hasAttribute($name) || $model->hasProperty($name) && (count($options) == 0)) {
+				if($model->hasAttribute($name) || $model->hasProperty($name) && (count($options) == 0) && !$model->getRelation($name)) {
 					$attributes = $model->$name;
 				} else
 					$attributes = $options;
