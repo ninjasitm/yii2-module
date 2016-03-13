@@ -148,7 +148,7 @@ trait Nitm
 			//Try to see if the parent class has metadata
 			$metadataClass = get_parent_class($this).'Metadata';
 			if(!class_exists($metadataClass))
-				throw new Exception("Cannot find metadata class for ".$this->className());
+				throw new \Exception("Cannot find metadata class for ".$this->className());
 		}
 		return $metadataClass;
     }

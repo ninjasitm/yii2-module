@@ -9,7 +9,6 @@ use nitm\helpers\Cache as CacheHelper;
  * Traits defined for expanding query scopes until yii2 resolves traits issue
  */
 trait Data {
-
 	public $slugIs = [];
 	public static $_slugIs = [];
 

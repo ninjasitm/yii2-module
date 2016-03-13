@@ -33,6 +33,7 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 	public static $initClassConfig = true;
 	public static $initClassConfigOnEmpty = false;
 
+	protected $_changedAttributes = [];
 	protected static $supported;
 
 	//Event
@@ -158,14 +159,16 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 		return array_merge(parent::behaviors(), $behaviors);
 	}
 
-	public function afterSave($insert, $attributes)
+	public function afterSave($insert, $changedAttributes)
 	{
 		/**
 		 * If this has parents specified then check and add them accordingly
 		 */
 		if(!empty($this->parent_ids))
 			$this->addParentMap($this->parent_ids);
-		return parent::afterSave($insert, $attributes);
+		if(!$insert)
+			$this->_changedAttributes = $changedAttributes;
+		return parent::afterSave($insert, $changedAttributes);
 	}
 
 	public static function tableName()
@@ -191,6 +194,46 @@ class Data extends ActiveRecord implements \nitm\interfaces\DataInterface
 			break;
 		}
 		return (isset($thisSupports[$what]) &&  ($thisSupports[$what] == true));
+	}
+
+	public function getChangedAttributes($names=null)
+	{
+		return ArrayHelper::getValue($this->_changedAttributes, $names, $this->_changedAttributes);
+	}
+
+	public function isChangedAttribute($param)
+	{
+		return isset($this->changedAttributes[$param]);
+	}
+
+	/**
+	 * Check to see if the specified attributes have been changed
+	 * @param  array|string  $params [description]
+	 * @param  [type]  $filter Exclude these attributes from the check
+	 * @return boolean         Result
+	 */
+	public function isOnlyChangedAttribute($params, $filter=[])
+	{
+		if(empty($this->changedAttributes))
+			return true;
+
+		$params = (array)$params;
+		if(ArrayHelper::isIndexed($params))
+			$params = array_flip($params);
+		if(ArrayHelper::isIndexed($filter))
+			$filter = array_flip($filter);
+
+		$changedAttributes = array_diff_key($this->changedAttributes, $filter);
+
+		//If any other parameter was specified then return false
+		if(count(array_diff_key($changedAttributes, $params)) >= 1)
+			return false;
+		return true;
+	}
+
+	public function getHasNoChangedAttributes()
+	{
+		return count(array_filter($this->changedAttributes)) == 0;
 	}
 }
 ?>

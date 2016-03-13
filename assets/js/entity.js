@@ -499,7 +499,8 @@ class NitmEntity {
         $container.find(this.batch.action).each((i, elem) => {
             $(elem).on('click', (e) => {
                 e.preventDefault();
-                this.batchItem(e.target, $container.get(0));
+                this.batchItem(e.currentTarget, $container.get(0));
+                return false
             });
         });
     }
@@ -509,7 +510,8 @@ class NitmEntity {
         $container.find(this.batch.selection).each((i, elem) => {
             $(elem).on('click', (e) => {
                 e.preventDefault();
-                this.batchSelection(e.target, $container.get(0));
+                this.batchSelection(e.currentTarget, $container.get(0));
+                return false;
             });
         });
     }
@@ -519,7 +521,8 @@ class NitmEntity {
         $container.find(this.batch.chunk).each((i, elem) => {
             $(elem).on('click', (e) => {
                 e.preventDefault();
-                this.batchChunk(e.target, $container.get(0));
+                this.batchChunk(e.currentTarget, $container.get(0));
+                return false;
             });
         });
     }
@@ -529,7 +532,8 @@ class NitmEntity {
         $container.find(this.batch.all).each((i, elem) => {
             $(elem).on('click', (e) => {
                 e.preventDefault();
-                this.batchAll(e.target, $container.get(0));
+                this.batchAll(e.currentTarget, $container.get(0));
+                return false;
             });
         });
     }
@@ -566,7 +570,7 @@ class NitmEntity {
             return;
 
         let url = $elem.data('url') || $elem.attr('href');
-        $elems = $elems || $(this.batch.element);
+        $elems = $elems || $($elem.data('batch-role') || this.batch.element);
 
         $nitm.trigger('start-spinner', [elem]);
         $.ajax({
@@ -593,9 +597,9 @@ class NitmEntity {
 
     batchChunk(elem, containerId, $elems) {
         let $container = $nitm.getObj(containerId || this.views.containerId || 'body');
-        $elems = $elems || $container.find(this.batch.element);
-        let $elem = $(elem),
-            $indicator = $($elem.data('indicator')) || $nitm.getObj(this.batch.indicator) || $elem,
+        let $elem = $(elem);
+        $elems = $elems || $container.find($elem.data('batch-role') || this.batch.element);
+        let $indicator = $($elem.data('indicator')) || $nitm.getObj(this.batch.indicator) || $elem,
             chunkSize = 5,
             totalItems = $elems.length,
             chunks = [];
@@ -607,6 +611,8 @@ class NitmEntity {
 
         $elem.addClass("disabled");
         $elem.attr('disabled', true);
+        $indicator.addClass("disabled");
+        $indicator.attr('disabled', true);
 
         $nitm.trigger('start-spinner', [$indicator.get(0), $elems.length + ' items left...']);
         $indicator.html("Preparing items...");
@@ -627,29 +633,25 @@ class NitmEntity {
         });
 
         let result = new Promise((resolve, reject) => {
-            let promise = new Promise((resolve, reject) => {});
+            let promise = Promise.resolve();
             promises.forEach((chunk, index) => {
-                let done = false,
-                    //1 because we're popping the first value off the chunk to start the chain
-                    current = 1;
-                promise = chunk.shift().call();
-                while (!done) {
+                let item;
+                chunk.forEach((item, innerInder) => {
                     promise = promise.then(() => {
-                        let item = chunk.shift();
                         totalItems -= 1;
                         $indicator.html(totalItems + ' items left...');
                         return item.call();
                     });
-                    if (chunk.length === current)
-                        done = true;
-                    current++;
-                }
+                });
+                promise.catch((error) => {console.log(error)});
             });
             promise.then(() => {
                 $nitm.trigger('notify', ["Successfully completed batch operations", 'success', $indicator.get(0)]);
                 $nitm.trigger('stop-spinner', [$indicator.get(0)]);
                 $elem.removeClass("disabled");
                 $elem.removeAttr('disabled');
+                $indicator.removeClass("disabled");
+                $indicator.removeAttr('disabled');
             });
         });
     }
@@ -658,7 +660,9 @@ class NitmEntity {
         let $elem = $(elem),
             $indicator = $nitm.getObj($elem.data('indicator'));
         if (result.success) {
-            let value = result.count || Object.keys(result.items).length || 0;
+            let value = result.count || 0;
+            if(!value && result.items !== undefined)
+                value = Object.keys(result.items).length;
             if ($indicator.length)
                 $indicator.html(new String(value));
         } else {

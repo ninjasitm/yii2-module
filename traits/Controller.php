@@ -6,6 +6,7 @@ use nitm\helpers\Icon;
 use nitm\helpers\Helper;
 use nitm\helpers\ArrayHelper;
 use yii\helpers\Html;
+use yii\db\ActiveRecord;
 
 /**
  * Traits defined for expanding active relation scopes until yii2 resolves traits issue
@@ -430,16 +431,17 @@ use yii\helpers\Html;
 		$result = [
 			'message' => "Unable to {$action} ".$this->model->isWhat()
 		];
-		if (!empty($data) && $this->model->save()) {
-			$ret_val = true;
+        $changedAttributes = $this->model->dirtyAttributes;
+		if ($this->model->save()) {
+            $ret_val = true;
+            $result['changedAttributes'] = $this->model->changedAttributes;
 			$result['message'] = implode(' ', [
 				"Succesfully {$action}d ",
 				$this->model->isWhat(),
 				': '.$this->model->title()
 			]);
-
-			Response::viewOptions("view", '/'.$this->id.'/view');
-		} else {
+            Response::viewOptions("view", '/'.$this->id.'/view');
+        } else {
 			if(!empty($data)) {
 				$result['message'] = implode('<br>', array_map(function ($value) {
 					return array_shift($value);

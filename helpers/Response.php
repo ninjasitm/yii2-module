@@ -21,7 +21,7 @@ class Response extends Behavior
 		'content' => '',
 		'view' => '@nitm/views/response/index', //The view file
 		'options' => [
-			'class' => ''
+			'class' => null
 		],
 	];
 	protected static $layouts = [
@@ -158,7 +158,8 @@ class Response extends Behavior
 	public static function setFormat($format=null)
 	{
 		$ret_val = null;
-		$format = (is_null($format)) ? (!\Yii::$app->request->get('__format') ? null : \Yii::$app->request->get('__format')) : $format;
+		if(is_null($format))
+			$format = ArrayHelper::getValue($_REQUEST, '__format', null);
 		$parts = explode(':', $format);
 		$format = $parts[0];
 		static::$encodedAs = isset($parts[1]) ? $parts[1] : null;
@@ -206,7 +207,7 @@ class Response extends Behavior
 	 */
 	public static function formatSpecified()
 	{
-		return \Yii::$app->request->get('__format') != null;
+		return ArrayHelper::getValue($_REQUEST, '__format', null) != null;
 	}
 
 	/**
