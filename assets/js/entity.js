@@ -115,62 +115,64 @@ class NitmEntity {
     initMetaActions(containerId) {
         let $container = $nitm.getObj(this.getContainer(containerId));
         console.info("[Nitm: Entity]: Initing metaActions for " + this.id + ": roles are [" + this.actions.roles + "]");
-        $.map(this.actions.roles, (v, i) => {
-            $container.find("[role~='" + v + "']").map((i, elem) => {
-                let $elem = $(elem);
-                if (!$elem.data('nitm-entity-click')) {
-                    $elem.data('nitm-entity-click', true);
-                    $elem.on('click', (e) => {
-                        e.preventDefault();
-                        let $target = $(e.currentTarget);
-                        let proceed = true;
+        if(this.actions.roles.length >= 1) {
+            $.map(this.actions.roles, (v, i) => {
+                $container.find("[role~='" + v + "']").map((i, elem) => {
+                    let $elem = $(elem);
+                    if (!$elem.data('nitm-entity-click')) {
+                        $elem.data('nitm-entity-click', true);
+                        $elem.on('click', (e) => {
+                            e.preventDefault();
+                            let $target = $(e.currentTarget);
+                            let proceed = true;
 
-                        if ($target.attr('role').includes(this.actions.deleteAction))
-                            proceed = confirm("Are you sure you want to delete this?");
+                            if ($target.attr('role').includes(this.actions.deleteAction))
+                                proceed = confirm("Are you sure you want to delete this?");
 
-                        if (proceed === true) {
-                            $nitm.trigger('start-spinner', [e.currentTarget]);
-                            let successFunc = $target.data('success-callback') === undefined ? (result) => {
-                                $nitm.trigger('stop-spinner', [$target]);
-                                if ($target.data('after-callback') !== undefined) {
-                                    let afterCallback = $target.data('after-callback').parseFunction();
-                                    if (afterCallback && typeof afterCallback == 'function')
-                                        (function(elem) {
-                                            afterCallback.call(result, elem, containerId);
-                                        })(e.currentTarget);
-                                } else
-                                    this.afterAction(result.action || $target.data('action'), result, e.currentTarget);
-                            } : $target.data('success-callback').parseFunction();
+                            if (proceed === true) {
+                                $nitm.trigger('start-spinner', [e.currentTarget]);
+                                let successFunc = $target.data('success-callback') === undefined ? (result) => {
+                                    $nitm.trigger('stop-spinner', [$target]);
+                                    if ($target.data('after-callback') !== undefined) {
+                                        let afterCallback = $target.data('after-callback').parseFunction();
+                                        if (afterCallback && typeof afterCallback == 'function')
+                                            (function(elem) {
+                                                afterCallback.call(result, elem, containerId);
+                                            })(e.currentTarget);
+                                    } else
+                                        this.afterAction(result.action || $target.data('action'), result, e.currentTarget);
+                                } : $target.data('success-callback').parseFunction();
 
-                            let errorFunc = $target.data('error-callback') === undefined ? (xhr, text, error) => {
-                                $nitm.trigger('stop-spinner', [e.currentTarget]);
-                                let message = "An error occurred while reading the data!: <br><br><i> " + (xhr.responseText || text) + "</i>";
-                                if ($nitm.debug === true)
-                                    message += "<br><br>Detailed error is: <br><br><i>" + error + "</i>";
+                                let errorFunc = $target.data('error-callback') === undefined ? (xhr, text, error) => {
+                                    $nitm.trigger('stop-spinner', [e.currentTarget]);
+                                    let message = "An error occurred while reading the data!: <br><br><i> " + (xhr.responseText || text) + "</i>";
+                                    if ($nitm.debug === true)
+                                        message += "<br><br>Detailed error is: <br><br><i>" + error + "</i>";
 
-                                $nitm.trigger('notify', [message, 'danger']);
-                            } : $target.data('error-callback').parseFunction();
+                                    $nitm.trigger('notify', [message, 'danger']);
+                                } : $target.data('error-callback').parseFunction();
 
-                            let url = $target.data('url') || $target.attr('href');
-                            let data = $target.data('data') || null;
-                            if (url[0] != '#') {
-                                $.ajax({
-                                    method: $target.data('method') || 'post',
-                                    url: url,
-                                    success: successFunc,
-                                    data: data,
-                                    error: errorFunc,
-                                    dataType: $target.data('type') || 'json',
-                                });
-                            } else {
-                                $nitm.trigger('stop-spinner', [e.currentTarget]);
+                                let url = $target.data('url') || $target.attr('href');
+                                let data = $target.data('data') || null;
+                                if (url[0] != '#') {
+                                    $.ajax({
+                                        method: $target.data('method') || 'post',
+                                        url: url,
+                                        success: successFunc,
+                                        data: data,
+                                        error: errorFunc,
+                                        dataType: $target.data('type') || 'json',
+                                    });
+                                } else {
+                                    $nitm.trigger('stop-spinner', [e.currentTarget]);
+                                }
                             }
-                        }
-                        return false;
-                    });
-                }
+                            return false;
+                        });
+                    }
+                });
             });
-        });
+        }
     };
 
     updateActivity(id) {

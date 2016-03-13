@@ -116,11 +116,6 @@ class Cache extends Model
 			case true:
 			$array = static::get($key);
 			if(is_array($array)) {
-				if(!isset($array['_class'])) {
-					echo $key;
-					print_r($array);
-					exit;
-				}
 				if(class_exists($array['_class'])) {
 					$model = \Yii::createObject($array['_class']);
 					if(is_array($array['_data']) && count(array_filter($array['_data'])) >= 1) {
@@ -191,7 +186,7 @@ class Cache extends Model
 		} else {
 			if(is_object($model) && (get_class($model) == 'Closure')) {
 				$model = $model->__invoke();
-			}else if(is_callable($model)) {
+			} else if(is_callable($model)) {
 				$model = call_user_func($model);
 			}
 
@@ -199,8 +194,8 @@ class Cache extends Model
 				return $model;
 			}
 			$attributes = $model->getAttributes();
-			if(is_array($model->getRelatedRecords()))
-				$attributes = array_merge($attributes, $model->getRelatedRecords());
+			if(is_array($related = $model->getRelatedRecords()))
+				$attributes = array_merge($attributes, $related);
 			$ret_val = $attributes;
 			foreach($attributes as $attribute=>$value)
 			{
@@ -237,8 +232,12 @@ class Cache extends Model
 				if(is_array($value) && ArrayHelper::getValue($value, '_relation') === true) {
 					//We already determined that this was a relation. Now is it an array of relations?
 					if(ArrayHelper::getValue($value, '_many') === true) {
-						$object = \Yii::createObject($value['_class']);
-						$model->populateRelation($attribute, static::parseAfterGet( $value['_data'], $object));
+						$records = [];
+						foreach($value['_data'] as $idx=>$relatedRecord) {
+							$object = \Yii::createObject($value['_class']);
+							$records[$idx] = static::parseAfterGet($relatedRecord, $model);
+						}
+						$model->populateRelation($attribute, $records);
 					} else {
 						//If not it's a single related object. Create the object and the poplate any related information
 						$object = \Yii::createObject($value['_class']);

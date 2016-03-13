@@ -81,7 +81,7 @@ class Relations
 			}
 			else
 				$ret_val = null;
-			$model->populateRelation($name, $ret_val);
+			$model->populateRelation($name, empty($ret_val) ? null : $ret_val);
 		}
 		return $ret_val = $array == true ? (array)$ret_val : $ret_val;
 	}
@@ -106,6 +106,7 @@ class Relations
 
 		if(Cache::exists($key)) {
 			$ret_val = Cache::getModel($model, $key, $many, $modelClass, $relation, $options);
+			$model->populateRelation($relation, $ret_val);
 		}
 		else {
 			$ret_val = self::getRelatedRecord($model, $relation, $modelClass, $options, $many);

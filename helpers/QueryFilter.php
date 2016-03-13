@@ -157,7 +157,7 @@ class QueryFilter
 
 	public static function getAlias($query, $model=null, $alias=null)
 	{
-		if($query instanceof \yii\db\Query) {
+		if($query instanceof \yii\db\Query && $query->from) {
 			return ArrayHelper::isIndexed($query->from) ? ($alias ?: $query->from[0]) : key($query->from);
 		} else if (!is_null($alias)){
 			return $alias;

@@ -411,7 +411,8 @@ trait Relations {
 	public function getMetadata()
 	{
 	    $metadataClass = $this->getMetadataClass();
-	    return $this->hasMany($metadataClass, $metadataClass::metadataLink())->indexBy('key');
+	    return $this->hasMany($metadataClass, $metadataClass::metadataLink())
+            ->indexBy('key');
 	}
 
  	/**

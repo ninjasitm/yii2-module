@@ -99,9 +99,10 @@ trait Data {
 	 * Get the unique ID of this object
 	 * @return string|int
 	 */
-	public function getId($splitter='')
+	public function getId($splitter='', $key=null)
 	{
-		$key = $this->primaryKey();
+		$key = $key ?: $this->primaryKey();
+		$splitter = $splitter ?: '';
 		$id = implode($splitter, array_filter(array_map(function ($attribute) {
 			return $this->getAttribute($attribute);
 		}, $key)));

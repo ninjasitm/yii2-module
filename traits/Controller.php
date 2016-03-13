@@ -316,6 +316,7 @@ use yii\db\ActiveRecord;
 	 */
 	protected function extractWith($options)
 	{
+        $ret_val = [];
 		$with = array_merge($this->getWith(), ArrayHelper::getValue($options, 'with', ArrayHelper::getValue($options, 'queryOptions.with', [])));
         foreach($with as $relation=>$callable)
         {
