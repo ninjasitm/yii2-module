@@ -98,17 +98,22 @@ class Relations
 
 	public static function getCachedRelation($model, $idKey='id', $many=false, $modelClass=null, $relation=null, $options=[], $duration=120)
 	{
+		$ret_val = null;
 		$many = $many === true ? true : false;
 		$relationQuery = $model->getRelation($relation);
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 		$modelClass = is_null($modelClass) ? $relationQuery->modelClass : $modelClass;
 		$key = Cache::cacheKey($model, $idKey, $relation, $many);
 
-		if(Cache::exists($key)) {
+		if($model->isRelationPopulated($relation))
+			$ret_val = $model->{$relation};
+			
+		if(!is_null($ret_val)) {
+			self::setCachedRelation($model, $idKey, $many, $modelClass, [$relation, $ret_val], $duration);
+		} else if (Cache::exists($key)) {
 			$ret_val = Cache::getModel($model, $key, $many, $modelClass, $relation, $options);
 			$model->populateRelation($relation, $ret_val);
-		}
-		else {
+		} else {
 			$ret_val = self::getRelatedRecord($model, $relation, $modelClass, $options, $many);
 			self::setCachedRelation($model, $idKey, $many, $modelClass, [$relation, $ret_val], $duration);
 		}

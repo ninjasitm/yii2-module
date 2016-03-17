@@ -235,7 +235,7 @@ class Cache extends Model
 						$records = [];
 						foreach($value['_data'] as $idx=>$relatedRecord) {
 							$object = \Yii::createObject($value['_class']);
-							$records[$idx] = static::parseAfterGet($relatedRecord, $model);
+							$records[$idx] = static::parseAfterGet($relatedRecord, $object);
 						}
 						$model->populateRelation($attribute, $records);
 					} else {
