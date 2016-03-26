@@ -58,7 +58,6 @@ class NitmEntity {
             }
         };
         this.defaultInit = [
-            'initEvents'
         ];
 
         this.errorCount = 0;
@@ -95,6 +94,7 @@ class NitmEntity {
         logName = logName || 'Entity';
         events = events || 'pjax:success loaded.bs.modal';
         //Perform certain actions after pjax success
+        console.log(events);
         $(document).on(events, (data, status, xhr, options) => {
             let moduleId = $(data.relatedTarget).data('module') || this.id;
             console.info("[" + logName + "]: Running helper scripts after event (" + data.type + "." + data.namespace + ")  on module: " + moduleId + " and HTML element: #" + data.target.id);
@@ -220,7 +220,6 @@ class NitmEntity {
     };
 
     operation(form, callback, event) {
-
         $nitm.trigger('animate-submit-start', [form]);
         let request = Promise.resolve();
         try {
@@ -484,7 +483,7 @@ class NitmEntity {
                 ids = ids.includes(',') ? ids.split(',') : new Array(ids);
                 break;
         }
-        if (typeof ids == 'object') {
+        if (typeof ids == 'object' && from) {
             for (let i = 0; i < from.length; i++) {
                 if (ids.hasOwnProperty(i))
                     from[i] += ids[i];
@@ -674,5 +673,6 @@ class NitmEntity {
 }
 
 $nitm.addOnLoadEvent(function() {
-    $nitm.initModule(new NitmEntity());
+    let m = new NitmEntity();
+    $nitm.initModule(m);
 });

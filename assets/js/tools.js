@@ -77,7 +77,7 @@ class Tools {
                         $target.data('nitm-entity-' + eventName, true);
                         let _callback = (e) => {
                             e.preventDefault();
-                            return this.visibility(e.target);
+                            return this.visibility(e.currentTarget);
                         };
                         if ($target.data('run-once'))
                             $target.one(eventName, _callback);
@@ -454,13 +454,13 @@ class Tools {
             let $parent = null;
             let levels = $elem.data('depth') || -1;
             if ($elem.data('parent') !== undefined) {
-                $parent = $elem.parents($elem.data('parent')).eq(levels);
+                $parent = $elem.closest($elem.data('parent')).eq(levels);
                 if (!$parent.length)
-                    $parent = $elem.parents($elem.data('parent'));
+                    $parent = $elem.closest($elem.data('parent'));
             } else if (levels)
-                $parent = $elem.parents().eq(levels);
+                $parent = $elem.closest().eq(levels);
             if ($parent.length)
-                $parent.hide('slow').remove();
+                $parent.slideUp();
             resolve();
         });
     };

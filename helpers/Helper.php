@@ -8,18 +8,82 @@ use yii\base\Model;
 
 class Helper
 {
+	public static $debugFormat = 'html';
+
+	const DEBUG_HTML = '@html';
+
 	/**
 	 * Print a pre formatted value
 	 */
 	public static function pr()
 	{
-		foreach(func_get_args() as $data)
+		$args = func_get_args();
+		$html = false;
+		if($args[0] == static::DEBUG_HTML) {
+			ArrayHelper::remove($args, 0);
+			$html = true;
+		}
+		foreach($args as $data)
 		{
-			if(!empty($data))
-			{
-				echo "<pre>".print_r($data)."</pre>";
+			if(!empty($data)) {
+				if($html || static::$debugFormat == 'html')
+					echo static::prHtml(uniqid(), print_r($data, true));
+				else
+					echo "<pre>".print_r($data, true)."</pre>";
 			}
 		}
+	}
+
+	public static function prHtml($name, $data)
+	{
+	    $captured = preg_split("/\r?\n/", $data);
+	    print "<script>function toggleDiv(num){
+	      var span = document.getElementById('d'+num);
+	      var a = document.getElementById('a'+num);
+	      var cur = span.style.display;
+	      if(cur == 'none') {
+	        a.innerHTML = '-';
+	        span.style.display = 'inline';
+	      }else{
+	        a.innerHTML = '+';
+	        span.style.display = 'none';
+	      }
+	    }</script>";
+	    print "<b>$name</b>\n";
+	    print "<pre>\n";
+	    foreach($captured as $line)
+	    {
+	        print static::prColor($line)."\n";
+	    }
+	    print "</pre>\n";
+	}
+
+	function nextDiv($matches)
+	{
+		static $num = 0;
+		++$num;
+		return "$matches[1]<a id=a$num href=\"javascript: toggleDiv($num)\">+</a><span id=d$num style=\"display:none\">(";
+	}
+
+	/**
+	* colorize a string for pretty display
+	* @source http://php.net/manual/en/function.print-r.php
+	* @access private
+	* @param $string string info to colorize
+	* @return string HTML colorized
+	* @global
+	*/
+	public static function prColor($string)
+	{
+		$string = preg_replace("/\[(\w*)\]/i", '[<font color="red">$1</font>]', $string);
+		$string = preg_replace_callback("/(\s+)\($/", ['\nitm\helpers\Helper', 'nextDiv'], $string);
+		$string = preg_replace("/(\s+)\)$/", '$1)</span>', $string);
+		/* turn array indexes to red */
+		/* turn the word Array blue */
+		$string = str_replace('Array','<font color="blue">Array</font>',$string);
+		/* turn arrows graygreen */
+		$string = str_replace('=>','<font color="#556F55">=></font>',$string);
+		return $string;
 	}
 
 	/**

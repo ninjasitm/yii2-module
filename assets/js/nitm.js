@@ -335,7 +335,7 @@ class Nitm
 					console.info("[Nitm]: Initing module: ("+name+")");
 					this.setModule(object, name);
 					defaults = defaults || object.defaultInit;
-					this.initDefaults(name, object, defaults);
+					this.initDefaults(name, object, defaults, this.getContainer(object));
 					this.moduleLoaded(object.id);
 				});
 				break;
@@ -350,6 +350,14 @@ class Nitm
 			break;
 		}
 	};
+
+	getContainer(object) {
+		try {
+			return object.getContainer();
+		} catch(e) {
+			return 'body';
+		}
+	}
 
 	initDefaults (key, object, defaults, container) {
 		console.info("[Nitm]: Initing defaults on ["+(container || 'body')+"] for ("+key+"): "+defaults);

@@ -31,8 +31,13 @@ class Animations
 		$nitm.on('animate-submit-start', (event, form) => {
 			this.animateSubmit(form);
 		});
+
 		$nitm.on('animate-submit-stop', (event, form) => {
 			this.animateSubmit(form, true);
+		});
+
+		$nitm.on('scroll-to', (event, position, $object) => {
+			this.animatScroll(position, $object);
 		});
 
 		//$nitm.module('entity').initSearch();

@@ -86,11 +86,13 @@ class Utils
 	};
 
 	dialog (message, options) {
-		let body = $("<div class='modal fade in' role='dialog' aria-hidden='true' style='z-index:100000'>");
-		options = options === undefined ? {} : options;
-		let title = options.title === undefined ? '<h3>Message</h3>' : options.title;
-		let actions = options.actions === undefined ? '<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>' : options.actions;
-		let dialogClass = options.dialogClass === undefined ? 'default' : options.dialogClass;
+		let modalId = Date.now()+'modal';
+		let body = $("<div id='"+modalId+"' class='modal fade in' role='dialog' aria-hidden='true' style='z-index:100000'>");
+		options = options || {};
+		let title = options.title || '<h3>Message</h3>';
+		let actions = options.actions || [];
+		actions.push('<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>');
+		let dialogClass = options.dialogClass || 'default';
 
 		$.each(['title', 'actions', 'dialogClass'], function (property) {
 			delete options[property];
@@ -115,13 +117,15 @@ class Utils
 				show: true
 			}));
 		} catch(e) {
-			body = $('<div class="dialog" style="z-index: 100000">').html(message);
+			console.log(e);
+			body = $('<div id="'+modalId+'" class="dialog" style="z-index: 100000">').html(message);
 			body.dialog($.extend(options, {
 				resizable: false,
 				modal: true,
 				show: 'clip'
 			}));
 		}
+		return modalId;
 	};
 
 	notify (message, type, object) {
@@ -239,20 +243,24 @@ class Utils
 
 	handleVis (e, onlyShow)
 	{
+		if(!e)
+			return Promise.resolve();
 		return new Promise(function (resolve, reject) {
 			if(onlyShow)
-				$nitm.getObj(e).each(function () {
-					resolve();
-					if($(this).hasClass('hidden') && $(this).is(':hidden'))
-						$(this).css('display', 'none').removeClass('hidden');
-					$(this).show('slow');
+				$nitm.getObj(e).map((i, elem) => {
+					let $elem = $(elem);
+					if($elem.hasClass('hidden') && $elem.is(':hidden'))
+						$elem.css('display', 'none').removeClass('hidden');
+					$elem.slideDown();
+					resolve(elem);
 				});
 			else
-				$nitm.getObj(e).each(function () {
-					resolve();
-					if($(this).hasClass('hidden') && $(this).is(':hidden'))
-						$(this).css('display', 'none').removeClass('hidden');
-					$(this).slideToggle('slow');
+				$nitm.getObj(e).map((i, elem) => {
+					let $elem = $(elem);
+					if($elem.hasClass('hidden') && $elem.is(':hidden'))
+						$elem.css('display', 'none').removeClass('hidden');
+					$elem.slideToggle('slow');
+					resolve(elem);
 				});
 		});
 	};
@@ -319,7 +327,7 @@ class Utils
 							break;
 						}
 						$newElement.appendTo($addTo);
-						$newElement.hide();
+						$newElement.slideUp();
 						$nitm.m('nitm:animations').animateScroll(scrollToPos, $addTo);
 						resolve([scrollToPos, $addTo]);
 					} catch(error){
@@ -338,7 +346,7 @@ class Utils
 						if(!$addTo.children().length) {
 							$addTo.append($newElement).next().hide();
 						} else {
-							switch($addTo.find(':first-child').attr('id'))
+							switch($addTo.first().attr('id'))
 							{
 								case 'noreplies':
 								$addTo.find(':first-child').hide();
@@ -355,17 +363,21 @@ class Utils
 								break;
 							}
 						}
-						$nitm.m('nitm:animations').animateScroll(scrollToPos, $addTo);
-						resolve([scrollToPos, $addTo]);
+						resolve({
+							element: $newElement,
+							scrollTo: scrollToPos,
+							addTo: $addTo
+						});
+						$nitm.trigger('scroll-to', [scrollToPos, $addTo]);
 					} catch(error){
 						reject();
 					}
 				}
 			}
 		});
-		promise.then(function () {
-			if($newElement !== undefined)
-				$newElement.slideDown('fast');
+		promise.then(function (result) {
+			if(result && result.element !== undefined)
+				result.element.slideDown('fast');
 		})
 		return promise;
 	};
