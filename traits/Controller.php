@@ -39,8 +39,8 @@ use yii\db\ActiveRecord;
 	public function initAssets($assets=[], $force=false)
 	{
 		//don't init on ajax requests so that we don't send duplicate files
-		if(\Yii::$app->request->isAjax && !$force)
-			return;
+		//if(\Yii::$app->request->isAjax && !$force)
+		//	return;
 		$assets = array_merge($assets, (array)static::assets());
 		foreach($assets as $asset)
 		{
@@ -75,9 +75,9 @@ use yii\db\ActiveRecord;
 			}
 		}
 	}
-	public function getFormVariables($options, $modalOptions=[], $model)
+	public function getFormVariables($model, $options, $modalOptions=[])
 	{
-		return \nitm\helpers\Form::getVariables($options, $modalOptions, $model);
+		return \nitm\helpers\Form::getVariables($model, $options, $modalOptions);
 	}
 
 	/**
@@ -530,10 +530,10 @@ use yii\db\ActiveRecord;
 		$options['id'] = $id;
 		$options['param'] = $type;
 
-		if(isset($options['modelClass']))
-		{
-			$this->model = ($this->model->className() == $options['modelClass']) ? $this->model : new $options['modelClass'](@$options['construct']);
+		if(isset($options['modelClass'])) {
+			$this->model = new $options['modelClass'](ArrayHelper::getValue($options, 'construct', []));
 		}
+        $this->model->setAttributes(ArrayHelper::getValue($options, 'construct', []), false);
 
 		$options = array_merge([
 			'title' => ['title', 'Create '.static::properName($this->model->isWhat())],
@@ -558,7 +558,7 @@ use yii\db\ActiveRecord;
 				'class' => 'modal-full'
 			],
 			'contentOnly' => true
-		], $options['modalOptions']);
+		], ArrayHelper::getValue($options, 'modalOptions', []));
 
 		unset($options['modalOptions']);
 		return $this->getFormVariables($this->model, $options, $modalOptions);

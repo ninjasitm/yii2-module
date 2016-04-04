@@ -74,7 +74,7 @@ class Response extends Behavior
 		}
 		$params = is_null($params) ? static::$viewOptions : $params;
 		if(isset($params['js'])) {
-			$params['js'] = new JsExpression(is_array($params['js']) ? implode(PHP_EOL, $params['js']) : $params['js']);
+			$params['js'] = $params['js'] instanceof JsExpression ? $params['js'] : (new JsExpression(is_array($params['js']) ? implode(PHP_EOL, $params['js']) : $params['js']));
 		}
 		$format = (!\Yii::$app->request->isAjax && (static::getFormat() == 'modal')) ? 'html' : static::getFormat();
 		$params['view'] =  ArrayHelper::getValue((array)$params, 'view', static::$viewPath);

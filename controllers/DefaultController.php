@@ -578,6 +578,13 @@ class DefaultController extends BaseController
 							$this->model->updated_at = \nitm\helpers\DateFormatter::formatDate($this->model->updated_at);
 						}
 						break;
+
+						case 'create':
+						$ret_val['message'] .= ' '.Html::tag('a', 'Click Here to Edit', [
+							'href' => $this->id.'/form/update/'.$this->model->id,
+							'class' => 'btn btn-default'
+						]);
+						break;
 					}
 					$viewFile = $this->model->isWhat().'/view';
 					$ret_val['success'] = true;

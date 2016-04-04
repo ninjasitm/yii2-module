@@ -191,7 +191,7 @@ class NitmEntity {
         let $container = $nitm.getObj(this.getContainer(containerId));
         console.info("[Nitm: Entity]: Initing forms for " + this.id);
         $.map(this.forms.roles, (role, key) => {
-            $container.find("form[role~='" + role + "']").map((i, elem) => {
+            $container.find("form[role~='"+role+"']").map((i, elem) => {
                 let $elem = $(elem);
                 if (!$elem.data('nitm-entity-form-submit')) {
                     $elem.data('nitm-entity-form-submit', true);
@@ -243,24 +243,27 @@ class NitmEntity {
                 $form.attr('id', 'form' + $.now())
                 form = $form.get(0);
                 $('body').append(form);
-                console.log(form);
             }
-            data.push({
-                'name': '__format',
-                'value': 'json'
+            $.each({
+                __format: 'json',
+                getHtml: true,
+                do: true,
+                ajax: true
+            }, function (key, val) {
+                data.push({
+                    name: key,
+                    value: val
+                });
             });
-            data.push({
-                'name': 'getHtml',
-                'value': true
-            });
-            data.push({
-                'name': 'do',
-                'value': true
-            });
-            data.push({
-                'name': 'ajax',
-                'value': true
-            });
+
+            //Add files that need to be uploaded
+            let $files = $form.find(':file');
+            if($files.length) {
+                console.log(files);
+                $files.each(function (k, file) {
+                    data.append($(file).attr('name'), file);
+                });
+            }
 
             $nitm.trigger('toggle-inputs', [form]);
 
@@ -355,7 +358,7 @@ class NitmEntity {
         if (result.success === true) {
             if (form.tagName == 'FORM')
                 form.reset();
-            let message = !result.message ? "Success! You can add another or view the newly added one" : result.message;
+            let message = result.message || "Success! You can add another or view the newly added one";
             if (result.data) {
                 try {
                     $nitm.getObj(containerId || this.views.containerId).find('.empty').hide();
