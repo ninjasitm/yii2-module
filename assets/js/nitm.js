@@ -140,60 +140,51 @@ class Nitm
 	};
 
 	doRequest (options, rData, success, error, timeout, headers, useGet) {
-		switch(this.r.hasOwnProperty('token'))
-		{
-			case true:
-			this.r.beforeSend = function(xhr) {
-				xhr.setRequestHeader("Authorization", "Basic "+this.r.token);
+		let request = Object.assign({}, this.r);
+		if(request.hasOwnProperty('token')) {
+			request.beforeSend = function(xhr) {
+				xhr.setRequestHeader("Authorization", "Basic "+request.token);
 			};
-			break;
 		}
-		switch(options instanceof Object)
-		{
-			case true:
-			for(let property in options)
-			{
-				this.r[property] = options[property];
+		if(options instanceof Object) {
+			for(let property in options) {
+				request[property] = options[property];
 			}
-			this.r.timeout = (options.hasOwnProperty('timeout')) ? options.timeout : 30000;
-			break;
-
-			default:
-			this.r.url =  options;
-			this.r.data =  rData;
-			this.r.success =  success;
-			this.r.timeout = timeout !== undefined ? timeout : 30000;
-			this.r.error = (error === undefined) ? function (e) { console.log(e); } : error;
-			this.r.type = (useGet === true) ? 'GET' : 'POST';
-			break;
+			request.timeout = options.timeout || 30000;
+		} else {
+			request.url =  options;
+			request.data =  rData;
+			request.success =  success;
+			request.timeout = timeout || 30000;
+			request.error = error || function (e) {console.log(e);};
+			request.type = (useGet === true) ? 'GET' : 'POST';
 		}
 		headers = (options instanceof Object) ? options.headers : headers;
-		if(headers instanceof Object)
-		{
-			this.r.beforeSend = (function (xhr, headers) {
+		if(headers instanceof Object) {
+			request.beforeSend = (function (xhr, headers) {
 				for(let key in headers) {
 					xhr.setRequestHeader(key, headers[key]);
 				}
 			})(headers);
 		}
-		let ret_val = $.ajax(this.r);
-		return ret_val;
+		return $.ajax(request);
 	};
 
-	doRequestFileData (_form, data)
+	doRequestFileData (form, data)
 	{
+		let $form = $(form);
 		//make sure the form is setup to send files
-		this.$form.attr('enctype', "multipart/form-data");
-		this.$form.attr('encoding', "multipart/form-data");
+		$form.attr('enctype', "multipart/form-data");
+		$form.attr('encoding', "multipart/form-data");
 
 		// match anything not a [ or ]
 		regexp = /^[^[\]]+/;
 
 		//Deliver files with ajax submission
 		data = (data === undefined) ? new FormData() : data;
-		this.$form.find(":file").each(function (i, file) {
-			let fileInputName = regexp.exec(file.name);
-			data.append(fileInputName+'['+i+']', file);
+		$form.find(":file").each(function (i, file) {
+			let fileInputName = regexp.exec(file.files[0].name);
+			data.append(fileInputName+'['+i+']', file.files[0]);
 		});
 		return data;
 	};

@@ -177,6 +177,14 @@ trait Data {
 		return \Yii::$app->getModule('nitm')->getSearchClass($this->isWhat(), implode('\\', $namespace));
 	}
 
+	public function getCategoryClass()
+	{
+		$parts = explode('\\', static::className());
+		$modelName = array_shift($parts);
+		$class = implode('\\', $parts).'\\'.((strpos($modelName, 'Category') !== false) ? $modelName : $modelName.'Category');
+		return class_exists($class) ? $class : \nitm\models\Category::className();
+	}
+
 	public function getNamespace()
 	{
 		if(isset($this))

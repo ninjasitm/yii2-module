@@ -233,16 +233,18 @@ class NitmEntity {
             if (form.tagName == 'FORM') {
                 //Try serializing the form data
                 $form = $(form);
-                data = $form.serializeArray();
+                data = new FormData(form);
             } else {
                 //Otherwise the form is the data. So create a form and assign the data
-                data = $nitm.objectToSerializedArray(form.data);
                 $form = $(document.createElement('form'));
                 $form.attr('action', form.action || '/');
                 $form.attr('method', form.type || 'get');
                 $form.attr('id', 'form' + $.now())
                 form = $form.get(0);
-                $('body').append(form);
+                data = new FormData(form);
+                $.each(form.data, function(k, v) {
+                    data.append(k, v);
+                });
             }
             $.each({
                 __format: 'json',
@@ -250,20 +252,8 @@ class NitmEntity {
                 do: true,
                 ajax: true
             }, function (key, val) {
-                data.push({
-                    name: key,
-                    value: val
-                });
+                data.append(key, val);
             });
-
-            //Add files that need to be uploaded
-            let $files = $form.find(':file');
-            if($files.length) {
-                console.log(files);
-                $files.each(function (k, file) {
-                    data.append($(file).attr('name'), file);
-                });
-            }
 
             $nitm.trigger('toggle-inputs', [form]);
 
@@ -271,6 +261,8 @@ class NitmEntity {
                 let request = $nitm.doRequest({
                     url: $form.attr('action'),
                     data: data,
+                    contentType: false,
+                    processData: false,
                     success: (result) => {
                         if (typeof callback == 'function')
                             callback(result, form, this);
