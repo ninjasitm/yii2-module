@@ -581,7 +581,7 @@ class DefaultController extends BaseController
 
 						case 'create':
 						$ret_val['message'] .= ' '.Html::tag('a', 'Click Here to Edit', [
-							'href' => $this->id.'/form/update/'.$this->model->id,
+							'href' => '/'.$this->id.'/form/update/'.$this->model->id,
 							'class' => 'btn btn-default'
 						]);
 						break;

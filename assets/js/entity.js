@@ -239,13 +239,26 @@ class NitmEntity {
                 $form = $(document.createElement('form'));
                 $form.attr('action', form.action || '/');
                 $form.attr('method', form.type || 'get');
-                $form.attr('id', 'form' + $.now())
-                form = $form.get(0);
-                data = new FormData(form);
-                $.each(form.data, function(k, v) {
-                    data.append(k, v);
-                });
+                $form.attr('id', 'form' + $.now());
+                let formData = {};
+                data = new FormData($form.get(0));
+                let objectToFormData = function (object, parent) {
+                    for(let k of Object.keys(object)) {
+                        let fullKey = k;
+                        if(parent !== undefined)
+                            fullKey = parent+'['+fullKey+']';
+                        if(typeof object[k] === 'object')
+                            objectToFormData(object[k], k);
+                        else
+                            formData[fullKey] = object[k];
+                    }
+                }
+                objectToFormData(form.data);
+                for(let k of Object.keys(formData)) {
+                    data.append(k, formData[k]);
+                }
             }
+
             $.each({
                 __format: 'json',
                 getHtml: true,

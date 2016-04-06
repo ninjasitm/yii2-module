@@ -91,6 +91,9 @@ class Animations
 	{
 		let $form = $nitm.getObj(form);
 
+		if(!($form.get(0) instanceof HTMLElement))
+			return;
+
 		if($form.data('animation') !== undefined && !$form.data('animation'))
 			return;
 

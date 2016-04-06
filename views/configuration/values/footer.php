@@ -5,7 +5,7 @@ use kartik\widgets\ActiveForm;
 $model->setScenario('createValue');
 ?>
 <div class="well" id="create_value_container">
-	<div style="wrapper">
+	<div class="wrapper">
 		<?php $form = ActiveForm::begin([
 			'action' => '/configuration/create',
 			"type" => ActiveForm::TYPE_VERTICAL,
