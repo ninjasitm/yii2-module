@@ -100,7 +100,7 @@ class Network extends Behavior
 
 		$ch = curl_init();
 		curl_setopt_array($ch, ($options + $defaults));
-		$response = (!$result = curl_exec($ch)) ? $ret_val : preg_replace('/\<br \/>/', '', utf8_encode($result));
+		$response = (!$result = curl_exec($ch)) ? $ret_val : preg_replace('/\<br \/>/', '', $result);
 		switch($response)
 		{
 			case false:
