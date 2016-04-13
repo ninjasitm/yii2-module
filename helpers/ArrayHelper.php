@@ -433,29 +433,39 @@ class ArrayHelper extends BaseArrayHelper
 	 * @param array|callablke $getter
 	 * @return array
 	 */
-	public static function filter(array $source, $idsOnly=false, $getter=null, $default=null, $ignoreEmpty=[])
+	public static function filter(array $source, $idsOnly=false, $getter=null, $default=null, $ignoreEmpty=null, $idAttr='id')
 	{
-		$ret_val = $source;
+		$ret_val = [];
+		$ignoreEmpty = $ignoreEmpty ?: [$idAttr];
 		if($idsOnly) {
-			$ret_val = parent::getColumn($source, 'id');
+			$ret_val = parent::getColumn($source, $idAttr);
 			if(empty($ret_val))
 				$ret_val = $default ?: null;
-		} else
-			foreach((array)$source as $id=>$d)
-			{
-				if(is_callable($getter))
-					$ret_val[$id] = call_user_func($getter, $d);
-				else if(is_array($getter)) {
-					$d = $d instanceof \yii\data\Arrayable ? $d->toArray() : (array)$d;
-					$ret_val[$id] = array_intersect_key($d, $getter);
-				} else if(!is_null($d) || !empty($d))
-					$ret_val[$id] = $d;
-
+		} else {
+			$source = (array)$source;
+			$source = array_filter($source);
+			$shouldSkip = function ($value) use($ignoreEmpty){
 				foreach($ignoreEmpty as $key) {
-					if(empty(self::getValue($ret_val[$id], $key, false)))
-						unset($ret_val[$id]);
+					if(empty(self::getValue($value, $key, false)))
+						return true;
+				}
+				return false;
+			};
+			if(count($source)) {
+				foreach($source as $id=>$d)
+				{
+					if($shouldSkip($d))
+						continue;
+					if(is_callable($getter))
+						$ret_val[$id] = call_user_func($getter, $d);
+					else if(is_array($getter)) {
+						$d = $d instanceof \yii\data\Arrayable ? $d->toArray() : (array)$d;
+						$ret_val[$id] = array_intersect_key($d, $getter);
+					} else if(!is_null($d) || !empty($d))
+						$ret_val[$id] = $d;
 				}
 			}
+		}
 		return $ret_val;
 	}
 }

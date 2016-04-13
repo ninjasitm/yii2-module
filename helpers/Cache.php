@@ -115,6 +115,7 @@ class Cache extends Model
 		{
 			case true:
 			$array = static::get($key);
+			$ret_val = null;
 			if(is_array($array)) {
 				if(class_exists($array['_class'])) {
 					$model = \Yii::createObject($array['_class']);
@@ -124,15 +125,11 @@ class Cache extends Model
 						$ret_val = $model;
 					}
 				}
-			} else {
-				$ret_val = null;
 			}
 			break;
 
 			default:
-			if($sender instanceof \yii\db\ActiveRecord)
-			{
-
+			if($sender instanceof \yii\db\ActiveRecord) {
 				if(array_key_exists($property, $sender->getRelatedRecords()))
 					$ret_val = \nitm\helpers\Relations::getRelatedRecord($property, $sender, $modelClass, @$options['construct']);
 				else if($sender->hasAttribute($property))
