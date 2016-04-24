@@ -197,12 +197,16 @@ class DefaultApiController extends Controller
 	 * @param array  $array The array to add relations to
 	 * @param \pickledup\models\Entity $model The model to get info from
 	 */
-	protected function addExtraFields($model)
+	protected function addExtraFields($model, $modelClass)
 	{
 		$extraFields = $fields = [];
 		// Get the related fields that hace keys int eh model
-		$fields = array_intersect_key(array_keys($model->extraFields()), array_keys($model->fields()));
-		$extraFields = $model->toArray($model->extraFields(), $fields);
+		$fields = array_intersect_key(array_keys($modelClass::extraFields()), array_keys($modelClass::fields()));
+		if(is_array($model)) {
+			$extraFields = array_intersect_key($model, array_flip($fields));
+		} else {
+			$extraFields = $model->toArray($model->extraFields(), $fields);
+		}
 
 		$filterField = function ($field) use(&$filterField) {
 			switch(true)

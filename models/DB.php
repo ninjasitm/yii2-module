@@ -624,8 +624,7 @@ class DB extends Query
 	{
 		$ret_val = false;
 		extract(static::getCorrectDbTable($db, $table));
-		if(!is_null($table) && !is_null($db))
-		{
+		if(!is_null($table) && !is_null($db)) {
 			$this->type = 'tableStatus';
 			$this->execute("SHOW TABLE STATUS FROM `".$db."` LIKE '".$table."'");
 			$ret_val = $this->result(self::R_ASS);
