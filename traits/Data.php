@@ -111,6 +111,27 @@ trait Data {
 			return (int)$id;
 		return $id;
 	}
+	
+	/**
+	 * Merge the fields and extraFields for the specified class
+	 * @param  string|null $modelClass The class to get all fields for. If null then use the current class name
+	 * @return array             An array containing the original fields, extra fields and merged fields
+	 */
+	public function allFields(string $modelClass=null)
+	{
+		$modelClass = $modelClass ?: static::className();
+		$fields = array_map(function ($k, $v) {
+			if(is_int($k))
+				return $v;
+			return $k;
+		}, array_keys($modelClass::fields()), $modelClass::fields());
+		$extraFields = array_map(function ($k, $v) {
+			if(is_int($k))
+				return $v;
+			return $k;
+		}, array_keys($modelClass::extraFields()), $modelClass::extraFields());
+		return [$fields, $extraFields, array_merge($fields, $extraFields)];
+	}
 
 	public function hasRelation($name, $model=null)
 	{
@@ -162,11 +183,14 @@ trait Data {
 	 */
 	public function properClassName($value=null)
 	{
-		if(isset($this))
+		if(isset($this)) {
 			$value = is_null($value) ? $this->className() : $value;
-		else
+			$namespace = $this->namespace;
+		} else {
 			$value = is_null($value) ?  static::className() : $value;
-		return \nitm\helpers\ClassHelper::properClassName($value, $this->namespace);
+			$namespace = (new \ReflectionClass(static::className()))->getNamespaceName();
+		}
+		return \nitm\helpers\ClassHelper::properClassName($value, $namespace);
 	}
 
 	public function getSearchClass()

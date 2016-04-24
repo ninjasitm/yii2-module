@@ -19,6 +19,7 @@ use nitm\helpers\ArrayHelper;
 
 trait Nitm
 {
+
 	public function url($attribute='id', $text=null, $url=null, $options=[])
 	{
 		if(is_array($text)){

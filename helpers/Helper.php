@@ -86,6 +86,20 @@ class Helper
 		return $string;
 	}
 
+	public static function printBacktrace($lines=10, $nl2br=false, $htmlArray=false)
+	{
+		$debug = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, $lines);
+		if($htmlArray)
+			self::pr($debug);
+		else
+			self::prHtml(uniqid(), print_r($debug, true));
+		/*foreach($debug as $idx=>$line) {
+ 			$trace = var_export($line, true);
+			echo ($nl2br === true) ? nl2br($trace)."<br>" : $trace."\n";
+		}
+		echo ($nl2br === true) ? '<br><br>' : "\n\n";*/
+	}
+
 	/**
 	 * Function to return boolean value of a variable
 	 * @param string | int $var = value
@@ -114,17 +128,6 @@ class Helper
 			break;
 		}
 		return $ret_val;
-	}
-
-	public static function printBacktrace($lines=10, $nl2br=false)
-	{
-		$debug = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, $lines);
-		foreach($debug as $idx=>$line)
-		{
- 			$trace = var_export($line, true);
-			echo ($nl2br === true) ? nl2br($trace)."<br>" : $trace."\n";
-		}
-		echo ($nl2br === true) ? '<br><br>' : "\n\n";
 	}
 
 	public static function getCallerName()
