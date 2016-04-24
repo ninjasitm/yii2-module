@@ -107,7 +107,7 @@ class Relations
 
 		if($model->isRelationPopulated($relation))
 			$ret_val = $model->{$relation};
-			
+
 		if(!is_null($ret_val)) {
 			self::setCachedRelation($model, $idKey, $many, $modelClass, [$relation, $ret_val], $duration);
 		} else if (Cache::exists($key)) {

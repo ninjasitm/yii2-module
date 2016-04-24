@@ -23,6 +23,8 @@ class Tools {
         ];
         this._activity = {};
 
+        this._ajaxEventHandled = [];
+
         //Some fixes for some common widgets
         $(document).ready(() => {
             //this.initBsMultipleModal();
@@ -32,13 +34,17 @@ class Tools {
 
     initDefaults(container) {
         $nitm.initDefaults(this.id, this, this.defaultInit, container);
-    };
+    }
 
     initEvents() {
-
-        $(document).on('pjax:success loaded.bs.modal', (data, status, xhr, options) => {
-            console.info("[Nitm: Tools]: Running helper scripts after event (" + data.type + "." + data.namespace + ") on HTML element: #" + data.target.id);
-            $nitm.initDefaults(this.id, this, this.defaultInit, '#' + data.target.id);
+        $nitm.initAjaxEvents('ajaxStop');
+        $(document).on('nitm:ajax-event:ajaxStop', (event, originalEvent, wrapperId, contents) => {
+            if(this._ajaxEventHandled.indexOf(originalEvent.namespace+originalEvent.timeStamp) === -1) {
+                let targetId = $nitm.wrapperId(originalEvent);
+                console.info("[Nitm: Tools]: Running helper scripts after event ("+originalEvent.type+") on HTML element: "+targetId);
+                $nitm.initDefaults(this.id, this, this.defaultInit, targetId);
+                this._ajaxEventHandled.push(originalEvent.namespace+originalEvent.timeStamp);
+            }
         });
     }
 
@@ -371,24 +377,8 @@ class Tools {
         let dom = $(text);
         if (typeof callback == 'function') {
             //We do this here so that the js gets loaded ONLY after the ajax calls are done
-            $(document).one('ajaxStop', () => {
-                console.info("[Nitm->Tools]: Running evalScripts after ajaxStop event");
-                let existing, wrapperId, wrapper;
-                if (options !== undefined) {
-                    existing = (!options.context) ? false : options.context.attr('id');
-                } else {
-                    existing = false;
-                }
-                wrapperId = !existing ? false : $nitm.getObj(existing).find("[role='nitmToolsAjaxWrapper']").attr('id');
-                if (wrapperId) {
-                    wrapper = $('#' + wrapperId);
-                    wrapper.html('').html(dom.html());
-                } else {
-                    wrapperId = 'nitm-tools-ajax-wrapper' + Date.now();
-                    wrapper = $('<div id="' + wrapperId + '" role="nitmToolsAjaxWrapper">');
-                    wrapper.append(dom);
-                }
-                let contents = $('<div>').append(wrapper);
+            $(document).on('nitm:ajax-event', (event, originalEvent, wrapperId, contents) => {
+                console.info("[Nitm->Tools]: Running evalScripts after ajaxStop event: "+event.namespace);
                 //Execute basic init on new content
                 let promise = new Promise((resolve, reject) => {
                     try {
