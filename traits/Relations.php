@@ -200,7 +200,7 @@ trait Relations {
 
 	protected function getCategoryRelation($link, $options=[], $className=null, $many=false)
 	{
-		$className = is_null($className) ? \nitm\widgets\models\Category::className() : $className;
+		$className = is_null($className) ? \nitm\models\Category::className() : $className;
 		$options['select'] = isset($options['select']) ? $options['select'] : ['id', 'parent_ids', 'name', 'slug', 'html_icon'];
 		$options['with'] = isset($options['with']) ? $options['select'] : [];
 		$options['orderBy'] = isset($options['orderBy']) ? $options['orderBy'] : ['name' => SORT_DESC];
@@ -209,7 +209,7 @@ trait Relations {
 
 	protected function getCachedCategoryModel($idKey, $className=null, $relation=null, $many=false)
 	{
-		$className = is_null($className) ? \nitm\widgets\models\Category::className() : $className;
+		$className = is_null($className) ? \nitm\models\Category::className() : $className;
 		$relation = is_null($relation) ? \nitm\helpers\Helper::getCallerName() : $relation;
 		if(\Yii::$app->getModule('nitm')->useModelCache)
 			return $this->getCachedRelation($idKey, $className, [], $many, $relation);
