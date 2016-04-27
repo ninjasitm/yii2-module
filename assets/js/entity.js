@@ -58,17 +58,14 @@ class NitmEntity {
             }
         };
         this.defaultInit = [
+            'initEvents'
         ];
 
         this.errorCount = 0;
     }
 
-    init(container, key, defaults) {
-        this.initDefaults(container, key, defaults);
-    };
-
-    initDefaults(container, key, userDefaults) {
-        $nitm.initDefaults(key || this.id, this, userDefaults || this.defaultInit, container || this.views.containerId);
+    initDefaults(containerId, key, userDefaults) {
+        $nitm.initDefaults(key || this.id, this, userDefaults || this.defaultInit, containerId || this.views.containerId);
     };
 
     initModule(object, name) {
@@ -90,16 +87,15 @@ class NitmEntity {
         }
     };
 
-    initAjaxEvents(logName, events) {
+    initEvents(logName, events) {
         logName = logName || 'Entity';
-        events = events || 'pjax:success loaded.bs.modal';
+        $nitm.initAjaxEvents(events || 'pjax:success loaded.bs.modal');
         //Perform certain actions after pjax success
-        console.log(events);
-        $(document).on(events, (data, status, xhr, options) => {
-            let moduleId = $(data.relatedTarget).data('module') || this.id;
-            console.info("[" + logName + "]: Running helper scripts after event (" + data.type + "." + data.namespace + ")  on module: " + moduleId + " and HTML element: #" + data.target.id);
-            this.initDefaults('#' + data.target.id, moduleId, this.defaultInit);
-            $(document).trigger('nitm:entity-ajax-event', [data.target.id]);
+        $(document).on('nitm:ajax-event:pjax:success nitm:ajax-event:loaded.bs.modal', (event, originalEvent, wrapperId) => {
+            let moduleId = $(originalEvent.relatedTarget).data('module') || this.id;
+            console.info("["+logName+"]: Running helper scripts after event ("+$nitm.realEvent(originalEvent)+") on module: "+moduleId+" and HTML element: "+wrapperId);
+            this.initDefaults(wrapperId, moduleId, this.defaultInit);
+            $(document).trigger('nitm:entity-ajax-event', [wrapperId]);
         });
     }
 

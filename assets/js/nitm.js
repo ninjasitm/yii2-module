@@ -12,6 +12,8 @@ class Nitm
 		this.current ='';
 		this.modules = {};
 		this.r = {'url':'/r/', 'type':'POST', 'dataType':'json'};
+		this._ajaxEvents = [];
+		this._defaultInited = [];
 	}
 
 	trigger (event, args) {
@@ -351,31 +353,36 @@ class Nitm
 	}
 
 	initDefaults (key, object, defaults, container) {
-		console.info("[Nitm]: Initing defaults on ["+(container || 'body')+"] for ("+key+"): "+defaults);
-		if (object === undefined)
-			object = this.module(key);
-		try {
-			$.each(defaults, function () {
-				if(typeof object[this] == 'function') {
-					try {
-						object[this].call(object, container, key);
-					} catch (error) {
-						throw (error);
-						console.warn("[Nitm]: "+key+"->"+this+"() error: "+error.message+" in "+error.fileName+" on line "+error.lineNumber+":"+error.columnNumber);
-					}
-				} else
-					console.warn("[Nitm]: Method: "+this+" doesn't exist on "+key);
-			});
-		} catch (error) {
-			throw (error);
-			console.warn("[Nitm]: Defaults should be a proper array. Received: "+defaults);
+		if(this._defaultInited.indexOf(key+container) == -1) {
+			console.info("[Nitm]: Initing defaults on ["+(container || 'body')+"] for ("+key+"): "+defaults);
+			if (object === undefined)
+				object = this.module(key);
 			try {
-				object.init();
+				$.each(defaults, function () {
+					if(typeof object[this] == 'function') {
+						try {
+							object[this].call(object, container, key);
+						} catch (error) {
+							throw (error);
+							console.warn("[Nitm]: "+key+"->"+this+"() error: "+error.message+" in "+error.fileName+" on line "+error.lineNumber+":"+error.columnNumber);
+						}
+					} else
+						console.warn("[Nitm]: Method: "+this+" doesn't exist on "+key);
+				});
 			} catch (error) {
-				console.warn("[Nitm]: Empty defaults send to init but object has no init() method");
+				throw (error);
+				console.warn("[Nitm]: Defaults should be a proper array. Received: "+defaults);
+				try {
+					object.init();
+				} catch (error) {
+					console.warn("[Nitm]: Empty defaults send to init but object has no init() method");
+				}
 			}
+			this._defaultInited.push(key+container);
+			console.info("[Nitm]: Completed init of ("+key+")");
+		} else {
+			console.warn("[Nitm]: Skipping defaults on ["+(container || 'body')+"] for ("+key+"): "+defaults);
 		}
-		console.info("[Nitm]: Loaded module ("+key+")");
 	};
 
 	objectToSerializedArray(object, key) {
@@ -392,6 +399,43 @@ class Nitm
 			}
 		});
 		return array;
+	};
+
+	wrapperId(event) {
+		let wrapperId = $nitm.getObj(event.target).attr('id');
+		if(wrapperId !== undefined)
+			wrapperId = '#'+wrapperId;
+		else
+			wrapperId = 'body';
+		return wrapperId;
+	};
+
+	realEvent(event) {
+		return [event.type, event.namespace].filter(function (value) {
+			return value != '';
+		}).join('.');
+	};
+
+	initAjaxEvents(eventString) {
+		if(eventString !== undefined) {
+			let events = eventString.split(' '),
+				uniqueEvents = [];
+			eventString.split(' ').forEach((event) => {
+				if(this._ajaxEvents.indexOf(event) === -1) {
+					this._ajaxEvents.push(event);
+					uniqueEvents.push(event);
+				}
+			});
+			if(uniqueEvents.length) {
+				$(document).ready(() => {
+					$(document).on(uniqueEvents.join(' '), (event) => {
+						console.info("[Nitm]: Preparing to wrap content after ajax event: "+this.realEvent(event));
+						//Execute basic init on new contents
+						$(document).trigger('nitm:ajax-event:'+this.realEvent(event), [event, this.wrapperId(event), $(event.target)]);
+					});
+				});
+			}
+		}
 	}
 }
 
@@ -435,3 +479,4 @@ $.fn.isBound = function(type, fn) {
 };
 
 var $nitm = (window.$nitm === undefined) ? new Nitm() : $nitm;
+$nitm.initAjaxEvents();
