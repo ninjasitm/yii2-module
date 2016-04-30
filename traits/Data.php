@@ -111,7 +111,7 @@ trait Data {
 			return (int)$id;
 		return $id;
 	}
-	
+
 	/**
 	 * Merge the fields and extraFields for the specified class
 	 * @param  string|null $modelClass The class to get all fields for. If null then use the current class name
@@ -130,7 +130,7 @@ trait Data {
 				return $v;
 			return $k;
 		}, array_keys($modelClass::extraFields()), $modelClass::extraFields());
-		return [$fields, $extraFields, array_merge($fields, $extraFields)];
+		return [$fields, $extraFields, array_unique(array_merge($fields, $extraFields))];
 	}
 
 	public function hasRelation($name, $model=null)
