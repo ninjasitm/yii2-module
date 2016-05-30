@@ -120,6 +120,7 @@ trait Data {
 	public function allFields(string $modelClass=null)
 	{
 		$modelClass = $modelClass ?: static::className();
+
 		$fields = array_map(function ($k, $v) {
 			if(is_int($k))
 				return $v;

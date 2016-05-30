@@ -93,10 +93,16 @@ trait EventTraits {
 							$trigger = $event->data['group'];
 							\Yii::trace("Handling [$trigger on $event->name] event for ".get_class($event->sender)."\n\n".json_encode($event, JSON_PRETTY_PRINT));
 							unset($event->data['group']);
-							Event::trigger($event->sender, $trigger, new \yii\base\ActionEvent([
-								'data' => $event->data,
-								'result' => $event->data
-							]));
+							if(isset($this) && $this instanceof \nitm\models\Data)
+								$this->trigger($trigger, new \yii\base\ActionEvent([
+									'data' => $event->data,
+									'result' => $event->data
+								]));
+							else
+								$event->sender->trigger($trigger, new \yii\base\ActionEvent([
+									'data' => $event->data,
+									'result' => $event->data
+								]));
 						}, ['group' => $type]);
 					}
 				}

@@ -160,10 +160,11 @@ class DefaultApiController extends Controller
 				return $dataProvider;
 			else {
 				$ret_val = $this->processData($dataProvider, $level);
+				$ret_val = count(array_filter($ret_val)) ? $ret_val : [['id' => 0, 'text' => "Nothing Found"]];
+				\nitm\helpers\Cache::set($cacheKey, $ret_val, 300);
 			}
 		}
-
-		return (sizeof(array_filter($ret_val)) >= 1) ? $ret_val : [['id' => 0, 'text' => "Nothing Found"]];
+		return $ret_val;
 	}
 
 	protected function processData($dataProvider, $level=null)
@@ -200,8 +201,8 @@ class DefaultApiController extends Controller
 	protected function addExtraFields($model, $modelClass)
 	{
 		$extraFields = $fields = [];
-		// Get the related fields that hace keys int eh model
-		$fields = array_intersect_key(array_keys($modelClass::extraFields()), array_keys($modelClass::fields()));
+		// Get the related fields that hace keys in the model
+		list($fields, $extraFields, $allFields) = (new $modelClass)->allFields();
 		if(is_array($model)) {
 			$extraFields = array_intersect_key($model, array_flip($fields));
 		} else {
@@ -241,7 +242,7 @@ class DefaultApiController extends Controller
 				$field[$related] = (array) $field[$related];
 			});
 			$field = [$field['id'] => $field];
-			return $field;
+			return array_unique($field, SORT_REGULAR);
 		};
 
 		array_walk($extraFields, function (&$values, $group) use($filterField) {
@@ -251,7 +252,7 @@ class DefaultApiController extends Controller
 				$values = array_values($values);
 				try {
 					if(isset($this->extraFields[$group])) {
-						$this->extraFields[$group] = array_merge($this->extraFields[$group], $values);
+						$this->extraFields[$group] = array_unique(array_merge($this->extraFields[$group], $values), SORT_REGULAR);
 					} else {
 						$this->extraFields[$group] = $values;
 					}
