@@ -232,7 +232,7 @@ class ArrayHelper extends BaseArrayHelper
 	 * Lazy copy pasta
 	 * http://php.net/manual/en/function.array-diff.php
 	 */
-	function diffSimple($array1, $array2) {
+	public static function diffSimple($array1, $array2) {
 		$aReturn = array();
 
 		foreach ($array1 as $mKey => $mValue) {
@@ -257,7 +257,7 @@ class ArrayHelper extends BaseArrayHelper
 	* @author Gajus Kuizinas <gk@anuary.com>
 	* @version 1.0.0 (2013 03 19)
 	*/
-	function diffKey(array $array1, array $array2) {
+	public static function diffKey(array $array1, array $array2) {
 		$diff = array_diff_key($array1, $array2);
 		$intersect = array_intersect_key($array1, $array2);
 
@@ -310,7 +310,7 @@ class ArrayHelper extends BaseArrayHelper
 		return $ret_val;
 	}
 
-	public function setValue(&$array, $key, $value, $append=false)
+	public static function setValue(&$array, $key, $value, $append=false)
 	{
         if ($key instanceof \Closure) {
             return $key($array, $default);
@@ -346,7 +346,7 @@ class ArrayHelper extends BaseArrayHelper
 		}
     }
 
-	public function getOrSetValue(&$array, $key=null, $value=null, $append=false)
+	public static function getOrSetValue(&$array, $key=null, $value=null, $append=false)
 	{
 		//Merge the view options with this array
 		if(is_null($key) && is_array($value))

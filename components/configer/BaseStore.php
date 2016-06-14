@@ -160,7 +160,7 @@ abstract class BaseStore extends \yii\base\Object
 
 	abstract public function getContainers($in, $objectsOnly=false);
 
-	protected function resolveNameAndSection($key, $updating=false)
+	protected static function resolveNameAndSection($key, $updating=false)
 	{
 		$hierarchy = is_array($key) ? $key : explode('.', $key);
 		$size = count($hierarchy);
@@ -175,12 +175,12 @@ abstract class BaseStore extends \yii\base\Object
 		];
 	}
 
-	protected function getLastChecked()
+	protected static function getLastChecked()
 	{
 		return ArrayHelper::getValue($_SESSION, '__configLastChecked', date('Y-m-d H:i:s', 0));
 	}
 
-	protected function setLastChecked()
+	protected static function setLastChecked()
 	{
 		$_SESSION['__configLastChecked'] = date('Y-m-d H:i:s', strtotime('now'));
 	}

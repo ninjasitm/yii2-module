@@ -65,7 +65,7 @@ class EntityMetadata extends \yii\db\ActiveRecord
 	 * The link that signifies the metadata connection
      * @return array
      */
-    public function metadataLink()
+    public static function metadataLink()
     {
         return ['content_id' => 'id'];
     }

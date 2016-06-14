@@ -29,9 +29,9 @@ trait Data {
 			static:: $_is = $is;
 	}
 
-	public function isWhat(...$arguments)
+	public static function isWhat($pluralize=null, $forceClassType=false)
 	{
-		return self::getIsA(...$arguments);
+		return self::getIsA($pluralize, $forceClassType);
 	}
 
 	/*
@@ -39,7 +39,7 @@ trait Data {
 	 * @param bollean|null $pluralize Should the returnvalue be pluralized or singularized. WHen set to null nothing is done
 	 * @param boolean $forceClassType resolution Don't check for type if this is set to type
 	 */
-	public function getIsA($pluralize=null, $forceClassType=false)
+	public static function getIsA($pluralize=null, $forceClassType=false)
 	{
 		$slugify = function ($value) {
 			$stack = explode('\\', $value);
@@ -134,7 +134,7 @@ trait Data {
 		return [$fields, $extraFields, array_unique(array_merge($fields, $extraFields))];
 	}
 
-	public function hasRelation($name, $model=null)
+	public static function hasRelation($name, $model=null)
 	{
 		$ret_val = null;
 		$model = is_null($model) ? $this : $model;
@@ -154,7 +154,7 @@ trait Data {
 	 * @param string $name
 	 * @return string
 	 */
-	public function properName($value=null)
+	public static function properName($value=null)
 	{
 		if(isset($this))
 			$value = is_null($value) ? $this->isWhat() : $value;
@@ -168,7 +168,7 @@ trait Data {
 	 * @param string $name
 	 * @return string
 	 */
-	public function properFormName($value=null)
+	public static function properFormName($value=null)
 	{
 		if(isset($this))
 			$value = is_null($value) ? $this->isWhat() : $value;
@@ -182,7 +182,7 @@ trait Data {
 	 * @param string $name
 	 * @return string
 	 */
-	public function properClassName($value=null)
+	public static function properClassName($value=null)
 	{
 		if(isset($this)) {
 			$value = is_null($value) ? $this->className() : $value;

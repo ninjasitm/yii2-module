@@ -15,12 +15,12 @@ class Cache extends Model
 	public static $cache;
 	private static $_cache = [];
 
-	public function cacheKey($model, $idKey, $relation=null, $many=false)
+	public static function cacheKey($model, $idKey, $relation=null, $many=false)
 	{
 		return Cache::getKey($model, $idKey, $relation, $many);
 	}
 
-	public function getKey($model, $idKey, $relation=null, $many=false)
+	public static function getKey($model, $idKey, $relation=null, $many=false)
 	{
 		$ret_val = [($many == true ? 'many' : 'one'), $relation, $model->isWhat()];
 		if(is_string($model) || is_numeric($model))

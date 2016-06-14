@@ -487,7 +487,7 @@ trait Query {
 	 * Set the aliased fields according to the class columns() function
      * @param ActiveQuery $query
 	 */
-	public function aliasColumns($query)
+	public static function aliasColumns($query)
 	{
 		$class = isset($this) ? $this->className() :  static::className();
 		$ret_val = [];

@@ -68,7 +68,7 @@ class CategoryMetadata extends EntityMetadata
 	 * The link that signifies the metadata connection
      * @return array
      */
-    public function metadataLink()
+    public static function metadataLink()
     {
         return ['category_id' => 'id'];
     }
