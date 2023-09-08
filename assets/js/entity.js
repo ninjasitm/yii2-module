@@ -404,9 +404,9 @@ class NitmEntity {
                 let $container = $(element);
                 $container.find("[role~='" + this.actions.disabledOnClose + "']").map((i, elem) => {
                     let $elem = $(elem);
-                    if ($elem.css('visbility') === undefined) {
-                        let visibility = ($elem.css('visbility') == 'hidden') ? 'visible' : 'hidden';
-                        $elem.css('visbility', visibility);
+                    if ($elem.css('visibility') === undefined) {
+                        let visibility = ($elem.css('visibility') == 'hidden') ? 'visible' : 'hidden';
+                        $elem.css('visibility', visibility);
                     } else {
                         $elem.toggleClass('hidden', result.data);
                     }
